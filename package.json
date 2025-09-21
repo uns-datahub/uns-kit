@@ -1,6 +1,6 @@
 {
   "name": "uns-kit",
-  "version": "0.0.2",
+  "version": "0.0.0",
   "private": true,
   "description": "Monorepo for the UNS toolkit (core runtime and plugin packages)",
   "packageManager": "pnpm@9.12.1",
