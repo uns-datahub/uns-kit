@@ -158,6 +158,12 @@ importers:
         specifier: workspace:^0.0.1
         version: link:../uns-core
 
+  packages/uns-cli:
+    dependencies:
+      '@uns-kit/core':
+        specifier: workspace:^0.0.1
+        version: link:../uns-core
+
 packages:
 
   '@ardatan/relay-compiler@12.0.3':

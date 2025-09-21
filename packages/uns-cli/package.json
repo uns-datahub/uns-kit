@@ -1,0 +1,35 @@
+{
+  "name": "@uns-kit/cli",
+  "version": "0.0.1",
+  "description": "Command line scaffolding tool for UNS applications",
+  "type": "module",
+  "license": "MIT",
+  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uns-datahub/uns-kit.git",
+    "directory": "packages/uns-cli"
+  },
+  "bin": {
+    "uns-kit": "./dist/index.js",
+    "uns": "./dist/index.js"
+  },
+  "keywords": [
+    "uns",
+    "cli",
+    "scaffold",
+    "template",
+    "typescript"
+  ],
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@uns-kit/core": "workspace:^0.0.1"
+  }
+}

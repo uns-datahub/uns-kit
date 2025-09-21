@@ -10,6 +10,7 @@ This repository houses the official UNS toolkit published to npm under the `@uns
 | [`@uns-kit/api`](packages/uns-api) | Express plugin that exposes HTTP endpoints, handles JWT/JWKS auth, and republishes API metadata to UNS. |
 | [`@uns-kit/cron`](packages/uns-cron) | Cron-driven scheduler that emits UNS events on a fixed cadence. |
 | [`@uns-kit/temporal`](packages/uns-temporal) | Temporal.io integration that wires workflows into UnsProxyProcess. |
+| [`@uns-kit/cli`](packages/uns-cli) | Command line tool for scaffolding new UNS applications. |
 
 Each package is published independently to npm and can be consumed à la carte.
 
@@ -30,6 +31,15 @@ To work on a specific package:
 cd packages/uns-api
 pnpm run typecheck
 pnpm run build
+```
+
+### Scaffolding a New Project
+
+```bash
+pnpm dlx @uns-kit/cli create my-uns-app
+cd my-uns-app
+pnpm install
+pnpm run dev
 ```
 
 ## Publishing
