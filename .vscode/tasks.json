@@ -1,0 +1,37 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+    {
+      "label": "Build",
+      "type": "npm",
+      "script": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "type": "npm",
+      "script": "lint",
+      "problemMatcher": ["$eslint-stylish"],
+      "label": "Lint"
+    },
+    {
+      "label": "Type Check",
+      "type": "npm",
+      "script": "typecheck",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Type Check (watch)",
+      "type": "npm",
+      "script": "typecheck:watch",
+      "isBackground": true,
+      "problemMatcher": ["$tsc-watch"]
+    },
+    {
+      "label": "Dev",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

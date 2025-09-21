@@ -1,0 +1,150 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "dev: start (tsx) + typecheck",
+      "runtimeArgs": ["--loader=tsx"],
+      "program": "${workspaceFolder}/src/local/index.ts",
+      "cwd": "${workspaceFolder}",
+      "outputCapture": "std",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"],
+      "preLaunchTask": "Type Check (watch)"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "start (tsx)",
+      "runtimeArgs": ["--loader=tsx"],
+      "program": "${workspaceFolder}/src/local/index.ts",
+      "cwd": "${workspaceFolder}",
+      "outputCapture": "std",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "outputCapture": "std",
+      "type": "node",
+      "request": "launch",
+      "name": "start",
+      "sourceMaps": true,
+      "program": "${workspaceFolder}/dist/index.js",
+      "preLaunchTask": "Build",
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "example: uns-gateway (tsx)",
+      "runtimeArgs": ["--loader=tsx"],
+      "program": "${workspaceFolder}/src/examples/uns-gateway.ts",
+      "cwd": "${workspaceFolder}",
+      "outputCapture": "std",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "example: uns-gateway-server (tsx)",
+      "runtimeArgs": ["--loader=tsx"],
+      "program": "${workspaceFolder}/src/uns-grpc/uns-gateway-server.ts",
+      "cwd": "${workspaceFolder}",
+      "outputCapture": "std",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    
+    {
+      "outputCapture": "std",
+      "type": "node",
+      "request": "launch",
+      "name": "data-example",
+      "sourceMaps": true,
+      "program": "${workspaceFolder}/dist/examples/data-example.js",
+      "preLaunchTask": "Build",
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    },
+    {
+      "outputCapture": "std",
+      "type": "node",
+      "request": "launch",
+      "name": "load-test",
+      "sourceMaps": true,
+      "program": "${workspaceFolder}/dist/examples/load-test.js",
+      "preLaunchTask": "Build",
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    },
+    {
+      "outputCapture": "std",
+      "type": "node",
+      "request": "launch",
+      "name": "table-example",
+      "sourceMaps": true,
+      "program": "${workspaceFolder}/dist/examples/table-example.js",
+      "preLaunchTask": "Build",
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    },
+    {
+      "outputCapture": "std",
+      "type": "node",
+      "request": "launch",
+      "name": "cron-example",
+      "sourceMaps": true,
+      "program": "${workspaceFolder}/dist/examples/cron-example.js",
+      "preLaunchTask": "Build",
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    },
+    {
+      "outputCapture": "std",
+      "type": "node",
+      "request": "launch",
+      "name": "api-example",
+      "sourceMaps": true,
+      "program": "${workspaceFolder}/dist/examples/api-example.js",
+      "preLaunchTask": "Build",
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    },
+    {
+      "outputCapture": "std",
+      "type": "node",
+      "request": "launch",
+      "name": "grpc-python-example",
+      "sourceMaps": true,
+      "program": "${workspaceFolder}/dist/examples/grpc-python-example.js",
+      "preLaunchTask": "Build",
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    },
+    {
+      "outputCapture": "std",
+      "type": "node",
+      "request": "launch",
+      "name": "temporal-example",
+      "sourceMaps": true,
+      "program": "${workspaceFolder}/dist/examples/temporal-example.js",
+      "preLaunchTask": "Build",
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    }    
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "npm.exclude": ["**/bin"],
+  "npm.packageManager": "pnpm",
+  "npm.scriptExplorerExclude": [
+    ".*darwin.*",
+    ".*win32.*",
+    ".*prebuild.*",
+    ".*lint.*",
+    ".*initialize.*",
+    "test:.*",
+    "make(:.*)?",
+    "update-uns-library",
+    "pr",
+    "init-python(:.*)?",
+    "typecheck:watch"
+  ],
+  "python.defaultInterpreterPath": "python/.venv/bin/python",
+  "json.schemas": [
+    {
+      "fileMatch": ["config.json"],
+      "url": "./config.schema.json"
+    }
+  ]
+}

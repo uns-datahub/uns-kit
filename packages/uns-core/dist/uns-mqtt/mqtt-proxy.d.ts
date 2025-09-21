@@ -1,0 +1,34 @@
+import mqtt from "mqtt";
+import { UnsEvents } from "../uns/uns-interfaces.js";
+import { UnsEventEmitter } from "../uns/uns-event-emitter.js";
+import { IMqttParameters } from "./mqtt-interfaces.js";
+import { MqttWorker } from "./mqtt-worker.js";
+export default class MqttProxy {
+    event: UnsEventEmitter<UnsEvents>;
+    statusTopic: string;
+    instanceName: string;
+    private mqttHost;
+    private mqttSubToTopics;
+    private mqttSSL;
+    private mqttClient;
+    private startDate;
+    private mqttParameters;
+    private statusUpdateInterval;
+    private transformationStatsInterval;
+    private publishedMessageCount;
+    private publishedMessageBytes;
+    private subscribedMessageCount;
+    private subscribedMessageBytes;
+    private mqttWorker;
+    isConnected: boolean;
+    constructor(mqttHost: string, instanceName: string, mqttParameters: IMqttParameters, mqttWorker?: MqttWorker);
+    start(): Promise<void>;
+    publish(topic: string, message: string | Buffer, options?: mqtt.IClientPublishOptions): Promise<void>;
+    subscribeAsync(topic: string | string[], options?: mqtt.IClientSubscribeOptions): Promise<mqtt.ISubscriptionGrant[]>;
+    unsubscribeAsync(topic: string | string[]): Promise<mqtt.Packet | undefined>;
+    stop(): void;
+    private emitStatusUpdates;
+    private updatePublishTransformationStats;
+    private updateSubscribeTransformationStats;
+    private emitTransformationStatistics;
+}

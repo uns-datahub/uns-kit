@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "allowImportingTsExtensions": false,
+    "paths": {
+      "@uns-kit/core": ["packages/uns-core/dist/index.d.ts", "packages/uns-core/dist/index.js"],
+      "@uns-kit/core/*": ["packages/uns-core/dist/*.d.ts", "packages/uns-core/dist/*.js"]
+    }
+  }
+}

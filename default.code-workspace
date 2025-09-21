@@ -1,0 +1,4 @@
+{
+  "folders": [{ "name": "uns-kit", "path": "." }],
+  "settings": { "git.ignoreLimitWarning": true }
+}

@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "verbatimModuleSyntax": false,
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@uns-kit/core": ["packages/uns-core/src/index.ts"],
+      "@uns-kit/core/*": ["packages/uns-core/src/*"],
+      "@uns-kit/cron": ["packages/uns-cron/src/index.ts"],
+      "@uns-kit/cron/*": ["packages/uns-cron/src/*"],
+      "@uns-kit/api": ["packages/uns-api/src/index.ts"],
+      "@uns-kit/api/*": ["packages/uns-api/src/*"],
+      "@uns-kit/temporal": ["packages/uns-temporal/src/index.ts"],
+      "@uns-kit/temporal/*": ["packages/uns-temporal/src/*"]
+    }
+  }
+}

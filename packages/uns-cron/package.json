@@ -1,0 +1,37 @@
+{
+  "name": "@uns-kit/cron",
+  "version": "0.0.1",
+  "description": "Cron-driven plugin for UnsProxyProcess that emits UNS events on a schedule.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uns-datahub/uns-kit.git",
+    "directory": "packages/uns-cron"
+  },
+  "keywords": [
+    "uns",
+    "cron",
+    "scheduler",
+    "mqtt",
+    "node-cron",
+    "typescript"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./*": "./dist/*"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@uns-kit/core": "workspace:^0.0.1",
+    "node-cron": "^4.2.1"
+  }
+}

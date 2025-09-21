@@ -1,0 +1,37 @@
+{
+  "name": "@uns-kit/temporal",
+  "version": "0.0.1",
+  "description": "Temporal.io integration plugin for UnsProxyProcess, wiring workflows into the UNS.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uns-datahub/uns-kit.git",
+    "directory": "packages/uns-temporal"
+  },
+  "keywords": [
+    "uns",
+    "temporal",
+    "workflow",
+    "temporalio",
+    "mqtt",
+    "typescript"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./*": "./dist/*"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@temporalio/client": "^1.13.0",
+    "@uns-kit/core": "workspace:^0.0.1"
+  }
+}

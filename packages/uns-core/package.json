@@ -1,0 +1,48 @@
+{
+  "name": "@uns-kit/core",
+  "version": "0.0.1",
+  "description": "Core utilities and runtime building blocks for UNS-based realtime transformers.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uns-datahub/uns-kit.git",
+    "directory": "packages/uns-core"
+  },
+  "keywords": [
+    "uns",
+    "unified-namespace",
+    "mqtt",
+    "iot",
+    "typescript",
+    "realtime"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./*": "./dist/*"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.0",
+    "@grpc/proto-loader": "^0.8.0",
+    "@infisical/sdk": "^4.0.5",
+    "get-port": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mqtt": "^5.13.0",
+    "winston": "^3.17.0",
+    "ws": "^8.18.3",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/ws": "^8.18.1"
+  }
+}
