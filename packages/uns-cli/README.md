@@ -5,11 +5,13 @@ Command line scaffolding tool for the UNS toolkit. It bootstraps a new project w
 ## Usage
 
 ```bash
-pnpm dlx @uns-kit/cli create my-uns-app
+pnpm --package=@uns-kit/cli dlx uns-kit create my-uns-app
 # or after installing globally
-yarn global add @uns-kit/cli
+npm install -g @uns-kit/cli
 uns-kit create my-uns-app
 ```
+
+> The package exposes both `uns-kit` and `uns` binaries. When using `pnpm dlx`, specify which one to run (`uns-kit` above). If you install globally you can use the shorter `uns create …` alias.
 
 The command creates a new directory, copies the starter template, and pins `@uns-kit/core` to the currently published version. After the scaffold finishes:
 

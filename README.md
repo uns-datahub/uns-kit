@@ -36,11 +36,13 @@ pnpm run build
 ### Scaffolding a New Project
 
 ```bash
-pnpm dlx @uns-kit/cli create my-uns-app
+pnpm --package=@uns-kit/cli dlx uns-kit create my-uns-app
 cd my-uns-app
 pnpm install
 pnpm run dev
 ```
+
+> `@uns-kit/cli` exposes both `uns-kit` and `uns` binaries; the example above selects `uns-kit` explicitly. Feel free to alias it globally (`npm install -g @uns-kit/cli`) and run `uns create …` if you prefer.
 
 ## Publishing
 
