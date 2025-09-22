@@ -6,7 +6,22 @@
   "packageManager": "pnpm@9.12.1",
   "scripts": {
     "build": "pnpm -r run build",
-    "typecheck": "pnpm -r run typecheck"
+    "typecheck": "pnpm -r run typecheck",
+    "core:version:patch": "pnpm version patch --filter @uns-kit/core",
+    "core:build": "pnpm --filter @uns-kit/core build",
+    "core:publish": "pnpm publish --filter @uns-kit/core --access public",
+    "api:version:patch": "pnpm version patch --filter @uns-kit/api",
+    "api:build": "pnpm --filter @uns-kit/api build",
+    "api:publish": "pnpm publish --filter @uns-kit/api --access public",
+    "cron:version:patch": "pnpm version patch --filter @uns-kit/cron",
+    "cron:build": "pnpm --filter @uns-kit/cron build",
+    "cron:publish": "pnpm publish --filter @uns-kit/cron --access public",
+    "temporal:version:patch": "pnpm version patch --filter @uns-kit/temporal",
+    "temporal:build": "pnpm --filter @uns-kit/temporal build",
+    "temporal:publish": "pnpm publish --filter @uns-kit/temporal --access public",
+    "cli:version:patch": "pnpm version patch --filter @uns-kit/cli",
+    "cli:build": "pnpm --filter @uns-kit/cli build",
+    "cli:publish": "pnpm publish --filter @uns-kit/cli --access public"
   },
   "author": "Aljosa Vister",
   "license": "ISC",
