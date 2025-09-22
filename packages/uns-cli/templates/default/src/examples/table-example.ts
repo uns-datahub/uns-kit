@@ -2,13 +2,13 @@
  * Change this file according to your specifications and rename it to index.ts
  */
 
-import UnsProxyProcess from "../uns/uns-proxy-process.js";
-import { ConfigFile } from "../config-file.js";
-import logger from "../logger.js";
-import { IUnsMessage } from "../uns/uns-interfaces.js";
-import { UnsPacket } from "../uns/uns-packet.js";
-import { UnsTags } from "../uns/uns-tags.js";
-import { UnsTopics } from "../uns/uns-topics.js";
+import { UnsProxyProcess } from "@uns-kit/core";
+import { ConfigFile } from "@uns-kit/core";
+import { logger } from "@uns-kit/core";
+import { IUnsMessage } from "@uns-kit/core";
+import { UnsPacket } from "@uns-kit/core/dist/uns/uns-packet";
+import { UnsTags } from "@uns-kit/core/dist/uns/uns-tags";
+import { UnsTopics } from "@uns-kit/core/dist/uns/uns-topics";
 
 /**
  * Load the configuration from a file.
