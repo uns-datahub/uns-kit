@@ -259,6 +259,19 @@
         },
         "infra": {
           "$ref": "#/definitions/AppConfig/properties/input"
+        },
+        "devops": {
+          "type": "object",
+          "properties": {
+            "organization": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "organization"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

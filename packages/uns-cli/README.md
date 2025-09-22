@@ -24,7 +24,20 @@ pnpm run dev
 ## Commands
 
 - `uns-kit create <name>` – create a new UNS project in the specified directory.
+- `uns-kit configure-devops [path]` – add Azure DevOps tooling (dependencies, script, config) to an existing project.
 - `uns-kit help` – display usage information.
+
+### Configure Azure DevOps
+
+Run inside a scaffolded project to add the Azure DevOps pull-request tooling:
+
+```bash
+uns-kit configure-devops
+pnpm install
+pnpm run pull-request
+```
+
+The command prompts for your Azure DevOps organization and updates `config.json` along with the necessary dev dependencies.
 
 ## License
 

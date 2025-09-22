@@ -175,4 +175,7 @@ export type AppConfig = {
         })) | undefined;
         clientId?: string | undefined;
     };
+    devops?: {
+        organization: string;
+    } | undefined;
 }

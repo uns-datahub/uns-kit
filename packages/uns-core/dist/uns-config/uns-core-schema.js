@@ -22,4 +22,7 @@ export const unsCoreSchema = z.object({
     input: mqttChannelSchema.optional(),
     output: mqttChannelSchema.optional(),
     infra: mqttChannelSchema,
+    devops: z.object({
+        organization: z.string().min(1),
+    }).strict().optional(),
 }).strict();

@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import process from "node:process";
+import readline from "node:readline/promises";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +17,17 @@ async function main(): Promise<void> {
 
   if (!command || command === "help" || command === "--help" || command === "-h") {
     printHelp();
+    return;
+  }
+
+  if (command === "configure-devops") {
+    const targetPath = args[1];
+    try {
+      await configureDevops(targetPath);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
     return;
   }
 
@@ -42,7 +54,7 @@ async function main(): Promise<void> {
 }
 
 function printHelp(): void {
-  console.log(`\nUsage: uns-kit <command> [options]\n\nCommands:\n  create <name>   Scaffold a new UNS application\n  help            Show this message\n`);
+  console.log(`\nUsage: uns-kit <command> [options]\n\nCommands:\n  create <name>           Scaffold a new UNS application\n  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n  help                    Show this message\n`);
 }
 
 async function createProject(projectName: string): Promise<void> {
@@ -62,6 +74,98 @@ async function createProject(projectName: string): Promise<void> {
   console.log(`  cd ${projectName}`);
   console.log("  pnpm install");
   console.log("  pnpm run dev");
+}
+
+async function configureDevops(targetPath?: string): Promise<void> {
+  const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
+  const packagePath = path.join(targetDir, "package.json");
+  const configPath = path.join(targetDir, "config.json");
+
+  let pkgRaw: string;
+  try {
+    pkgRaw = await readFile(packagePath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`Could not find package.json in ${targetDir}`);
+    }
+    throw error;
+  }
+
+  let configRaw: string;
+  try {
+    configRaw = await readFile(configPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`Could not find config.json in ${targetDir}`);
+    }
+    throw error;
+  }
+
+  const pkg = JSON.parse(pkgRaw) as {
+    devDependencies?: Record<string, string>;
+    dependencies?: Record<string, string>;
+    scripts?: Record<string, string>;
+    [key: string]: unknown;
+  };
+  const config = JSON.parse(configRaw) as {
+    devops?: { organization?: string };
+    [key: string]: unknown;
+  };
+
+  const defaultOrg = config.devops?.organization ?? "sijit";
+  const answer = (await promptQuestion(`Azure DevOps organization [${defaultOrg}]: `)).trim();
+  const organization = answer || defaultOrg;
+
+  if (!config.devops || typeof config.devops !== "object") {
+    config.devops = {};
+  }
+  config.devops.organization = organization;
+
+  const requiredDevDeps: Record<string, string> = {
+    "azure-devops-node-api": "^15.1.0",
+    "simple-git": "^3.27.0",
+    "chalk": "^5.4.1",
+    "prettier": "^3.5.3"
+  };
+
+  let pkgChanged = false;
+  const devDeps = (pkg.devDependencies ??= {});
+  const deps = pkg.dependencies ?? {};
+
+  for (const [name, version] of Object.entries(requiredDevDeps)) {
+    if (!devDeps[name] && !deps[name]) {
+      devDeps[name] = version;
+      pkgChanged = true;
+    }
+  }
+
+  const scripts = (pkg.scripts ??= {});
+  if (!scripts["pull-request"]) {
+    scripts["pull-request"] = "node ./node_modules/@uns-kit/core/dist/tools/pull-request.js";
+    pkgChanged = true;
+  }
+
+  await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
+  if (pkgChanged) {
+    await writeFile(packagePath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+  }
+
+  console.log(`\nDevOps tooling configured.`);
+  console.log(`  Azure organization: ${organization}`);
+  if (pkgChanged) {
+    console.log("  Updated package.json scripts/devDependencies. Run pnpm install to fetch new packages.");
+  } else {
+    console.log("  Existing package.json already contained required entries.");
+  }
+}
+
+async function promptQuestion(message: string): Promise<string> {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return await rl.question(message);
+  } finally {
+    rl.close();
+  }
 }
 
 async function ensureTargetDir(dir: string): Promise<void> {

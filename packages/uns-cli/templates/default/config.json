@@ -16,5 +16,8 @@
   },
   "input": {
     "host": "localhost:1883"
+  },
+  "devops": {
+    "organization": "sijit"
   }
 }

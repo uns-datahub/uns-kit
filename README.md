@@ -44,6 +44,14 @@ pnpm install
 pnpm run dev
 ```
 
+Optional Azure DevOps tooling setup (run inside the generated project):
+
+```bash
+uns-kit configure-devops
+pnpm install
+pnpm run pull-request
+```
+
 ## Publishing
 
 1. Update versions in the relevant `package.json` files.

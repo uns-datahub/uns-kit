@@ -481,6 +481,13 @@ export declare const unsCoreSchema: z.ZodObject<{
         };
         clientId?: string;
     }>;
+    devops: z.ZodOptional<z.ZodObject<{
+        organization: z.ZodString;
+    }, "strict", z.ZodTypeAny, {
+        organization?: string;
+    }, {
+        organization?: string;
+    }>>;
 }, "strict", z.ZodTypeAny, {
     uns?: {
         handover?: boolean;
@@ -591,6 +598,9 @@ export declare const unsCoreSchema: z.ZodObject<{
         };
         clientId?: string;
     };
+    devops?: {
+        organization?: string;
+    };
 }, {
     uns?: {
         handover?: boolean;
@@ -700,6 +710,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             projectId?: string;
         };
         clientId?: string;
+    };
+    devops?: {
+        organization?: string;
     };
 }>;
 export type UnsCore = z.infer<typeof unsCoreSchema>;

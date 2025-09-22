@@ -12,11 +12,8 @@ import * as prettier from "prettier";
 import { CleanOptions, SimpleGit, simpleGit } from "simple-git";
 import util from "util";
 
-
-
-
+import { ConfigFile } from "../config-file.js";
 import { basePath } from "../base-path.js";
-
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -28,7 +25,16 @@ const git: SimpleGit = simpleGit("./").clean(CleanOptions.FORCE);
 const packageJsonPath = path.join(basePath, "package.json");
 const unsLibraryPath = path.join(basePath, "uns-library.json");
 
-const orgUrl = "https://sijit@dev.azure.com/sijit";
+let azureOrganization = "sijit";
+try {
+  const appConfig = ConfigFile.loadRawConfig();
+  azureOrganization = appConfig.devops?.organization?.trim() || azureOrganization;
+} catch (error) {
+  // Use default organization when config.json is missing
+}
+const orgUrl = `https://${azureOrganization}@dev.azure.com/${azureOrganization}`;
+const orgBaseUrl = `https://dev.azure.com/${azureOrganization}`;
+const tokensUrl = `${orgBaseUrl}/_usersSettings/tokens`;
 
 const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8"));
 const repoName: string = packageJson.name;
@@ -74,7 +80,7 @@ async function main() {
       }
       if (!token) {
         token = await question(
-          `Please enter your PAT, you can create one at [https://dev.azure.com/sijit/_usersSettings/tokens]: `,
+          `Please enter your PAT, you can create one at [${tokensUrl}]: `,
         );
         const authHandler = azdev.getPersonalAccessTokenHandler(token);
         const connection = new azdev.WebApi(orgUrl, authHandler);
@@ -187,5 +193,5 @@ async function createPullRequest(tag: string) {
   };
   gitApi.createPullRequest(gitPullRequestToCreate, repoId, project);
   console.log(chalk.green.bold(` ... OK`));
-  console.log(`Pull request created at ` + chalk.green.bold(`[https://dev.azure.com/sijit/${project}/_git/${repoName}/pullrequests]`));
+  console.log(`Pull request created at ` + chalk.green.bold(`[${orgBaseUrl}/${project}/_git/${repoName}/pullrequests]`));
 }
