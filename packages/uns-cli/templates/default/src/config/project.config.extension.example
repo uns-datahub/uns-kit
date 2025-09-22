@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { secretValueSchema } from "../uns-config/secret-placeholders.js";
-import { hostValueSchema } from "../uns-config/host-placeholders.js";
+import { secretValueSchema } from "@uns-kit/core/dist/uns-config/secret-placeholders";
+import { hostValueSchema } from "@uns-kit/core/dist/uns-config/host-placeholders";
 
-// Exported constant in PascalCase
+// Extend this schema with project-specific configuration sections.
 export const projectExtrasSchema = z.object({
   pg: z.object({
     user: z.string().min(1, "pg.user is required"),

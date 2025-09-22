@@ -77,15 +77,15 @@ importers:
       '@uns-kit/core':
         specifier: workspace:^0.0.1
         version: link:../uns-core
-      jsonwebtoken:
-        specifier: ^9.0.2
-        version: 9.0.2
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
       express:
         specifier: ^5.1.0
         version: 5.1.0
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
       multer:
         specifier: ^2.0.2
         version: 2.0.2
@@ -96,12 +96,18 @@ importers:
       '@types/express':
         specifier: ^5.0.3
         version: 5.0.3
-      '@types/multer':
-        specifier: ^2.0.0
-        version: 2.0.0
       '@types/jsonwebtoken':
         specifier: ^9.0.10
         version: 9.0.10
+      '@types/multer':
+        specifier: ^2.0.0
+        version: 2.0.0
+
+  packages/uns-cli:
+    dependencies:
+      '@uns-kit/core':
+        specifier: workspace:^0.0.1
+        version: link:../uns-core
 
   packages/uns-core:
     dependencies:
@@ -158,11 +164,21 @@ importers:
         specifier: workspace:^0.0.1
         version: link:../uns-core
 
-  packages/uns-cli:
+  sandbox-app:
     dependencies:
       '@uns-kit/core':
-        specifier: workspace:^0.0.1
-        version: link:../uns-core
+        specifier: ^0.0.1
+        version: 0.0.1
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      tsx:
+        specifier: ^4.20.5
+        version: 4.20.5
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
 
 packages:
 
@@ -1430,6 +1446,9 @@ packages:
   '@typescript-eslint/visitor-keys@8.44.0':
     resolution: {integrity: sha512-zaz9u8EJ4GBmnehlrpoKvj/E3dNbuQ7q0ucyZImm3cLqJ8INTc970B1qEqDX/Rzq65r3TvVTN7kHWPBoyW7DWw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@uns-kit/core@0.0.1':
+    resolution: {integrity: sha512-fEr+CwBHOt5fx3x+d4RB6GQlsN6T0r7kwpx7sFgQ8LcX4GNjQqp5/n9/i+ukvHU9l0KrfkE0HaWCK0ptQAb89A==}
 
   '@vitest/expect@3.2.4':
     resolution: {integrity: sha512-Io0yyORnB6sikFlt8QW5K7slY4OjqNX9jmJQ02QDda8lyM6B5oNgVWoSoKPac8/kgnCUzuHQKrSLtu/uOqqrig==}
@@ -5297,6 +5316,24 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.44.0
       eslint-visitor-keys: 4.2.1
+
+  '@uns-kit/core@0.0.1':
+    dependencies:
+      '@grpc/grpc-js': 1.14.0
+      '@grpc/proto-loader': 0.8.0
+      '@infisical/sdk': 4.0.5
+      get-port: 7.1.0
+      jsonwebtoken: 9.0.2
+      mqtt: 5.14.1
+      winston: 3.17.0
+      ws: 8.18.3
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - aws-crt
+      - bufferutil
+      - debug
+      - supports-color
+      - utf-8-validate
 
   '@vitest/expect@3.2.4':
     dependencies:

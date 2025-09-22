@@ -22,7 +22,7 @@
     "cli:version:patch": "pnpm version patch --filter @uns-kit/cli",
     "cli:build": "pnpm --filter @uns-kit/cli build",
     "cli:publish": "pnpm publish --filter @uns-kit/cli --access public",
-    "sandbox:create": "pnpm --filter @uns-kit/cli build && node packages/uns-cli/dist/index.js create"
+    "sandbox:create": "pnpm --filter @uns-kit/cli build && node packages/uns-cli/dist/index.js create sandbox-app"
   },
   "author": "Aljosa Vister",
   "license": "ISC",

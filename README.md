@@ -57,7 +57,7 @@ Keep your project schema aligned by editing `src/config/project.config.extension
 To spin up a local sandbox against the workspace packages:
 
 ```bash
-pnpm run sandbox:create sandbox-app
+pnpm run sandbox:create
 cd sandbox-app
 pnpm install
 ```
