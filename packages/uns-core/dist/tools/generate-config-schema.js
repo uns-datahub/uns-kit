@@ -51,8 +51,10 @@ async function loadProjectExtrasSchema() {
 }
 const projectExtrasSchema = await loadProjectExtrasSchema();
 const baseSchema = composeConfigSchema(unsCoreSchema, projectExtrasSchema).strict();
+// 1) JSON Schema for VS Code $schema
 const jsonSchema = zodToJsonSchema(baseSchema, "AppConfig");
 write(path.resolve("config.schema.json"), JSON.stringify(jsonSchema, null, 2));
+// 2) TypeScript `export type AppConfig = {...}`
 const { node } = zodToTs(baseSchema, "AppConfig");
 const tsContent = "/* Auto-generated. Do not edit by hand. */\n" +
     "export type AppConfig = " +
