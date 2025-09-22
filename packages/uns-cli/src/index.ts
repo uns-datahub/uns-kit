@@ -98,12 +98,20 @@ async function patchPackageJson(targetDir: string, packageName: string): Promise
 
 async function patchConfigJson(targetDir: string, packageName: string): Promise<void> {
   const configFile = path.join(targetDir, "config.json");
-  const raw = await readFile(configFile, "utf8");
-  const config = JSON.parse(raw);
-  if (config.uns && typeof config.uns === "object") {
-    config.uns.processName = packageName;
+
+  try {
+    const raw = await readFile(configFile, "utf8");
+    const config = JSON.parse(raw);
+    if (config.uns && typeof config.uns === "object") {
+      config.uns.processName = packageName;
+    }
+    await writeFile(configFile, JSON.stringify(config, null, 2) + "\n", "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return;
+    }
+    throw error;
   }
-  await writeFile(configFile, JSON.stringify(config, null, 2) + "\n", "utf8");
 }
 
 async function replacePlaceholders(targetDir: string, packageName: string): Promise<void> {
@@ -113,7 +121,8 @@ async function replacePlaceholders(targetDir: string, packageName: string): Prom
 
   const filesToUpdate = [
     path.join(targetDir, "README.md"),
-    path.join(targetDir, "src/index.ts")
+    path.join(targetDir, "src/index.ts"),
+    path.join(targetDir, "config.json")
   ];
 
   for (const file of filesToUpdate) {

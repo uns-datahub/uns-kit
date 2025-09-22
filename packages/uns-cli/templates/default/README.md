@@ -8,6 +8,7 @@ Generated with `@uns-kit/cli`.
 pnpm run dev    # start the local development loop
 pnpm run build  # emit dist/ output
 pnpm run start  # run the compiled entrypoint
+pnpm run generate-config-schema  # regenerate config.schema.json and AppConfig types
 ```
 
 ## Configuration
