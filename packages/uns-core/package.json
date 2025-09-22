@@ -4,7 +4,7 @@
   "description": "Core utilities and runtime building blocks for UNS-based realtime transformers.",
   "type": "module",
   "license": "MIT",
-  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
+  "author": "Aljo\u0161a Vister <aljosa.vister@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/uns-datahub/uns-kit.git",
@@ -39,7 +39,9 @@
     "mqtt": "^5.13.0",
     "winston": "^3.17.0",
     "ws": "^8.18.3",
-    "zod": "^3"
+    "zod": "^3",
+    "zod-to-json-schema": "^3.23.5",
+    "zod-to-ts": "^1.2.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.9",
