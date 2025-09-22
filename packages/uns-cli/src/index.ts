@@ -258,23 +258,44 @@ function normalizePackageName(input: string): string {
 }
 
 function resolveCoreVersion(): string {
-  try {
-    const corePkg = require("@uns-kit/core/package.json") as { version?: string };
-    if (corePkg?.version) {
-      return corePkg.version;
+  const attempt = (factory: () => string | undefined): string | undefined => {
+    try {
+      return factory();
+    } catch (error) {
+      return undefined;
     }
-  } catch (error) {
-    // Ignore and try local path
+  };
+
+  const directVersion = attempt(() => {
+    const pkg = require("@uns-kit/core/package.json") as { version?: string };
+    return pkg?.version;
+  });
+  if (directVersion) {
+    return directVersion;
   }
 
-  try {
+  const workspaceVersion = attempt(() => {
     const localPath = path.resolve(__dirname, "../../uns-core/package.json");
-    const raw = require(localPath) as { version?: string };
-    if (raw?.version) {
-      return raw.version;
+    const pkg = require(localPath) as { version?: string };
+    return pkg?.version;
+  });
+  if (workspaceVersion) {
+    return workspaceVersion;
+  }
+
+  const dependencyVersion = attempt(() => {
+    const cliPkg = require("../package.json") as {
+      dependencies?: Record<string, string>;
+    };
+    const range = cliPkg.dependencies?.["@uns-kit/core"];
+    if (typeof range === "string") {
+      const match = range.match(/\d+\.\d+\.\d+/);
+      return match?.[0];
     }
-  } catch (error) {
-    // Ignore
+    return undefined;
+  });
+  if (dependencyVersion) {
+    return dependencyVersion;
   }
 
   return "0.0.1";
