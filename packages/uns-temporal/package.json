@@ -4,7 +4,7 @@
   "description": "Temporal.io integration plugin for UnsProxyProcess, wiring workflows into the UNS.",
   "type": "module",
   "license": "MIT",
-  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
+  "author": "Aljo\u0161a Vister <aljosa.vister@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/uns-datahub/uns-kit.git",
@@ -32,6 +32,6 @@
   },
   "dependencies": {
     "@temporalio/client": "^1.13.0",
-    "@uns-kit/core": "workspace:^0.0.1"
+    "@uns-kit/core": "workspace:^0.0.4"
   }
 }

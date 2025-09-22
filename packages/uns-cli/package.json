@@ -4,7 +4,7 @@
   "description": "Command line scaffolding tool for UNS applications",
   "type": "module",
   "license": "MIT",
-  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
+  "author": "Aljo\u0161a Vister <aljosa.vister@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/uns-datahub/uns-kit.git",
@@ -29,6 +29,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@uns-kit/core": "workspace:^0.0.1"
+    "@uns-kit/core": "workspace:^0.0.4"
   }
 }

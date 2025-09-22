@@ -40,7 +40,7 @@
     "winston": "^3.17.0",
     "ws": "^8.18.3",
     "zod": "^3",
-    "zod-to-json-schema": "^3.23.5",
+    "zod-to-json-schema": "^3.24.6",
     "zod-to-ts": "^1.2.0"
   },
   "devDependencies": {

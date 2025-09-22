@@ -4,7 +4,7 @@
   "description": "Express-powered API gateway plugin for UnsProxyProcess with JWT/JWKS support.",
   "type": "module",
   "license": "MIT",
-  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
+  "author": "Aljo\u0161a Vister <aljosa.vister@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/uns-datahub/uns-kit.git",
@@ -31,7 +31,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@uns-kit/core": "workspace:^0.0.1",
+    "@uns-kit/core": "workspace:^0.0.4",
     "jsonwebtoken": "^9.0.2",
     "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
