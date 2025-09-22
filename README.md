@@ -52,6 +52,8 @@ pnpm install
 pnpm run pull-request
 ```
 
+Keep your project schema aligned by editing `src/config/project.config.extension.ts` and running `pnpm run generate-config-schema` inside the generated app.
+
 To spin up a local sandbox against the workspace packages:
 
 ```bash

@@ -10,7 +10,8 @@
     "generate-config-schema": "node ./node_modules/@uns-kit/core/dist/tools/generate-config-schema.js"
   },
   "dependencies": {
-    "@uns-kit/core": "__UNS_KIT_CORE_VERSION__"
+    "@uns-kit/core": "__UNS_KIT_CORE_VERSION__",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "tsx": "^4.20.5",

@@ -39,6 +39,10 @@ pnpm run pull-request
 
 The command prompts for your Azure DevOps organization and updates `config.json` along with the necessary dev dependencies.
 
+### Extend the Config Schema
+
+Edit `src/config/project.config.extension.ts` inside your generated project and run `pnpm run generate-config-schema`. This regenerates `config.schema.json` and `src/config/app-config.ts` so editors and runtime types stay in sync.
+
 ## License
 
 MIT © Aljoša Vister

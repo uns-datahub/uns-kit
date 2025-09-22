@@ -1,16 +1,68 @@
-// scripts/generate-config-artifacts.ts
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { zodToTs, printNode } from "zod-to-ts";
+import { z } from "zod";
 
-// Import the plain ZodObject (no superRefine)
-import { baseSchema } from "../uns-config/config-schema.js";
+import { composeConfigSchema } from "../uns-config/schema-tools.js";
+import { unsCoreSchema } from "../uns-config/uns-core-schema.js";
+import { projectExtrasSchema as coreProjectExtrasSchema } from "../config/project.config.extension.js";
 
 function write(filePath: string, data: string) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, data);
 }
+
+let tsLoaderReady = false;
+
+async function ensureTsLoader(): Promise<void> {
+  if (tsLoaderReady) {
+    return;
+  }
+  tsLoaderReady = true;
+  try {
+    await import("tsx/esm");
+  } catch (error) {
+    throw new Error(
+      "Unable to load TypeScript project.config.extension. Install 'tsx' (e.g. pnpm add -D tsx) or provide a compiled JavaScript file.",
+    );
+  }
+}
+
+async function loadProjectExtrasSchema(): Promise<z.AnyZodObject> {
+  const base = path.resolve(process.cwd(), "src/config/project.config.extension");
+  const extensions = ["", ".ts", ".mts", ".tsx", ".js", ".mjs", ".cjs"];
+
+  for (const ext of extensions) {
+    const candidate = ext ? `${base}${ext}` : base;
+    if (!fs.existsSync(candidate)) {
+      continue;
+    }
+
+    const lowerExt = path.extname(candidate).toLowerCase();
+    try {
+      if (lowerExt === ".ts" || lowerExt === ".mts" || lowerExt === ".tsx") {
+        await ensureTsLoader();
+      }
+
+      const module = await import(pathToFileURL(candidate).href);
+      if (module?.projectExtrasSchema) {
+        return module.projectExtrasSchema as z.AnyZodObject;
+      }
+
+      throw new Error(`Module '${candidate}' does not export projectExtrasSchema.`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to load project config extension at '${candidate}': ${reason}`);
+    }
+  }
+
+  return coreProjectExtrasSchema as z.AnyZodObject;
+}
+
+const projectExtrasSchema = await loadProjectExtrasSchema();
+const baseSchema = composeConfigSchema(unsCoreSchema, projectExtrasSchema).strict();
 
 // 1) JSON Schema for VS Code $schema
 const jsonSchema = zodToJsonSchema(baseSchema, "AppConfig");
@@ -24,7 +76,6 @@ const tsContent =
   printNode(node) +
   "\n";
 
-// Put it wherever you want. You earlier asked for root (beside config-file.ts):
-write(path.resolve("./src/app-config.ts"), tsContent);
+write(path.resolve("./src/config/app-config.ts"), tsContent);
 
-console.log("Generated config.schema.json and app-config.ts");
+console.log("Generated config.schema.json and src/config/app-config.ts");

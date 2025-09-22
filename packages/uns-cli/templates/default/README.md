@@ -19,5 +19,6 @@ Update `config.json` with your broker, UNS URLs, and credentials. The generated 
 
 - Install additional plugins: `pnpm add @uns-kit/api` etc.
 - Create MQTT proxies or Temporal workflows inside `src/index.ts`.
+- Extend `src/config/project.config.extension.ts` with project-specific sections and run `pnpm run generate-config-schema`.
 - Run `uns-kit configure-devops` to add the Azure DevOps pull-request tooling.
 - Commit your new project and start building!
