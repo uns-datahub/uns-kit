@@ -32,6 +32,6 @@
   },
   "dependencies": {
     "@temporalio/client": "^1.13.0",
-    "@uns-kit/core": "workspace:^0.0.4"
+    "@uns-kit/core": "workspace:*"
   }
 }
