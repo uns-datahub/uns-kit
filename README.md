@@ -52,6 +52,14 @@ pnpm install
 pnpm run pull-request
 ```
 
+To spin up a local sandbox against the workspace packages:
+
+```bash
+pnpm run sandbox:create sandbox-app
+cd sandbox-app
+pnpm install
+```
+
 ## Publishing
 
 1. Update versions in the relevant `package.json` files.
