@@ -7,7 +7,7 @@ Command line scaffolding tool for the UNS toolkit. It bootstraps a new project w
 ```bash
 pnpm --package=@uns-kit/cli dlx uns-kit create my-uns-app
 # or with npx
-npx -p @uns-kit/cli@latest uns-kit create my-uns-app
+npx @uns-kit/cli create my-uns-app
 # or after installing globally
 npm install -g @uns-kit/cli
 uns-kit create my-uns-app

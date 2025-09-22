@@ -38,7 +38,7 @@ pnpm run build
 ```bash
 pnpm --package=@uns-kit/cli dlx uns-kit create my-uns-app
 # or with npx
-npx -p @uns-kit/cli@latest uns-kit create my-uns-app
+npx @uns-kit/cli create my-uns-app
 cd my-uns-app
 pnpm install
 pnpm run dev

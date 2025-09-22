@@ -12,6 +12,7 @@ tmp-rtt
 
 # Current config
 config.json
+!packages/uns-cli/templates/default/config.json
 
 # Logs and queues
 logs/*

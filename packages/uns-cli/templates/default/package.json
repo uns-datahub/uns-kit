@@ -6,7 +6,8 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.json",
     "start": "node ./dist/index.js",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "generate-config-schema": "tsx ./src/tools/generate-config-schema.ts"
   },
   "dependencies": {
     "@uns-kit/core": "__UNS_KIT_CORE_VERSION__"

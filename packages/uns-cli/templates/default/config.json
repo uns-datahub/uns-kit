@@ -1,0 +1,20 @@
+{
+  "uns": {
+    "graphql": "http://localhost:3200/graphql",
+    "rest": "http://localhost:3200/api",
+    "processName": "__APP_NAME__",
+    "instanceMode": "wait",
+    "handover": true,
+    "jwksWellKnownUrl": "http://localhost:3200/api/.well-known/jwks.json",
+    "kidWellKnownUrl": "http://localhost:3200/api/.well-known/kid"
+  },
+  "infra": {
+    "host": "localhost:1883"
+  },
+  "output": {
+    "host": "localhost:1883"
+  },
+  "input": {
+    "host": "localhost:1883"
+  }
+}
