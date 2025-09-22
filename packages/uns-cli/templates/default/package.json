@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node ./dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "generate-config-schema": "tsx ./src/tools/generate-config-schema.ts"
+    "generate-config-schema": "node ./node_modules/@uns-kit/core/dist/tools/generate-config-schema.js"
   },
   "dependencies": {
     "@uns-kit/core": "__UNS_KIT_CORE_VERSION__"
