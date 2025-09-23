@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { composeConfigSchema } from "./schema-tools.js";
-import { unsCoreSchema } from "./uns-core-schema.js";
-import { projectExtrasSchema } from "../config/project.config.extension.js";
+import { composeConfigSchema } from "./schema-tools";
+import { unsCoreSchema } from "./uns-core-schema";
+import { projectExtrasSchema } from "../config/project.config.extension";
 
 // Plain strict object for generators (no Effects, no dynamic imports)
 export const baseSchema = composeConfigSchema(unsCoreSchema, projectExtrasSchema).strict();

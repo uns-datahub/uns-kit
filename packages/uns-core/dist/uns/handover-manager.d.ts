@@ -1,8 +1,8 @@
-import { UnsEvents } from "./uns-interfaces.js";
-import { HandoverManagerEventEmitter } from "./handover-manager-event-emitter.js";
-import { HandoverManagerEvents } from "../uns-mqtt/mqtt-interfaces.js";
-import MqttProxy from "../uns-mqtt/mqtt-proxy.js";
-import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
+import { UnsEvents } from "./uns-interfaces";
+import { HandoverManagerEventEmitter } from "./handover-manager-event-emitter";
+import { HandoverManagerEvents } from "../uns-mqtt/mqtt-interfaces";
+import MqttProxy from "../uns-mqtt/mqtt-proxy";
+import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy";
 /**
  * HandoverManager is responsible for all handover-related logic,
  * including handling incoming MQTT messages, issuing handover requests,

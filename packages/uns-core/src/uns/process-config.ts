@@ -1,7 +1,7 @@
 // process-config.ts
 import * as path from "path";
 import { readFileSync } from "fs";
-import { basePath } from "../base-path.js";
+import { basePath } from "../base-path";
 
 // Path to the process name file
 export const PROCESS_NAME_FILE = path.join(basePath, "uns-process-name.conf");

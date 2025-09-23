@@ -1,7 +1,7 @@
 import type { ClientOptions, ConnectionOptions } from "@temporalio/client";
 import type MqttProxy from "@uns-kit/core/uns-mqtt/mqtt-proxy";
 import UnsProxyProcess, { type UnsProxyProcessPlugin } from "@uns-kit/core/uns/uns-proxy-process";
-import UnsTemporalProxy from "./uns-temporal-proxy.js";
+import UnsTemporalProxy from "./uns-temporal-proxy";
 
 type UnsProxyProcessInternal = {
   processName: string;

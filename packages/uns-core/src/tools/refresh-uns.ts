@@ -1,10 +1,10 @@
 import { GraphQLClient, gql, ClientError } from "graphql-request";
-import { TreeStructure } from "./schema.js";
-import { basePath } from "./base-path.js";
+import { TreeStructure } from "./schema";
+import { basePath } from "./base-path";
 import * as path from "path";
 import * as fs from 'fs';
-import { ConfigFile } from "../config-file.js";
-import { AuthClient } from "./auth/index.js";
+import { ConfigFile } from "../config-file";
+import { AuthClient } from "./auth/index";
 
 
 const config = await ConfigFile.loadConfig();

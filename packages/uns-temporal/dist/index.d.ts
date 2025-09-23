@@ -1,3 +1,3 @@
-export { default } from "./uns-temporal-plugin.js";
-export { UnsTemporalProxy, type UnsProxyProcessWithTemporal } from "./uns-temporal-plugin.js";
-export * from "./temporal-interfaces.js";
+export { default } from "./uns-temporal-plugin";
+export { UnsTemporalProxy, type UnsProxyProcessWithTemporal } from "./uns-temporal-plugin";
+export * from "./temporal-interfaces";

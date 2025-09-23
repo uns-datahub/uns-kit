@@ -1,9 +1,9 @@
 // status-monitor.ts
-import logger from "../logger.js";
-import { IUnsMessage } from "./uns-interfaces.js";
-import { DataSizeMeasurements } from "./uns-measurements.js";
-import { UnsPacket } from "./uns-packet.js";
-import type MqttProxy from "../uns-mqtt/mqtt-proxy.js";
+import logger from "../logger";
+import { IUnsMessage } from "./uns-interfaces";
+import { DataSizeMeasurements } from "./uns-measurements";
+import { UnsPacket } from "./uns-packet";
+import type MqttProxy from "../uns-mqtt/mqtt-proxy";
 
 export class StatusMonitor {
   private memoryInterval?: NodeJS.Timeout;

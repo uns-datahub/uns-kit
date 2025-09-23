@@ -1,7 +1,7 @@
 // src/uns-config/uns-core-schema.ts
 import { z } from "zod";
-import { secretValueSchema } from "./secret-placeholders.js";
-import { hostValueSchema } from "./host-placeholders.js";
+import { secretValueSchema } from "./secret-placeholders";
+import { hostValueSchema } from "./host-placeholders";
 const mqttChannelSchema = z.object({
     host: hostValueSchema,
     username: z.string().optional(),

@@ -12,8 +12,8 @@ import * as prettier from "prettier";
 import { CleanOptions, SimpleGit, simpleGit } from "simple-git";
 import util from "util";
 
-import { ConfigFile } from "../config-file.js";
-import { basePath } from "../base-path.js";
+import { ConfigFile } from "../config-file";
+import { basePath } from "../base-path";
 
 const rl = readline.createInterface({
   input: process.stdin,

@@ -1,7 +1,7 @@
 import mqtt from "mqtt";
-import logger from "../logger.js";
-import { UnsEventEmitter } from "../uns/uns-event-emitter.js";
-import { DataSizeMeasurements, PhysicalMeasurements } from "../uns/uns-measurements.js";
+import logger from "../logger";
+import { UnsEventEmitter } from "../uns/uns-event-emitter";
+import { DataSizeMeasurements, PhysicalMeasurements } from "../uns/uns-measurements";
 export default class MqttProxy {
     event = new UnsEventEmitter();
     statusTopic;

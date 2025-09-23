@@ -1,11 +1,11 @@
-import { UnsEvents } from "./uns-interfaces.js";
-import logger from "../logger.js";
-import { HandoverManagerEventEmitter } from "./handover-manager-event-emitter.js";
-import { HandoverManagerEvents } from "../uns-mqtt/mqtt-interfaces.js";
-import MqttProxy from "../uns-mqtt/mqtt-proxy.js";
-import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
-import { ACTIVE_TIMEOUT, PACKAGE_INFO } from "./process-config.js";
-import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
+import { UnsEvents } from "./uns-interfaces";
+import logger from "../logger";
+import { HandoverManagerEventEmitter } from "./handover-manager-event-emitter";
+import { HandoverManagerEvents } from "../uns-mqtt/mqtt-interfaces";
+import MqttProxy from "../uns-mqtt/mqtt-proxy";
+import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder";
+import { ACTIVE_TIMEOUT, PACKAGE_INFO } from "./process-config";
+import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy";
 
 /**
  * HandoverManager is responsible for all handover-related logic,

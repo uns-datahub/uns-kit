@@ -1,8 +1,8 @@
 import mqtt from "mqtt";
-import { UnsEvents } from "../uns/uns-interfaces.js";
-import { UnsEventEmitter } from "../uns/uns-event-emitter.js";
-import { IMqttParameters } from "./mqtt-interfaces.js";
-import { MqttWorker } from "./mqtt-worker.js";
+import { UnsEvents } from "../uns/uns-interfaces";
+import { UnsEventEmitter } from "../uns/uns-event-emitter";
+import { IMqttParameters } from "./mqtt-interfaces";
+import { MqttWorker } from "./mqtt-worker";
 export default class MqttProxy {
     event: UnsEventEmitter<UnsEvents>;
     statusTopic: string;

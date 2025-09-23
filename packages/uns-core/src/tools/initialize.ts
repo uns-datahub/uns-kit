@@ -7,7 +7,7 @@ import readline from "node:readline";
 import * as path from "path";
 import { CleanOptions, SimpleGit, simpleGit } from "simple-git";
 import fs from "fs-extra";
-import { basePath } from "./base-path.js";
+import { basePath } from "./base-path";
 
 
 const git: SimpleGit = simpleGit("./").clean(CleanOptions.FORCE);

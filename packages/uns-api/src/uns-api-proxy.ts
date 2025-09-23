@@ -15,7 +15,7 @@ import { UnsTags } from "@uns-kit/core/uns/uns-tags";
 import { UnsTopicMatcher } from "@uns-kit/core/uns/uns-topic-matcher";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics";
 import { IApiProxyOptions, IGetEndpointOptions } from "@uns-kit/core/uns/uns-interfaces";
-import App from "./app.js";
+import App from "./app";
 
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));

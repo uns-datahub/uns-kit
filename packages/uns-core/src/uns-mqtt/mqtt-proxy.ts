@@ -1,10 +1,10 @@
 import mqtt, { IClientOptions, MqttClient } from "mqtt";
-import logger from "../logger.js";
-import { UnsEvents } from "../uns/uns-interfaces.js";
-import { UnsEventEmitter } from "../uns/uns-event-emitter.js";
-import { IMqttParameters } from "./mqtt-interfaces.js";
-import { MqttWorker } from "./mqtt-worker.js";
-import { DataSizeMeasurements, PhysicalMeasurements } from "../uns/uns-measurements.js";
+import logger from "../logger";
+import { UnsEvents } from "../uns/uns-interfaces";
+import { UnsEventEmitter } from "../uns/uns-event-emitter";
+import { IMqttParameters } from "./mqtt-interfaces";
+import { MqttWorker } from "./mqtt-worker";
+import { DataSizeMeasurements, PhysicalMeasurements } from "../uns/uns-measurements";
 
 export default class MqttProxy {
   public event: UnsEventEmitter<UnsEvents> = new UnsEventEmitter<UnsEvents>();

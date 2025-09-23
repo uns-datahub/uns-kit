@@ -3,8 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { IClientPublishOptions } from "mqtt";
 import { join } from "path";
 
-import { basePath } from "../base-path.js";
-import logger from "../logger.js";
+import { basePath } from "../base-path";
+import logger from "../logger";
 
 /**
  * Abstract base class that encapsulates common functionality for managing

@@ -1,1 +1,1 @@
-export { AuthClient } from "./auth-client.js";
+export { AuthClient } from "./auth-client";

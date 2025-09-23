@@ -1,6 +1,6 @@
 import os from "node:os";
-import { isSecretPlaceholder, } from "./secret-placeholders.js";
-import { isHostPlaceholder, } from "./host-placeholders.js";
+import { isSecretPlaceholder, } from "./secret-placeholders";
+import { isHostPlaceholder, } from "./host-placeholders";
 const envCache = new Map();
 const infisicalCache = new Map();
 const structuredCloneFallback = (value) => typeof structuredClone === "function"

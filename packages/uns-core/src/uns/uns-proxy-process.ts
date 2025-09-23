@@ -1,16 +1,16 @@
-import logger from "../logger.js";
-import { IUnsMessage, IUnsParameters, IUnsProcessParameters, UnsEvents } from "./uns-interfaces.js";
-import { IMqttParameters } from "../uns-mqtt/mqtt-interfaces.js";
-import MqttProxy from "../uns-mqtt/mqtt-proxy.js";
-import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
-import { HandoverManager } from "./handover-manager.js";
+import logger from "../logger";
+import { IUnsMessage, IUnsParameters, IUnsProcessParameters, UnsEvents } from "./uns-interfaces";
+import { IMqttParameters } from "../uns-mqtt/mqtt-interfaces";
+import MqttProxy from "../uns-mqtt/mqtt-proxy";
+import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy";
+import { HandoverManager } from "./handover-manager";
 
 // Import configuration and initialization modules.
-import { PACKAGE_INFO, MQTT_UPDATE_INTERVAL } from "./process-config.js";
-import { getProcessName } from "./process-name-service.js";
-import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
-import { StatusMonitor } from "./status-monitor.js";
-import { UnsPacket } from "./uns-packet.js";
+import { PACKAGE_INFO, MQTT_UPDATE_INTERVAL } from "./process-config";
+import { getProcessName } from "./process-name-service";
+import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder";
+import { StatusMonitor } from "./status-monitor";
+import { UnsPacket } from "./uns-packet";
 
 
 /**

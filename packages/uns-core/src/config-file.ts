@@ -6,7 +6,7 @@ import {
   resolveConfigSecrets,
   type ResolvedAppConfig,
   type SecretResolverOptions,
-} from "./uns-config/secret-resolver.js";
+} from "./uns-config/secret-resolver";
 
 const hasOptions = (options?: SecretResolverOptions): boolean =>
   !!options && Object.values(options).some(value => value !== undefined);

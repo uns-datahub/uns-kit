@@ -1,9 +1,9 @@
 import { join } from "path";
 import { parentPort } from "worker_threads";
-import { basePath } from "../base-path.js";
-import logger from "../logger.js";
-import MqttProxy from "./mqtt-proxy.js";
-import { ThrottledPublisher, ThrottledSubscriber } from "./throttled-queue.js";
+import { basePath } from "../base-path";
+import logger from "../logger";
+import MqttProxy from "./mqtt-proxy";
+import { ThrottledPublisher, ThrottledSubscriber } from "./throttled-queue";
 export class MqttWorker {
     mqttProxy;
     publisher;

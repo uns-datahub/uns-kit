@@ -1,6 +1,6 @@
 import type { IApiProxyOptions } from "@uns-kit/core/uns/uns-interfaces";
 import UnsProxyProcess, { type UnsProxyProcessPlugin } from "@uns-kit/core/uns/uns-proxy-process";
-import UnsApiProxy from "./uns-api-proxy.js";
+import UnsApiProxy from "./uns-api-proxy";
 declare const unsApiPlugin: UnsProxyProcessPlugin;
 export default unsApiPlugin;
 export { UnsApiProxy };

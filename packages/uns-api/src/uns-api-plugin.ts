@@ -1,7 +1,7 @@
 import type { IApiProxyOptions } from "@uns-kit/core/uns/uns-interfaces";
 import type MqttProxy from "@uns-kit/core/uns-mqtt/mqtt-proxy";
 import UnsProxyProcess, { type UnsProxyProcessPlugin } from "@uns-kit/core/uns/uns-proxy-process";
-import UnsApiProxy from "./uns-api-proxy.js";
+import UnsApiProxy from "./uns-api-proxy";
 
 const apiProxyRegistry = new WeakMap<UnsProxyProcess, UnsApiProxy[]>();
 

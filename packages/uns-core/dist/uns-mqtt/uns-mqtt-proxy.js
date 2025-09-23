@@ -1,12 +1,12 @@
 import { readFileSync } from "fs";
 import * as path from "path";
 import { Worker } from "worker_threads";
-import { basePath } from "../base-path.js";
-import logger from "../logger.js";
-import { UnsPacket } from "../uns/uns-packet.js";
-import { MqttTopicBuilder } from "./mqtt-topic-builder.js";
-import UnsProxy from "../uns/uns-proxy.js";
-import { UnsAttributeType } from "../graphql/schema.js";
+import { basePath } from "../base-path";
+import logger from "../logger";
+import { UnsPacket } from "../uns/uns-packet";
+import { MqttTopicBuilder } from "./mqtt-topic-builder";
+import UnsProxy from "../uns/uns-proxy";
+import { UnsAttributeType } from "../graphql/schema";
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 export var MessageMode;

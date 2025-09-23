@@ -5,9 +5,9 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { zodToTs, printNode } from "zod-to-ts";
 import { z } from "zod";
 
-import { composeConfigSchema } from "../uns-config/schema-tools.js";
-import { unsCoreSchema } from "../uns-config/uns-core-schema.js";
-import { projectExtrasSchema as coreProjectExtrasSchema } from "../config/project.config.extension.js";
+import { composeConfigSchema } from "../uns-config/schema-tools";
+import { unsCoreSchema } from "../uns-config/uns-core-schema";
+import { projectExtrasSchema as coreProjectExtrasSchema } from "../config/project.config.extension";
 
 function write(filePath: string, data: string) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });

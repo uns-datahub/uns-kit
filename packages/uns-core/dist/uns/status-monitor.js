@@ -1,7 +1,7 @@
 // status-monitor.ts
-import logger from "../logger.js";
-import { DataSizeMeasurements } from "./uns-measurements.js";
-import { UnsPacket } from "./uns-packet.js";
+import logger from "../logger";
+import { DataSizeMeasurements } from "./uns-measurements";
+import { UnsPacket } from "./uns-packet";
 export class StatusMonitor {
     mqttProxy;
     processStatusTopic;

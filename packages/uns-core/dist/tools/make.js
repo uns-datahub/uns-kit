@@ -1,5 +1,5 @@
 import fs from "fs-extra";
-import { basePath } from "./base-path.js";
+import { basePath } from "./base-path";
 import * as path from "path";
 import { execSync } from 'child_process';
 const binDir = path.join(basePath, 'bin/');

@@ -1,5 +1,5 @@
 import { CleanOptions, simpleGit } from "simple-git";
-import { basePath } from "./base-path.js";
+import { basePath } from "./base-path";
 import readline from "node:readline";
 import * as path from "path";
 import chalk from "chalk";

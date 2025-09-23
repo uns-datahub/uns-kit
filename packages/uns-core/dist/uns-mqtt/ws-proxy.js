@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import logger from '../logger.js';
+import logger from '../logger';
 class WsEventEmitter {
     listeners = {};
     on(eventName, listener) {

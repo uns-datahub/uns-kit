@@ -1,6 +1,6 @@
-import logger from "../logger.js";
-import { UnsEventEmitter } from "./uns-event-emitter.js";
-import { UnsPacket } from "./uns-packet.js";
+import logger from "../logger";
+import { UnsEventEmitter } from "./uns-event-emitter";
+import { UnsPacket } from "./uns-packet";
 export default class UnsProxy {
     publishInterval = null;
     event = new UnsEventEmitter();
