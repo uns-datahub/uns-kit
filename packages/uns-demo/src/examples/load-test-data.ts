@@ -4,9 +4,9 @@
  * In the development environment, you are responsible for creating and maintaining this file and its contents.
  */
 import readline from "readline";
-import { ConfigFile } from "../config-file.js";
-import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
-import logger from "../logger.js";
+import { ConfigFile } from "../../../uns-core/src/config-file.js";
+import UnsMqttProxy from "../../../uns-core/src/uns-mqtt/uns-mqtt-proxy.js";
+import logger from "../../../uns-core/src/logger.js";
 
 
 /**

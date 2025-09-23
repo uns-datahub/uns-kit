@@ -68,8 +68,8 @@
       "request": "launch",
       "name": "example: uns-gateway (tsx)",
       "runtimeArgs": ["--loader=tsx"],
-      "program": "${workspaceFolder}/src/examples/uns-gateway.ts",
-      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/uns-gateway.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
       "outputCapture": "std",
       "sourceMaps": true,
       "skipFiles": ["<node_internals>/**"]
@@ -85,90 +85,71 @@
       "sourceMaps": true,
       "skipFiles": ["<node_internals>/**"]
     },
-    
     {
-      "outputCapture": "std",
       "type": "node",
       "request": "launch",
       "name": "data-example",
+      "runtimeArgs": ["--loader=tsx"],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/data-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "outputCapture": "std",
       "sourceMaps": true,
-      "program": "${workspaceFolder}/dist/examples/data-example.js",
-      "preLaunchTask": "Build",
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ]
+      "skipFiles": ["<node_internals>/**"]
     },
     {
-      "outputCapture": "std",
       "type": "node",
       "request": "launch",
       "name": "load-test",
+      "runtimeArgs": ["--loader=tsx"],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/load-test-data.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "outputCapture": "std",
       "sourceMaps": true,
-      "program": "${workspaceFolder}/dist/examples/load-test.js",
-      "preLaunchTask": "Build",
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ]
+      "skipFiles": ["<node_internals>/**"]
     },
     {
-      "outputCapture": "std",
       "type": "node",
       "request": "launch",
       "name": "table-example",
+      "runtimeArgs": ["--loader=tsx"],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/table-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "outputCapture": "std",
       "sourceMaps": true,
-      "program": "${workspaceFolder}/dist/examples/table-example.js",
-      "preLaunchTask": "Build",
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ]
+      "skipFiles": ["<node_internals>/**"]
     },
     {
-      "outputCapture": "std",
       "type": "node",
       "request": "launch",
       "name": "cron-example",
+      "runtimeArgs": ["--loader=tsx"],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/cron-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "outputCapture": "std",
       "sourceMaps": true,
-      "program": "${workspaceFolder}/dist/examples/cron-example.js",
-      "preLaunchTask": "Build",
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ]
+      "skipFiles": ["<node_internals>/**"]
     },
     {
-      "outputCapture": "std",
       "type": "node",
       "request": "launch",
       "name": "api-example",
+      "runtimeArgs": ["--loader=tsx"],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/api-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "outputCapture": "std",
       "sourceMaps": true,
-      "program": "${workspaceFolder}/dist/examples/api-example.js",
-      "preLaunchTask": "Build",
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ]
+      "skipFiles": ["<node_internals>/**"]
     },
     {
-      "outputCapture": "std",
-      "type": "node",
-      "request": "launch",
-      "name": "grpc-python-example",
-      "sourceMaps": true,
-      "program": "${workspaceFolder}/dist/examples/grpc-python-example.js",
-      "preLaunchTask": "Build",
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ]
-    },
-    {
-      "outputCapture": "std",
       "type": "node",
       "request": "launch",
       "name": "temporal-example",
+      "runtimeArgs": ["--loader=tsx"],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/temporal-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "outputCapture": "std",
       "sourceMaps": true,
-      "program": "${workspaceFolder}/dist/examples/temporal-example.js",
-      "preLaunchTask": "Build",
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ]
-    }    
+      "skipFiles": ["<node_internals>/**"]
+    }
   ]
 }

@@ -2,11 +2,11 @@
  * Change this file according to your specifications and rename it to index.ts
  */
 import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process";
-import unsTemporalPlugin, { type UnsProxyProcessWithTemporal } from "./uns-temporal-plugin.js";
+import unsTemporalPlugin, { type UnsProxyProcessWithTemporal } from "../../../uns-temporal/src/uns-temporal-plugin.js";
 import { ConfigFile } from "@uns-kit/core/config-file";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet";
 import { UnsAttributeType } from "@uns-kit/core/graphql/schema";
-import { ITemporalTopic } from "./temporal-interfaces.js";
+import { ITemporalTopic } from "../../../uns-temporal/src/temporal-interfaces.js";
 import logger from "@uns-kit/core/logger";
 
 /**
