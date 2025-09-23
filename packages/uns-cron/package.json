@@ -1,10 +1,10 @@
 {
   "name": "@uns-kit/cron",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Cron-driven plugin for UnsProxyProcess that emits UNS events on a schedule.",
   "type": "module",
   "license": "MIT",
-  "author": "Aljo\u0161a Vister <aljosa.vister@gmail.com>",
+  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/uns-datahub/uns-kit.git",

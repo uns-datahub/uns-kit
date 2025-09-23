@@ -1,10 +1,10 @@
 {
   "name": "@uns-kit/core",
-  "version": "0.0.6",
+  "version": "0.0.12",
   "description": "Core utilities and runtime building blocks for UNS-based realtime transformers.",
   "type": "module",
   "license": "MIT",
-  "author": "Aljo\u0161a Vister <aljosa.vister@gmail.com>",
+  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/uns-datahub/uns-kit.git",

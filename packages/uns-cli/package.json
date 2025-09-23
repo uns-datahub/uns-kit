@@ -1,10 +1,10 @@
 {
   "name": "@uns-kit/cli",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Command line scaffolding tool for UNS applications",
   "type": "module",
   "license": "MIT",
-  "author": "Aljo\u0161a Vister <aljosa.vister@gmail.com>",
+  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/uns-datahub/uns-kit.git",
