@@ -28,7 +28,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "publish": "pnpm publish --filter @uns-kit/temporal --access public"
   },
   "dependencies": {
     "@temporalio/client": "^1.13.0",

@@ -22,7 +22,10 @@
     "cli:version:patch": "cd packages/uns-cli; pnpm version patch",
     "cli:build": "pnpm --filter @uns-kit/cli build",
     "cli:publish": "pnpm publish --filter @uns-kit/cli --access public",
-    "sandbox:create": "pnpm --filter @uns-kit/cli build && node packages/uns-cli/dist/index.js create sandbox-app"
+    "sandbox:create": "pnpm --filter @uns-kit/cli build && node packages/uns-cli/dist/index.js create sandbox-app",
+    "all:version:patch": "pnpm version patch --filter @uns-kit/core && pnpm version patch --filter @uns-kit/api && pnpm version patch --filter @uns-kit/cron && pnpm version patch --filter @uns-kit/temporal && pnpm version patch --filter @uns-kit/cli",
+    "all:build": "pnpm --filter @uns-kit/core build && pnpm --filter @uns-kit/api build && pnpm --filter @uns-kit/cron build && pnpm --filter @uns-kit/temporal build && pnpm --filter @uns-kit/cli build",
+    "all:publish": "pnpm publish --filter @uns-kit/core --access public && pnpm publish --filter @uns-kit/api --access public && pnpm publish --filter @uns-kit/cron --access public && pnpm publish --filter @uns-kit/temporal --access public && pnpm publish --filter @uns-kit/cli --access public"
   },
   "author": "Aljosa Vister",
   "license": "ISC",
