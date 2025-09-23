@@ -75,3 +75,4 @@ export interface HostResolverOptions {
 export declare function resolveConfigSecrets(config: AppConfig, options?: SecretResolverOptions): Promise<ResolvedAppConfig>;
 export declare function clearSecretResolverCaches(): void;
 export {};
+//# sourceMappingURL=secret-resolver.d.ts.map

@@ -15,3 +15,4 @@ export declare class SecureStoreFactory {
      */
     static create(namespace: string): Promise<ISecureStore>;
 }
+//# sourceMappingURL=secure-store.d.ts.map

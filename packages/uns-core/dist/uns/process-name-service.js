@@ -26,3 +26,4 @@ export function getProcessName() {
         return newProcessName;
     }
 }
+//# sourceMappingURL=process-name-service.js.map

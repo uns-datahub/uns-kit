@@ -26,3 +26,4 @@ export declare class UnsPacket {
     private static compressString;
     private static decompressString;
 }
+//# sourceMappingURL=uns-packet.d.ts.map

@@ -17,3 +17,4 @@ export class HandoverManagerEventEmitter {
         this.listeners[eventName].forEach((listener) => listener(event));
     }
 }
+//# sourceMappingURL=handover-manager-event-emitter.js.map

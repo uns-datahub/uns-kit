@@ -68,3 +68,4 @@ export class MqttTopicBuilder {
         return parts.slice(0, 4).join('/') + '/';
     }
 }
+//# sourceMappingURL=mqtt-topic-builder.js.map

@@ -10,3 +10,4 @@ export declare class ConfigFile {
     static loadResolvedConfig(options?: SecretResolverOptions): Promise<ResolvedAppConfig>;
     static clearCache(): void;
 }
+//# sourceMappingURL=config-file.d.ts.map

@@ -105,3 +105,4 @@ export default class UnsMqttProxy extends UnsProxy {
      */
     stop(): Promise<void>;
 }
+//# sourceMappingURL=uns-mqtt-proxy.d.ts.map

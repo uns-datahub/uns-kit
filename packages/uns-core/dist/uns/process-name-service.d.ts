@@ -5,3 +5,4 @@
  * - If the file does not exist, generates a new name and stores it.
  */
 export declare function getProcessName(): string;
+//# sourceMappingURL=process-name-service.d.ts.map

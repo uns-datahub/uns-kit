@@ -283,3 +283,4 @@ async function createDefaultInfisicalFetcher(token, siteUrl) {
         throw new Error("Failed to initialize @infisical/sdk. Install the package or provide SecretResolverOptions.infisical.fetchSecret.", { cause: error });
     }
 }
+//# sourceMappingURL=secret-resolver.js.map

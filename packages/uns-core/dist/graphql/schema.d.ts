@@ -375,3 +375,4 @@ export type Resolvers<ContextType = any> = {
     TreeStructure?: TreeStructureResolvers<ContextType>;
     UnsNode?: UnsNodeResolvers<ContextType>;
 };
+//# sourceMappingURL=schema.d.ts.map

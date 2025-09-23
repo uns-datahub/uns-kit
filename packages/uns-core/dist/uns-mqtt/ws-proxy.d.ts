@@ -36,3 +36,4 @@ export default class WsProxy {
     stop(): void;
 }
 export {};
+//# sourceMappingURL=ws-proxy.d.ts.map

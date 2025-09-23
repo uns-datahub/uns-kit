@@ -25,3 +25,4 @@ try {
 catch (error) {
     console.log(`error: ${error}`);
 }
+//# sourceMappingURL=make.js.map

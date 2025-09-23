@@ -126,3 +126,4 @@ export type EnvSecretPlaceholder = z.infer<typeof envSecretSchema>;
 export type InfisicalSecretPlaceholder = z.infer<typeof infisicalSecretSchema>;
 export declare function isSecretPlaceholder(value: unknown): value is SecretPlaceholder;
 export {};
+//# sourceMappingURL=secret-placeholders.d.ts.map

@@ -206,3 +206,4 @@ export type UpdateUnsNode = {
     parent?: InputMaybe<Scalars['Int']['input']>;
     unsNode?: InputMaybe<Scalars['String']['input']>;
 };
+//# sourceMappingURL=schema.d.ts.map

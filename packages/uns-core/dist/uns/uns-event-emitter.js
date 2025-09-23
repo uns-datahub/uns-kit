@@ -17,3 +17,4 @@ export class UnsEventEmitter {
         this.listeners[eventName].forEach((listener) => listener(event));
     }
 }
+//# sourceMappingURL=uns-event-emitter.js.map

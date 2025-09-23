@@ -3,3 +3,4 @@ export function isIOS8601Type(value) {
     return iso8601Regex.test(value);
 }
 export const valueTypes = ["string", "number"];
+//# sourceMappingURL=uns-interfaces.js.map

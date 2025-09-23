@@ -21,3 +21,4 @@ export declare class AuthClient {
         password: string;
     }>;
 }
+//# sourceMappingURL=auth-client.d.ts.map

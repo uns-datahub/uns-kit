@@ -26,3 +26,4 @@ export const unsCoreSchema = z.object({
         organization: z.string().min(1),
     }).strict().optional(),
 }).strict();
+//# sourceMappingURL=uns-core-schema.js.map

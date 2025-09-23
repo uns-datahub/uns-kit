@@ -167,3 +167,4 @@ async function main() {
     }
     console.log(chalk.green.bold("\nRun npm run build to rebuild the project, and remove obsolete directories and files."));
 }
+//# sourceMappingURL=update-rtt.js.map

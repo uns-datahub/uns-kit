@@ -32,3 +32,4 @@ export declare class HandoverManager {
      */
     private handleHandover;
 }
+//# sourceMappingURL=handover-manager.d.ts.map

@@ -30,3 +30,4 @@ const bound = await startUnsGateway(addr, {
 });
 console.log(`UNS Gateway listening on ${bound.address} (UDS=${bound.isUDS})`);
 setInterval(() => { }, 1 << 30);
+//# sourceMappingURL=uns-gateway-cli.js.map

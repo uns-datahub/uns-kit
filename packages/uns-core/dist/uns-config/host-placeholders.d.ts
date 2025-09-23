@@ -137,3 +137,4 @@ export type ExternalHostPlaceholder = z.infer<typeof externalHostSchema>;
 export type SystemHostPlaceholder = z.infer<typeof systemHostSchema>;
 export declare function isHostPlaceholder(value: unknown): value is HostPlaceholder;
 export {};
+//# sourceMappingURL=host-placeholders.d.ts.map

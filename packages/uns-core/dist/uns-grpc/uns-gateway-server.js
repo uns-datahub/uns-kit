@@ -422,3 +422,4 @@ export async function startUnsGateway(addrOverride, opts) {
     const gw = new UnsGatewayServer();
     return gw.start(addrOverride, opts);
 }
+//# sourceMappingURL=uns-gateway-server.js.map

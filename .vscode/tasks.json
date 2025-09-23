@@ -32,6 +32,15 @@
       "script": "dev",
       "isBackground": true,
       "problemMatcher": []
+    },
+    {
+      "label": "prep: core dist",
+      "type": "shell",
+      "command": "pnpm --filter @uns-kit/core build",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

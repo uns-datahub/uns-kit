@@ -108,3 +108,4 @@ export class SecureStoreFactory {
         return new FileStore(namespace);
     }
 }
+//# sourceMappingURL=secure-store.js.map

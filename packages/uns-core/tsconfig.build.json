@@ -4,8 +4,9 @@
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": false,
-    "declarationMap": false,
-    "sourceMap": false,
+    "declarationMap": true,
+    "sourceMap": true,
+    "inlineSources": true,
     "allowImportingTsExtensions": false
   }
 }

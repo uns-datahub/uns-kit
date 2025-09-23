@@ -178,3 +178,4 @@ export type AppConfig = {
         organization: string;
     } | undefined;
 };
+//# sourceMappingURL=app-config.d.ts.map

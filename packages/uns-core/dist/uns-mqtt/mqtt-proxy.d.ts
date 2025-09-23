@@ -32,3 +32,4 @@ export default class MqttProxy {
     private updateSubscribeTransformationStats;
     private emitTransformationStatistics;
 }
+//# sourceMappingURL=mqtt-proxy.d.ts.map

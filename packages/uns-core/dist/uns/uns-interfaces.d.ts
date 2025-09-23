@@ -154,3 +154,4 @@ export interface IGetEndpointOptions {
     tags?: string[];
     queryParams?: QueryParamDef[];
 }
+//# sourceMappingURL=uns-interfaces.d.ts.map

@@ -716,3 +716,4 @@ export declare const unsCoreSchema: z.ZodObject<{
     };
 }>;
 export type UnsCore = z.infer<typeof unsCoreSchema>;
+//# sourceMappingURL=uns-core-schema.d.ts.map

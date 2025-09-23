@@ -62,3 +62,4 @@ const tsContent = "/* Auto-generated. Do not edit by hand. */\n" +
     "\n";
 write(path.resolve("./src/config/app-config.ts"), tsContent);
 console.log("Generated config.schema.json and src/config/app-config.ts");
+//# sourceMappingURL=generate-config-schema.js.map

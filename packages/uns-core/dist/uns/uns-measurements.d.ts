@@ -93,3 +93,4 @@ export declare enum PhysicalMeasurements {
     MegaGramPerHour = "Mg/h",
     MetricTonPerHour = "t/h"
 }
+//# sourceMappingURL=uns-measurements.d.ts.map

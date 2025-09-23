@@ -7,6 +7,29 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "demo: launch",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--loader=tsx"
+      ],
+      "program": "${workspaceFolder}/packages/uns-demo/src/index.ts",
+      "autoAttachChildProcesses": true,
+      "outputCapture": "std",
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ],
+      "skipFiles": ["<node_internals>/**"],
+      "preLaunchTask": "prep: core dist",
+      "outFiles": [
+        "${workspaceFolder}/packages/uns-core/dist/**/*.js",
+        "${workspaceFolder}/packages/uns-demo/dist/**/*.js"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "dev: start (tsx) + typecheck",
       "runtimeArgs": ["--loader=tsx"],
       "program": "${workspaceFolder}/src/local/index.ts",

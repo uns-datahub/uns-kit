@@ -7,3 +7,4 @@ export declare class UnsTopicMatcher {
      */
     static matches(topicFilter: string, topic: string): boolean;
 }
+//# sourceMappingURL=uns-topic-matcher.d.ts.map

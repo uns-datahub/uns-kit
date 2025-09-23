@@ -20,3 +20,4 @@ export interface IMqttWorkerData {
     publisherActive: boolean;
     subscriberActive: boolean;
 }
+//# sourceMappingURL=mqtt-interfaces.d.ts.map

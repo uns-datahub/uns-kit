@@ -49,3 +49,4 @@ export declare class MqttTopicBuilder {
      */
     static extractBaseTopic(fullTopic: string): string;
 }
+//# sourceMappingURL=mqtt-topic-builder.d.ts.map

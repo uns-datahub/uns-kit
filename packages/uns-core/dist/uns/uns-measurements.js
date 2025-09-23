@@ -144,3 +144,4 @@ export var PhysicalMeasurements;
     PhysicalMeasurements["MegaGramPerHour"] = "Mg/h";
     PhysicalMeasurements["MetricTonPerHour"] = "t/h";
 })(PhysicalMeasurements || (PhysicalMeasurements = {}));
+//# sourceMappingURL=uns-measurements.js.map

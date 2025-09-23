@@ -16,3 +16,4 @@ export function composeConfigSchema(core, ...extras) {
     }
     return extras.reduce((acc, ext) => acc.merge(ext), core);
 }
+//# sourceMappingURL=schema-tools.js.map

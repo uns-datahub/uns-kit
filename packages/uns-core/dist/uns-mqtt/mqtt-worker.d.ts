@@ -18,3 +18,4 @@ export declare class MqttWorker {
      */
     getSubscriberState(): boolean;
 }
+//# sourceMappingURL=mqtt-worker.d.ts.map

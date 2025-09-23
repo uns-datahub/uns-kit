@@ -4,3 +4,4 @@ export declare class HandoverManagerEventEmitter<Events extends Record<string, a
     off<K extends keyof Events>(eventName: K, listener: (event: Events[K]) => void): void;
     emit<K extends keyof Events>(eventName: K, event: Events[K]): void;
 }
+//# sourceMappingURL=handover-manager-event-emitter.d.ts.map

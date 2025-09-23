@@ -49,3 +49,4 @@ mqttInput.event.on("input", async (event) => {
         throw reason;
     }
 });
+//# sourceMappingURL=table-example.js.map

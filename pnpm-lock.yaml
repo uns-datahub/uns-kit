@@ -161,6 +161,28 @@ importers:
         specifier: ^4.2.1
         version: 4.2.1
 
+  packages/uns-demo:
+    dependencies:
+      '@uns-kit/api':
+        specifier: workspace:*
+        version: link:../uns-api
+      '@uns-kit/core':
+        specifier: workspace:*
+        version: link:../uns-core
+      '@uns-kit/cron':
+        specifier: workspace:*
+        version: link:../uns-cron
+      '@uns-kit/temporal':
+        specifier: workspace:*
+        version: link:../uns-temporal
+    devDependencies:
+      tsx:
+        specifier: ^4.20.5
+        version: 4.20.5
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
+
   packages/uns-temporal:
     dependencies:
       '@temporalio/client':
@@ -169,22 +191,6 @@ importers:
       '@uns-kit/core':
         specifier: workspace:*
         version: link:../uns-core
-
-  sandbox-app:
-    dependencies:
-      '@uns-kit/core':
-        specifier: ^0.0.15
-        version: 0.0.15(typescript@5.9.2)
-      zod:
-        specifier: ^3.23.8
-        version: 3.25.76
-    devDependencies:
-      tsx:
-        specifier: ^4.20.5
-        version: 4.20.5
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.2
 
 packages:
 
@@ -1452,9 +1458,6 @@ packages:
   '@typescript-eslint/visitor-keys@8.44.0':
     resolution: {integrity: sha512-zaz9u8EJ4GBmnehlrpoKvj/E3dNbuQ7q0ucyZImm3cLqJ8INTc970B1qEqDX/Rzq65r3TvVTN7kHWPBoyW7DWw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@uns-kit/core@0.0.15':
-    resolution: {integrity: sha512-s23cBmPW1oCZepR7IxhLLIonZE8edmeYisPy8r+L0TLOxzKbmr7kclAroJJEizX6LuRIi32EQIxqKOknTBFKHQ==}
 
   '@vitest/expect@3.2.4':
     resolution: {integrity: sha512-Io0yyORnB6sikFlt8QW5K7slY4OjqNX9jmJQ02QDda8lyM6B5oNgVWoSoKPac8/kgnCUzuHQKrSLtu/uOqqrig==}
@@ -5322,27 +5325,6 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.44.0
       eslint-visitor-keys: 4.2.1
-
-  '@uns-kit/core@0.0.15(typescript@5.9.2)':
-    dependencies:
-      '@grpc/grpc-js': 1.14.0
-      '@grpc/proto-loader': 0.8.0
-      '@infisical/sdk': 4.0.5
-      get-port: 7.1.0
-      jsonwebtoken: 9.0.2
-      mqtt: 5.14.1
-      winston: 3.17.0
-      ws: 8.18.3
-      zod: 3.25.76
-      zod-to-json-schema: 3.24.6(zod@3.25.76)
-      zod-to-ts: 1.2.0(typescript@5.9.2)(zod@3.25.76)
-    transitivePeerDependencies:
-      - aws-crt
-      - bufferutil
-      - debug
-      - supports-color
-      - typescript
-      - utf-8-validate
 
   '@vitest/expect@3.2.4':
     dependencies:

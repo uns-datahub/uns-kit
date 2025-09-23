@@ -29,3 +29,4 @@ export default class UnsProxy {
     protected unregisterApiEndpoint(topic: string, attribute: string): void;
     stop(): Promise<void>;
 }
+//# sourceMappingURL=uns-proxy.d.ts.map

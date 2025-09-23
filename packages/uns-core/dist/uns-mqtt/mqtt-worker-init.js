@@ -3,3 +3,4 @@ import { MqttWorker } from "./mqtt-worker.js";
 if (!isMainThread && parentPort) {
     new MqttWorker(workerData);
 }
+//# sourceMappingURL=mqtt-worker-init.js.map

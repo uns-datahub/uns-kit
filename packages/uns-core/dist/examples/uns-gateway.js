@@ -3,3 +3,4 @@ const addr = await startUnsGateway();
 console.log(`UNS Gateway listening on ${addr.address} (UDS=${addr.isUDS})`);
 // Keep alive
 setInterval(() => { }, 1 << 30);
+//# sourceMappingURL=uns-gateway.js.map

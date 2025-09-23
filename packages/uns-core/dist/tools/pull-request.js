@@ -166,3 +166,4 @@ async function createPullRequest(tag) {
     console.log(chalk.green.bold(` ... OK`));
     console.log(`Pull request created at ` + chalk.green.bold(`[${orgBaseUrl}/${project}/_git/${repoName}/pullrequests]`));
 }
+//# sourceMappingURL=pull-request.js.map

@@ -10,3 +10,4 @@ export const PACKAGE_INFO = JSON.parse(readFileSync(PACKAGE_JSON_PATH, "utf8"));
 // Other configuration values (update intervals, timeouts, etc.)
 export const MQTT_UPDATE_INTERVAL = 10000; // in milliseconds
 export const ACTIVE_TIMEOUT = 10000; // in milliseconds
+//# sourceMappingURL=process-config.js.map

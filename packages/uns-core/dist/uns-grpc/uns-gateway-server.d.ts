@@ -45,3 +45,4 @@ export declare class UnsGatewayServer {
     shutdown(): Promise<void>;
 }
 export declare function startUnsGateway(addrOverride?: string, opts?: GatewayStartOptions): Promise<GatewayAddress>;
+//# sourceMappingURL=uns-gateway-server.d.ts.map
