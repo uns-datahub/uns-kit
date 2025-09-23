@@ -1,0 +1,9 @@
+{
+  "folders": [
+    {
+      "name": "uns-demo",
+      "path": "."
+    }
+  ],
+  "settings": { "git.ignoreLimitWarning": true }
+}
