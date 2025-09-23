@@ -1,11 +1,11 @@
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
-import { pkgDirSync } from "pkg-dir";
+import { packageDirectorySync } from "pkg-dir";
 
 const resolveFrom = (start?: string): string | undefined => {
   if (!start) return undefined;
   const directory = resolve(start);
-  return pkgDirSync(directory) ?? directory;
+  return packageDirectorySync({cwd:directory}) ?? directory;
 };
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
