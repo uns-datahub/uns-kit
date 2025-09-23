@@ -16,13 +16,14 @@ import logger from "../logger.js";
 async function main() {
     try {
         const config = await ConfigFile.loadConfig();
-        const mqttOutput = new UnsMqttProxy(config.output.host, "loadTest", "templateUnsRttLoadTest", { publishThrottlingDelay: 0 }, true);
+        const outputHost = (config.output?.host);
+        const mqttOutput = new UnsMqttProxy(outputHost, "loadTest", "templateUnsRttLoadTest", { publishThrottlingDelay: 0 }, true);
         const rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
         });
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        rl.question(`Would you like to continue with load-test on ${config.output.host}? (Y/n) `, async (answer) => {
+        rl.question(`Would you like to continue with load-test on ${outputHost}? (Y/n) `, async (answer) => {
             if (answer.toLowerCase() === "y" || answer.trim() === "") {
                 rl.question("How many iterations should be run? (default is 100) ", async (iterations) => {
                     const maxIntervals = parseInt(iterations) || 100;
@@ -38,7 +39,8 @@ async function main() {
                                 await mqttOutput.publishMessage("raw/data", rawData);
                             }
                             catch (error) {
-                                logger.error("Error publishing message:", error.message);
+                                const reason = error instanceof Error ? error : new Error(String(error));
+                                logger.error("Error publishing message:", reason.message);
                             }
                             count++;
                             if (delay > 0) {
@@ -65,7 +67,8 @@ async function main() {
         });
     }
     catch (error) {
-        logger.error("Error initializing load test:", error.message);
+        const reason = error instanceof Error ? error : new Error(String(error));
+        logger.error("Error initializing load test:", reason.message);
         process.exit(1);
     }
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { secretValueSchema } from "@uns-kit/core/dist/uns-config/secret-placeholders";
-import { hostValueSchema } from "@uns-kit/core/dist/uns-config/host-placeholders";
+import { secretValueSchema } from "@uns-kit/core/uns-config/secret-placeholders.js";
+import { hostValueSchema } from "@uns-kit/core/uns-config/host-placeholders.js";
 
 // Extend this schema with project-specific configuration sections.
 export const projectExtrasSchema = z.object({
