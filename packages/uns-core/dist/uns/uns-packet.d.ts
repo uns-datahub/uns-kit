@@ -1,4 +1,4 @@
-import { IUnsPacket, ISO8601, IUnsMessage, IUnsPackatParameters } from "./uns-interfaces";
+import { IUnsPacket, ISO8601, IUnsMessage, IUnsPackatParameters } from "./uns-interfaces.js";
 export declare class UnsPacket {
     /**
      * The given TypeScript function parseMqttPacket is used to parse an MQTT packet,

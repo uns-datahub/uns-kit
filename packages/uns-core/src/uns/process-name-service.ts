@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "fs";
-import { PROCESS_NAME_FILE } from "./process-config";
-import logger from "../logger";
+import { PROCESS_NAME_FILE } from "./process-config.js";
+import logger from "../logger.js";
 
 /**
  * Retrieves a persistent process name.

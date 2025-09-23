@@ -1,6 +1,6 @@
 import UnsProxy from "@uns-kit/core/uns/uns-proxy";
 import { ConnectionOptions, ClientOptions, Workflow } from '@temporalio/client';
-import { ITemporalTopic } from "./temporal-interfaces";
+import { ITemporalTopic } from "./temporal-interfaces.js";
 export default class UnsTemporalProxy extends UnsProxy {
     instanceName: string;
     protected processStatusTopic: string;

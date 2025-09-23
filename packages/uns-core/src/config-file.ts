@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { AppConfig } from "./app-config";
+import type { AppConfig } from "./app-config.js";
 import {
   clearSecretResolverCaches,
   resolveConfigSecrets,
   type ResolvedAppConfig,
   type SecretResolverOptions,
-} from "./uns-config/secret-resolver";
+} from "./uns-config/secret-resolver.js";
 
 const hasOptions = (options?: SecretResolverOptions): boolean =>
   !!options && Object.values(options).some(value => value !== undefined);

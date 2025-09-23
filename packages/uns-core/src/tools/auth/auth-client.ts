@@ -1,5 +1,5 @@
-import { ConfigFile } from "../../config-file";
-import { SecureStoreFactory, ISecureStore } from "./secure-store";
+import { ConfigFile } from "../../config-file.js";
+import { SecureStoreFactory, ISecureStore } from "./secure-store.js";
 import jwt from "jsonwebtoken";
 import readline from "readline";
 

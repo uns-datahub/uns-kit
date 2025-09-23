@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import logger from '../logger';
+import logger from '../logger.js';
 
 export interface WsEvents {
   deal: { message: string};

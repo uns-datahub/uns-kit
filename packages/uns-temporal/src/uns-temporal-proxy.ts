@@ -6,7 +6,7 @@ import * as path from "path";
 import { basePath } from "@uns-kit/core/base-path";
 import { readFileSync } from "fs";
 import { Connection, Client, ConnectionOptions, ClientOptions, Workflow, WorkflowStartOptions } from '@temporalio/client';
-import { ITemporalTopic } from "./temporal-interfaces";
+import { ITemporalTopic } from "./temporal-interfaces.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet";
 import { UnsAttributeType } from "@uns-kit/core/graphql/schema";
 

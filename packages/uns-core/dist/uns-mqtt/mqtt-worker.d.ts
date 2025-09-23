@@ -1,5 +1,5 @@
-import { IMqttWorkerData } from "./mqtt-interfaces";
-import { ThrottledPublisher, ThrottledSubscriber } from "./throttled-queue";
+import { IMqttWorkerData } from "./mqtt-interfaces.js";
+import { ThrottledPublisher, ThrottledSubscriber } from "./throttled-queue.js";
 export declare class MqttWorker {
     private mqttProxy;
     protected publisher: ThrottledPublisher;

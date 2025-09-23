@@ -1,4 +1,4 @@
-import type MqttProxy from "../uns-mqtt/mqtt-proxy";
+import type MqttProxy from "../uns-mqtt/mqtt-proxy.js";
 export declare class StatusMonitor {
     private mqttProxy;
     private processStatusTopic;

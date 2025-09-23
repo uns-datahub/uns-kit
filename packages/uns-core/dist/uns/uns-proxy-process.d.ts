@@ -1,5 +1,5 @@
-import { IUnsParameters, IUnsProcessParameters } from "./uns-interfaces";
-import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy";
+import { IUnsParameters, IUnsProcessParameters } from "./uns-interfaces.js";
+import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
 /**
  * UnsProxyProcess is responsible for managing the process lifecycle,
  * configuring MQTT (subscriptions and publishing for status updates), and

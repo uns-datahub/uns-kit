@@ -9,7 +9,7 @@ import { PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet";
 import { UnsTags } from "@uns-kit/core/uns/uns-tags";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics";
-import unsCronPlugin, { type UnsProxyProcessWithCron } from "./uns-cron-plugin";
+import unsCronPlugin, { type UnsProxyProcessWithCron } from "./uns-cron-plugin.js";
 
 /**
  * Load the configuration from a file.

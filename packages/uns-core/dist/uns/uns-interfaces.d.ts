@@ -1,7 +1,7 @@
-import { UnsAttributeType } from "../graphql/schema";
-import { MeasurementUnit } from "./uns-measurements";
-import { UnsTags } from "./uns-tags";
-import { UnsTopics } from "./uns-topics";
+import { UnsAttributeType } from "../graphql/schema.js";
+import { MeasurementUnit } from "./uns-measurements.js";
+import { UnsTags } from "./uns-tags.js";
+import { UnsTopics } from "./uns-topics.js";
 export type ISO8601 = `${number}-${string}-${string}T${string}:${string}:${string}.${string}Z`;
 export declare function isIOS8601Type(value: string): value is ISO8601;
 export type UnsAttribute = string;

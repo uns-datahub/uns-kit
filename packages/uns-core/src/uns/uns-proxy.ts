@@ -1,7 +1,7 @@
-import { IApiObject, ITopicObject, UnsEvents } from "./uns-interfaces";
-import logger from "../logger";
-import { UnsEventEmitter } from "./uns-event-emitter";
-import { UnsPacket } from "./uns-packet";
+import { IApiObject, ITopicObject, UnsEvents } from "./uns-interfaces.js";
+import logger from "../logger.js";
+import { UnsEventEmitter } from "./uns-event-emitter.js";
+import { UnsPacket } from "./uns-packet.js";
 
 export default class UnsProxy {
   private publishInterval: NodeJS.Timeout | null = null;

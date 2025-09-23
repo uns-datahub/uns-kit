@@ -1,5 +1,5 @@
-import { IApiObject, ITopicObject, UnsEvents } from "./uns-interfaces";
-import { UnsEventEmitter } from "./uns-event-emitter";
+import { IApiObject, ITopicObject, UnsEvents } from "./uns-interfaces.js";
+import { UnsEventEmitter } from "./uns-event-emitter.js";
 export default class UnsProxy {
     private publishInterval;
     event: UnsEventEmitter<UnsEvents>;

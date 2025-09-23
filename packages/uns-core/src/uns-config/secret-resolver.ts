@@ -1,17 +1,17 @@
 import os from "node:os";
 import type { NetworkInterfaceInfo } from "node:os";
-import type { AppConfig } from "../app-config";
+import type { AppConfig } from "../app-config.js";
 import {
   isSecretPlaceholder,
   type EnvSecretPlaceholder,
   type InfisicalSecretPlaceholder,
   type SecretPlaceholder,
-} from "./secret-placeholders";
+} from "./secret-placeholders.js";
 import {
   isHostPlaceholder,
   type HostPlaceholder,
   type SystemHostPlaceholder,
-} from "./host-placeholders";
+} from "./host-placeholders.js";
 
 export type SecretValueResolved = string | undefined;
 export type HostValueResolved = string | undefined;

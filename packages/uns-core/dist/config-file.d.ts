@@ -1,5 +1,5 @@
-import type { AppConfig } from "./app-config";
-import { type ResolvedAppConfig, type SecretResolverOptions } from "./uns-config/secret-resolver";
+import type { AppConfig } from "./app-config.js";
+import { type ResolvedAppConfig, type SecretResolverOptions } from "./uns-config/secret-resolver.js";
 export declare class ConfigFile {
     private static rawCache?;
     private static rawPath?;

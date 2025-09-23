@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { startUnsGateway } from "./uns-gateway-server";
+import { startUnsGateway } from "./uns-gateway-server.js";
 
 function parseArgs() {
   const argv = process.argv.slice(2);

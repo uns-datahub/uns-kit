@@ -1,5 +1,5 @@
-import { IMqttMessage, IUnsPacket, IUnsParameters, UnsEvents } from "../uns/uns-interfaces";
-import UnsProxy from "../uns/uns-proxy";
+import { IMqttMessage, IUnsPacket, IUnsParameters, UnsEvents } from "../uns/uns-interfaces.js";
+import UnsProxy from "../uns/uns-proxy.js";
 export declare enum MessageMode {
     Raw = "raw",// Send only the original message
     Delta = "delta",// Send only the delta message

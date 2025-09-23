@@ -1,6 +1,6 @@
 import * as crypto from "crypto";
 import * as zlib from "zlib";
-import logger from '../logger';
+import logger from '../logger.js';
 import {
   IUnsPacket,
   ISO8601,  
@@ -13,7 +13,7 @@ import {
   IUnsExtendedMessage,
   IUnsExtendedData,
   IUnsTable
-} from "./uns-interfaces";
+} from "./uns-interfaces.js";
 
 // Version of the packet library
 const unsPacketVersion = "1.2.0";

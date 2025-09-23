@@ -2,11 +2,11 @@ import { IClientPublishOptions } from "mqtt";
 import { join } from "path";
 import { parentPort } from "worker_threads";
 
-import { basePath } from "../base-path";
-import logger from "../logger";
-import { IMqttWorkerData } from "./mqtt-interfaces";
-import MqttProxy from "./mqtt-proxy";
-import { ThrottledPublisher, ThrottledSubscriber } from "./throttled-queue";
+import { basePath } from "../base-path.js";
+import logger from "../logger.js";
+import { IMqttWorkerData } from "./mqtt-interfaces.js";
+import MqttProxy from "./mqtt-proxy.js";
+import { ThrottledPublisher, ThrottledSubscriber } from "./throttled-queue.js";
 
 export class MqttWorker {
   private mqttProxy: MqttProxy;
