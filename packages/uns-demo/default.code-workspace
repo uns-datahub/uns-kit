@@ -1,10 +1,12 @@
 {
   "folders": [
     {
-      "path": "../.."
+      "path": "../..",
+      "name": "uns-kit"
     },
     {
-      "path": "."
+      "path": ".",
+      "name": "uns-demo"
     }
   ],
   "settings": {

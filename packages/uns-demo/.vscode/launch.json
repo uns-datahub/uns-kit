@@ -6,7 +6,7 @@
       "request": "launch",
       "name": "UNS Demo: dev",
       "command": "pnpm --filter @uns-kit/demo dev",
-      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "cwd": "${workspaceFolder:uns-kit}",
       "env": {
         "NODE_OPTIONS": "--enable-source-maps"
       }
