@@ -3,9 +3,6 @@
     {
       "name": "uns-kit",
       "path": "."
-    },
-    {
-      "path": "../template-uns-rtt"
     }
   ],
   "settings": { "git.ignoreLimitWarning": true }
