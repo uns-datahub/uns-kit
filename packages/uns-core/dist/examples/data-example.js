@@ -1,11 +1,11 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import UnsProxyProcess from "../uns/uns-proxy-process";
-import { ConfigFile } from "../config-file";
-import logger from "../logger";
-import { PhysicalMeasurements } from "../uns/uns-measurements";
-import { UnsPacket } from "../uns/uns-packet";
+import UnsProxyProcess from "../uns/uns-proxy-process.js";
+import { ConfigFile } from "../config-file.js";
+import logger from "../logger.js";
+import { PhysicalMeasurements } from "../uns/uns-measurements.js";
+import { UnsPacket } from "../uns/uns-packet.js";
 /**
  * Load the configuration from a file.
  * On the server, this file is provided by the `uns-datahub-controller`.

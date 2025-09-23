@@ -1,5 +1,5 @@
 import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process";
-import unsApiPlugin from "./uns-api-plugin";
+import unsApiPlugin from "./uns-api-plugin.js";
 import { ConfigFile } from "@uns-kit/core/config-file";
 /**
  * Load the configuration from a file.

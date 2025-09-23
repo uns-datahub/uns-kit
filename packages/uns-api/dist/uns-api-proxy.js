@@ -9,7 +9,7 @@ import { MqttTopicBuilder } from "@uns-kit/core/uns-mqtt/mqtt-topic-builder";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet";
 import UnsProxy from "@uns-kit/core/uns/uns-proxy";
 import { UnsTopicMatcher } from "@uns-kit/core/uns/uns-topic-matcher";
-import App from "./app";
+import App from "./app.js";
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 export default class UnsApiProxy extends UnsProxy {

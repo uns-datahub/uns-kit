@@ -1,7 +1,7 @@
 import * as crypto from "crypto";
 import * as zlib from "zlib";
-import logger from '../logger';
-import { isIOS8601Type } from "./uns-interfaces";
+import logger from '../logger.js';
+import { isIOS8601Type } from "./uns-interfaces.js";
 // Version of the packet library
 const unsPacketVersion = "1.2.0";
 export class UnsPacket {

@@ -1,8 +1,8 @@
 import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { basePath } from "../base-path";
-import logger from "../logger";
+import { basePath } from "../base-path.js";
+import logger from "../logger.js";
 /**
  * Abstract base class that encapsulates common functionality for managing
  * a throttled in‑memory queue with an optional disk persistence.

@@ -1,7 +1,7 @@
-import logger from "../logger";
-import { HandoverManagerEventEmitter } from "./handover-manager-event-emitter";
-import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder";
-import { ACTIVE_TIMEOUT, PACKAGE_INFO } from "./process-config";
+import logger from "../logger.js";
+import { HandoverManagerEventEmitter } from "./handover-manager-event-emitter.js";
+import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
+import { ACTIVE_TIMEOUT, PACKAGE_INFO } from "./process-config.js";
 /**
  * HandoverManager is responsible for all handover-related logic,
  * including handling incoming MQTT messages, issuing handover requests,

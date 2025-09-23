@@ -4,9 +4,9 @@
  * In the development environment, you are responsible for creating and maintaining this file and its contents.
  */
 import readline from "readline";
-import { ConfigFile } from "../config-file";
-import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy";
-import logger from "../logger";
+import { ConfigFile } from "../config-file.js";
+import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
+import logger from "../logger.js";
 /**
  * This script initializes an MQTT output proxy for load testing purposes.
  * It sets up a connection to the specified MQTT broker and configures

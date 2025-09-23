@@ -2,7 +2,7 @@
  * Change this file according to your specifications and rename it to index.ts
  */
 import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process";
-import unsTemporalPlugin from "./uns-temporal-plugin";
+import unsTemporalPlugin from "./uns-temporal-plugin.js";
 import { ConfigFile } from "@uns-kit/core/config-file";
 import { UnsAttributeType } from "@uns-kit/core/graphql/schema";
 import logger from "@uns-kit/core/logger";

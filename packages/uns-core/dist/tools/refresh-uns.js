@@ -1,9 +1,9 @@
 import { GraphQLClient, gql, ClientError } from "graphql-request";
-import { basePath } from "./base-path";
+import { basePath } from "./base-path.js";
 import * as path from "path";
 import * as fs from 'fs';
-import { ConfigFile } from "../config-file";
-import { AuthClient } from "./auth/index";
+import { ConfigFile } from "../config-file.js";
+import { AuthClient } from "./auth/index.js";
 const config = await ConfigFile.loadConfig();
 // Helper function to write content to a file
 async function writeToFile(filePath, content) {

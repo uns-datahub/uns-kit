@@ -6,7 +6,7 @@ import { ConfigFile } from "@uns-kit/core/config-file";
 import logger from "@uns-kit/core/logger";
 import { PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet";
-import unsCronPlugin from "./uns-cron-plugin";
+import unsCronPlugin from "./uns-cron-plugin.js";
 /**
  * Load the configuration from a file.
  * On the server, this file is provided by the `uns-datahub-controller`.

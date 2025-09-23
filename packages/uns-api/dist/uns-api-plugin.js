@@ -1,5 +1,5 @@
 import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process";
-import UnsApiProxy from "./uns-api-proxy";
+import UnsApiProxy from "./uns-api-proxy.js";
 const apiProxyRegistry = new WeakMap();
 const getApiProxies = (instance) => {
     let proxies = apiProxyRegistry.get(instance);

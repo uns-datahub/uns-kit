@@ -8,8 +8,8 @@ import * as path from "path";
 import * as prettier from "prettier";
 import { CleanOptions, simpleGit } from "simple-git";
 import util from "util";
-import { ConfigFile } from "../config-file";
-import { basePath } from "../base-path";
+import { ConfigFile } from "../config-file.js";
+import { basePath } from "../base-path.js";
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,

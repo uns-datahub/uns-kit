@@ -3,12 +3,12 @@ import protoLoader from "@grpc/proto-loader";
 import path from "path";
 import getPort from "get-port";
 import { readFileSync } from "fs";
-import { basePath } from "../base-path";
-import logger from "../logger";
-import { ConfigFile } from "../config-file";
-import UnsProxyProcess from "../uns/uns-proxy-process";
-import { MessageMode } from "../uns-mqtt/uns-mqtt-proxy";
-import { UnsPacket } from "../uns/uns-packet";
+import { basePath } from "../base-path.js";
+import logger from "../logger.js";
+import { ConfigFile } from "../config-file.js";
+import UnsProxyProcess from "../uns/uns-proxy-process.js";
+import { MessageMode } from "../uns-mqtt/uns-mqtt-proxy.js";
+import { UnsPacket } from "../uns/uns-packet.js";
 import { randomUUID } from "crypto";
 const GATEWAY_PROTO = path.resolve("python/proto/uns-gateway.proto");
 export class UnsGatewayServer {

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { clearSecretResolverCaches, resolveConfigSecrets, } from "./uns-config/secret-resolver";
+import { clearSecretResolverCaches, resolveConfigSecrets, } from "./uns-config/secret-resolver.js";
 const hasOptions = (options) => !!options && Object.values(options).some(value => value !== undefined);
 export class ConfigFile {
     static rawCache;

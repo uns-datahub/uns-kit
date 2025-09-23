@@ -5,7 +5,7 @@ import readline from "node:readline";
 import * as path from "path";
 import { CleanOptions, simpleGit } from "simple-git";
 import fs from "fs-extra";
-import { basePath } from "./base-path";
+import { basePath } from "./base-path.js";
 const git = simpleGit("./").clean(CleanOptions.FORCE);
 export const packageJsonPath = path.join(basePath, "package.json");
 const orgUrl = "https://sijit@dev.azure.com/sijit";
