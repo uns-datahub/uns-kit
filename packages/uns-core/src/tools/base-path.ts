@@ -1,7 +1,8 @@
 import { fileURLToPath } from "url";
-import {dirname, resolve } from "path";
+import { dirname, resolve } from "path";
+import { pkgDirSync } from "pkg-dir";
 
-const fName = fileURLToPath(import.meta.url);
-const dName = dirname(fName);
+const moduleDir = dirname(fileURLToPath(import.meta.url));
+const packageRoot = pkgDirSync(moduleDir) ?? resolve(moduleDir, "../..");
 
-export const basePath = resolve(dName, "../..");
+export const basePath = packageRoot;
