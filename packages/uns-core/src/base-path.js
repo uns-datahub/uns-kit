@@ -3,6 +3,10 @@ import { dirname, resolve, join } from "path";
 import { existsSync } from "fs";
 import { packageDirectorySync } from "pkg-dir";
 
+const moduleDirectory = dirname(fileURLToPath(import.meta.url));
+
+const packageDirectorySyncAny = packageDirectorySync;
+
 const fallbackFind = start => {
   let current = resolve(start);
 
@@ -20,40 +24,47 @@ const fallbackFind = start => {
   }
 };
 
-const packageDirectorySyncAny = packageDirectorySync;
+const resolveCandidate = candidate => {
+  if (!candidate) return undefined;
 
-const resolveWithPkgDir = directory => {
-  if (typeof packageDirectorySyncAny !== "function") {
-    return undefined;
+  const directory = resolve(candidate);
+
+  if (typeof packageDirectorySyncAny === "function") {
+    try {
+      const result = packageDirectorySyncAny({ cwd: directory });
+      if (typeof result === "string") {
+        return result;
+      }
+    } catch {
+      // ignore – fall back to alternate invocation style
+    }
+
+    try {
+      const result = packageDirectorySyncAny(directory);
+      if (typeof result === "string") {
+        return result;
+      }
+    } catch {
+      // ignore – fall back to manual search
+    }
   }
 
-  try {
-    const result = packageDirectorySyncAny({ cwd: directory });
-    if (result) return result;
-  } catch {
-    // ignore – fall back to alternate invocation style
-  }
-
-  try {
-    const result = packageDirectorySyncAny(directory);
-    if (typeof result === "string") return result;
-  } catch {
-    // ignore – fall back to manual search
-  }
-
-  return undefined;
+  return fallbackFind(directory) ?? directory;
 };
 
-const resolveFrom = start => {
-  if (!start) return undefined;
-  const directory = resolve(start);
-  return resolveWithPkgDir(directory) ?? fallbackFind(directory) ?? directory;
-};
+export function resolveBasePath(options = {}) {
+  const { start, envBasePath = process.env.UNS_BASE_PATH ?? undefined, cwd = process.cwd() } = options;
 
-const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [start, envBasePath ?? undefined, cwd, moduleDirectory];
 
-const envRoot = resolveFrom(process.env.UNS_BASE_PATH);
-const cwdRoot = resolveFrom(process.cwd());
-const packageRoot = resolveFrom(moduleDir) ?? resolve(moduleDir, "..");
+  for (const candidate of candidates) {
+    const resolved = resolveCandidate(candidate);
+    if (resolved) {
+      return resolved;
+    }
+  }
 
-export const basePath = envRoot ?? cwdRoot ?? packageRoot;
+  return resolve(moduleDirectory, "..");
+}
+
+export const basePath = resolveBasePath();
