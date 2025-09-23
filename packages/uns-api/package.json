@@ -1,6 +1,6 @@
 {
   "name": "@uns-kit/api",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Express-powered API gateway plugin for UnsProxyProcess with JWT/JWKS support.",
   "type": "module",
   "license": "MIT",
