@@ -1,14 +1,14 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import UnsProxyProcess from "../uns/uns-proxy-process.js";
-import { ConfigFile } from "../config-file.js";
-import logger from "../logger.js";
-import { IUnsMessage } from "../uns/uns-interfaces.js";
-import { PhysicalMeasurements } from "../uns/uns-measurements.js";
-import { UnsPacket } from "../uns/uns-packet.js";
-import { UnsTags } from "../uns/uns-tags.js";
-import { UnsTopics } from "../uns/uns-topics.js";
+import { UnsProxyProcess } from "@uns-kit/core";
+import { ConfigFile } from "@uns-kit/core";
+import { logger } from "@uns-kit/core";
+import { IUnsMessage } from "@uns-kit/core";
+import { PhysicalMeasurements } from "@uns-kit/core/dist/uns/uns-measurements.js";
+import { UnsPacket } from "@uns-kit/core/dist/uns/uns-packet";
+import { UnsTags } from "@uns-kit/core/dist/uns/uns-tags";
+import { UnsTopics } from "@uns-kit/core/dist/uns/uns-topics";
 
 /**
  * Load the configuration from a file.
@@ -20,11 +20,11 @@ const config = await ConfigFile.loadConfig();
 /**
  * Connect to input and output brokers
  */
-const unsProxyProcess = new UnsProxyProcess(config.infra.host, {processName: config.uns.processName});
-const mqttInput = await unsProxyProcess.createUnsMqttProxy(config.input.host, "templateUnsRttInput", config.uns.instanceMode, config.uns.handover, {
+const unsProxyProcess = new UnsProxyProcess(config.infra.host!, {processName: config.uns.processName!});
+const mqttInput = await unsProxyProcess.createUnsMqttProxy((config.input?.host)!, "templateUnsRttInput", config.uns.instanceMode!, config.uns.handover!, {
   mqttSubToTopics: ["raw/#"],
 });
-const mqttOutput = await unsProxyProcess.createUnsMqttProxy(config.output.host, "templateUnsRttOutput", config.uns.instanceMode, config.uns.handover, { publishThrottlingDelay: 1000});
+const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host)!, "templateUnsRttOutput", config.uns.instanceMode!, config.uns.handover!, { publishThrottlingDelay: 1000});
 
 
 /**
@@ -44,7 +44,8 @@ mqttInput.event.on("input", async (event) => {
       mqttOutput.publishMqttMessage({ topic, attribute: "data-number", packet, description: "Number value", tags });
     }
   } catch (error) {
-    logger.error(`Error publishing message to MQTT: ${error.message}`);
-    throw error;
+    const reason = error instanceof Error ? error : new Error(String(error));
+    logger.error(`Error publishing message to MQTT: ${reason.message}`);
+    throw reason;
   }
 });

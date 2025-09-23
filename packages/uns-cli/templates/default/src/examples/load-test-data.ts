@@ -54,7 +54,8 @@ async function main() {
                 const rawData = `${count},${currentDate.getTime()}`;
                 await mqttOutput.publishMessage("raw/data", rawData);
               } catch (error) {
-                logger.error("Error publishing message:", error.message);
+                const reason = error instanceof Error ? error : new Error(String(error));
+                logger.error("Error publishing message:", reason.message);
               }
 
               count++;
@@ -84,7 +85,8 @@ async function main() {
       }
     });
   } catch (error) {
-    logger.error("Error initializing load test:", error.message);
+    const reason = error instanceof Error ? error : new Error(String(error));
+    logger.error("Error initializing load test:", reason.message);
     process.exit(1);
   }
 }

@@ -21,10 +21,10 @@ const config = await ConfigFile.loadConfig();
  * Connect to input and output brokers
  */
 const unsProxyProcess = new UnsProxyProcess(config.infra.host!, {processName: config.uns.processName!});
-const mqttInput = await unsProxyProcess.createUnsMqttProxy((config.input?.host)!, "templateUnsRttInput", config.uns.instanceMode, config.uns.handover, {
+const mqttInput = await unsProxyProcess.createUnsMqttProxy((config.input?.host)!, "templateUnsRttInput", config.uns.instanceMode!, config.uns.handover!, {
   mqttSubToTopics: ["raw/#"],
 });
-const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host)!, "templateUnsRttOutput", config.uns.instanceMode, config.uns.handover, { publishThrottlingDelay: 1000});
+const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host)!, "templateUnsRttOutput", config.uns.instanceMode!, config.uns.handover!, { publishThrottlingDelay: 1000});
 
 
 /**
@@ -44,7 +44,8 @@ mqttInput.event.on("input", async (event) => {
       mqttOutput.publishMqttMessage({ topic, attribute: "data-number", packet, description: "Number value", tags });
     }
   } catch (error) {
-    logger.error(`Error publishing message to MQTT: ${error.message}`);
-    throw error;
+    const reason = error instanceof Error ? error : new Error(String(error));
+    logger.error(`Error publishing message to MQTT: ${reason.message}`);
+    throw reason;
   }
 });

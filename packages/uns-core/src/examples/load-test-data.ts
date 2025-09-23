@@ -4,9 +4,9 @@
  * In the development environment, you are responsible for creating and maintaining this file and its contents.
  */
 import readline from "readline";
-import { ConfigFile } from "../config-file.js";
-import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
-import logger from "../logger.js";
+import { ConfigFile } from "@uns-kit/core";
+import UnsMqttProxy from "@uns-kit/core/dist/uns-mqtt/uns-mqtt-proxy";
+import { logger } from "@uns-kit/core";
 
 
 /**
@@ -18,8 +18,10 @@ import logger from "../logger.js";
 async function main() {
   try {
     const config = await ConfigFile.loadConfig();
+    const outputHost = (config.output?.host)!;
+
     const mqttOutput = new UnsMqttProxy(
-      config.output.host,
+      outputHost,
       "loadTest",
       "templateUnsRttLoadTest",
       { publishThrottlingDelay: 0 },
@@ -33,7 +35,7 @@ async function main() {
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    rl.question(`Would you like to continue with load-test on ${config.output.host}? (Y/n) `, async (answer) => {
+    rl.question(`Would you like to continue with load-test on ${outputHost}? (Y/n) `, async (answer) => {
       if (answer.toLowerCase() === "y" || answer.trim() === "") {
         rl.question("How many iterations should be run? (default is 100) ", async (iterations) => {
           const maxIntervals = parseInt(iterations) || 100;
@@ -52,7 +54,8 @@ async function main() {
                 const rawData = `${count},${currentDate.getTime()}`;
                 await mqttOutput.publishMessage("raw/data", rawData);
               } catch (error) {
-                logger.error("Error publishing message:", error.message);
+                const reason = error instanceof Error ? error : new Error(String(error));
+                logger.error("Error publishing message:", reason.message);
               }
 
               count++;
@@ -82,7 +85,8 @@ async function main() {
       }
     });
   } catch (error) {
-    logger.error("Error initializing load test:", error.message);
+    const reason = error instanceof Error ? error : new Error(String(error));
+    logger.error("Error initializing load test:", reason.message);
     process.exit(1);
   }
 }
