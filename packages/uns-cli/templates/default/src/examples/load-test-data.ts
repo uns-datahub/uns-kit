@@ -18,8 +18,10 @@ import { logger } from "@uns-kit/core";
 async function main() {
   try {
     const config = await ConfigFile.loadConfig();
+    const outputHost = (config.output?.host)!;
+
     const mqttOutput = new UnsMqttProxy(
-      config.output.host,
+      outputHost,
       "loadTest",
       "templateUnsRttLoadTest",
       { publishThrottlingDelay: 0 },
@@ -33,7 +35,7 @@ async function main() {
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    rl.question(`Would you like to continue with load-test on ${config.output.host}? (Y/n) `, async (answer) => {
+    rl.question(`Would you like to continue with load-test on ${outputHost}? (Y/n) `, async (answer) => {
       if (answer.toLowerCase() === "y" || answer.trim() === "") {
         rl.question("How many iterations should be run? (default is 100) ", async (iterations) => {
           const maxIntervals = parseInt(iterations) || 100;

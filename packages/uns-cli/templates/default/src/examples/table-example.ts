@@ -20,16 +20,13 @@ const config = await ConfigFile.loadConfig();
 /**
  * Load and configure input and output brokers from config.json
  */
-if (!config.infra?.host || !config.input?.host || !config.output?.host) {
-  throw new Error("Missing required configuration in config.json");
-}
-const unsProxyProcess = new UnsProxyProcess(config.infra.host, {processName: config.uns.processName});
-const mqttInput = await unsProxyProcess.createUnsMqttProxy(config.input.host, "templateUnsRttInput", config.uns.instanceMode, config.uns.handover, {
+const unsProxyProcess = new UnsProxyProcess(config.infra.host!, {processName: config.uns.processName!});
+const mqttInput = await unsProxyProcess.createUnsMqttProxy((config.input?.host)!, "templateUnsRttInput", config.uns.instanceMode, config.uns.handover, {
   mqttSubToTopics: ["iba/zrm"],
   publishThrottlingDelay:0,
   subscribeThrottlingDelay:0
 });
-const mqttOutput = await unsProxyProcess.createUnsMqttProxy(config.output.host, "templateUnsRttOutput", config.uns.instanceMode, config.uns.handover, {
+const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host)!, "templateUnsRttOutput", config.uns.instanceMode, config.uns.handover, {
   publishThrottlingDelay:0,
   subscribeThrottlingDelay:0  
 });

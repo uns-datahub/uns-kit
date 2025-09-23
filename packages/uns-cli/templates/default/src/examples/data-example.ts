@@ -20,11 +20,11 @@ const config = await ConfigFile.loadConfig();
 /**
  * Connect to input and output brokers
  */
-const unsProxyProcess = new UnsProxyProcess(config.infra.host, {processName: config.uns.processName});
-const mqttInput = await unsProxyProcess.createUnsMqttProxy(config.input.host, "templateUnsRttInput", config.uns.instanceMode, config.uns.handover, {
+const unsProxyProcess = new UnsProxyProcess(config.infra.host!, {processName: config.uns.processName!});
+const mqttInput = await unsProxyProcess.createUnsMqttProxy((config.input?.host)!, "templateUnsRttInput", config.uns.instanceMode, config.uns.handover, {
   mqttSubToTopics: ["raw/#"],
 });
-const mqttOutput = await unsProxyProcess.createUnsMqttProxy(config.output.host, "templateUnsRttOutput", config.uns.instanceMode, config.uns.handover, { publishThrottlingDelay: 1000});
+const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host)!, "templateUnsRttOutput", config.uns.instanceMode, config.uns.handover, { publishThrottlingDelay: 1000});
 
 
 /**
