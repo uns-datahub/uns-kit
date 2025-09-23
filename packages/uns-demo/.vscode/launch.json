@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "UNS Demo: dev",
+      "command": "pnpm --filter @uns-kit/demo dev",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "env": {
+        "NODE_OPTIONS": "--enable-source-maps"
+      }
+    }
+  ]
+}

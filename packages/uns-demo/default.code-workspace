@@ -1,9 +1,17 @@
 {
   "folders": [
     {
-      "name": "uns-demo",
+      "path": "../.."
+    },
+    {
       "path": "."
     }
   ],
-  "settings": { "git.ignoreLimitWarning": true }
+  "settings": {
+    "typescript.tsdk": "../../node_modules/typescript/lib",
+    "files.exclude": {
+      "**/dist": true,
+      "**/.turbo": true
+    }
+  }
 }
