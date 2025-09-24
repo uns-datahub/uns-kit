@@ -1,15 +1,18 @@
 #!/usr/bin/env node
+import { execFile } from "node:child_process";
 import { access, cp, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import process from "node:process";
 import readline from "node:readline/promises";
+import { promisify } from "node:util";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 const coreVersion = resolveCoreVersion();
+const execFileAsync = promisify(execFile);
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -112,7 +115,29 @@ async function configureDevops(targetPath?: string): Promise<void> {
     [key: string]: unknown;
   };
 
-  const defaultOrg = config.devops?.organization ?? "sijit";
+  await ensureGitRepository(targetDir);
+
+  const remoteUrl = await getGitRemoteUrl(targetDir, "origin");
+  let gitRemoteMessage: string | undefined;
+  let ensuredRemoteUrl = remoteUrl;
+
+  if (!ensuredRemoteUrl) {
+    const remoteAnswer = (await promptQuestion(
+      "Azure DevOps repository URL (e.g. https://dev.azure.com/sijit/industry40/_git/my-repo): ",
+    )).trim();
+
+    if (!remoteAnswer) {
+      throw new Error("A repository URL is required to set the git remote origin.");
+    }
+
+    await addGitRemote(targetDir, "origin", remoteAnswer);
+    ensuredRemoteUrl = remoteAnswer;
+    gitRemoteMessage = `  Added git remote origin -> ${remoteAnswer}`;
+  }
+
+  const inferredOrganization = ensuredRemoteUrl ? inferAzureOrganization(ensuredRemoteUrl) : undefined;
+
+  const defaultOrg = config.devops?.organization?.trim() || inferredOrganization || "sijit";
   const answer = (await promptQuestion(`Azure DevOps organization [${defaultOrg}]: `)).trim();
   const organization = answer || defaultOrg;
 
@@ -152,12 +177,131 @@ async function configureDevops(targetPath?: string): Promise<void> {
 
   console.log(`\nDevOps tooling configured.`);
   console.log(`  Azure organization: ${organization}`);
+  if (gitRemoteMessage) {
+    console.log(gitRemoteMessage);
+  }
   if (pkgChanged) {
     console.log("  Updated package.json scripts/devDependencies. Run pnpm install to fetch new packages.");
   } else {
     console.log("  Existing package.json already contained required entries.");
   }
 }
+
+async function ensureGitRepository(dir: string): Promise<void> {
+  try {
+    const { stdout } = await execFileAsync("git", ["rev-parse", "--is-inside-work-tree"], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+    if (stdout.trim() !== "true") {
+      throw new Error(`Directory ${dir} is not a git repository.`);
+    }
+  } catch (error) {
+    if (isGitCommandNotFoundError(error)) {
+      throw new Error("Git is required to run configure-devops but was not found in PATH.");
+    }
+
+    const execError = error as ExecFileError;
+    const stderr = typeof execError.stderr === "string" ? execError.stderr : "";
+    if (stderr.includes("not a git repository")) {
+      throw new Error(`Directory ${dir} is not a git repository.`);
+    }
+
+    throw error;
+  }
+}
+
+async function getGitRemoteUrl(dir: string, remoteName: string): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync("git", ["remote", "get-url", remoteName], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+    return stdout.trim();
+  } catch (error) {
+    if (isGitCommandNotFoundError(error)) {
+      throw new Error("Git is required to run configure-devops but was not found in PATH.");
+    }
+
+    if (isGitRemoteMissingError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+async function addGitRemote(dir: string, remoteName: string, remoteUrl: string): Promise<void> {
+  try {
+    await execFileAsync("git", ["remote", "add", remoteName, remoteUrl], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+  } catch (error) {
+    if (isGitCommandNotFoundError(error)) {
+      throw new Error("Git is required to run configure-devops but was not found in PATH.");
+    }
+
+    const execError = error as ExecFileError;
+    const stderr = typeof execError.stderr === "string" ? execError.stderr.trim() : "";
+    if (stderr) {
+      throw new Error(`Failed to add git remote origin: ${stderr}`);
+    }
+
+    throw new Error(`Failed to add git remote origin: ${(error as Error).message}`);
+  }
+}
+
+function inferAzureOrganization(remoteUrl: string): string | undefined {
+  try {
+    const url = new URL(remoteUrl);
+    const hostname = url.hostname.toLowerCase();
+    if (hostname === "dev.azure.com" || hostname.endsWith(".visualstudio.com")) {
+      const segments = url.pathname.split("/").filter(Boolean);
+      if (segments.length >= 1) {
+        return segments[0];
+      }
+    }
+  } catch (error) {
+    // ignore parse errors for non-HTTP(S) remotes
+  }
+
+  if (remoteUrl.startsWith("git@ssh.dev.azure.com:")) {
+    const [, pathPart] = remoteUrl.split(":", 2);
+    if (pathPart) {
+      const segments = pathPart.split("/").filter(Boolean);
+      // Format: v3/{organization}/{project}/{repo}
+      if (segments.length >= 2) {
+        return segments[1];
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function isGitRemoteMissingError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const execError = error as ExecFileError;
+  if (typeof execError.stderr === "string") {
+    return execError.stderr.includes("No such remote");
+  }
+
+  return false;
+}
+
+function isGitCommandNotFoundError(error: unknown): boolean {
+  return Boolean(error && typeof error === "object" && (error as NodeJS.ErrnoException).code === "ENOENT");
+}
+
+type ExecFileError = NodeJS.ErrnoException & {
+  code?: number | string;
+  stdout?: string;
+  stderr?: string;
+};
 
 async function promptQuestion(message: string): Promise<string> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
