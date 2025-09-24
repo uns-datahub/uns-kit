@@ -236,9 +236,15 @@ async function assertNotDefaultBranch(): Promise<void> {
       );
     }
   } catch (error) {
-    const message = (error as Error).message || "";
-    if (message) {
-      console.log(`Warning: Unable to verify default branch: ${message}`);
+    if (error instanceof Error) {
+      const message = error.message || "";
+      const protectedBranchPrefix = "You can not create a pull request from the default branch";
+      if (message.startsWith(protectedBranchPrefix)) {
+        throw error;
+      }
+      if (message) {
+        console.log(`Warning: Unable to verify default branch: ${message}`);
+      }
     }
   }
 }
