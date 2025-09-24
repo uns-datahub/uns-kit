@@ -59,8 +59,6 @@ try {
 async function main() {
   if (!gitStatus.isClean()) {
     throw new Error(`Repository needs to be clean. Please commit or stash the changes.`);
-  } else if (currentBranch == "master") {
-    throw new Error(`You can not create pull request from master to master.`);
   } else {  
     const envPat = process.env.AZURE_PAT;
     while (!token) {
