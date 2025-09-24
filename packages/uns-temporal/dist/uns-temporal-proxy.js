@@ -24,7 +24,7 @@ export default class UnsTemporalProxy extends UnsProxy {
         this.instanceName = instanceName;
         this.processName = processName;
         // Create the topic builder using packageJson values and the processName.
-        this.topicBuilder = new MqttTopicBuilder(`uns-infra/${packageJson.name}/${packageJson.version}/${processName}/`);
+        this.topicBuilder = new MqttTopicBuilder(`uns-infra/${MqttTopicBuilder.sanitizeTopicPart(packageJson.name)}/${MqttTopicBuilder.sanitizeTopicPart(packageJson.version)}/${MqttTopicBuilder.sanitizeTopicPart(processName)}/`);
         // Generate the processStatusTopic using the builder.
         this.processStatusTopic = this.topicBuilder.getProcessStatusTopic();
         // Derive the instanceStatusTopic by appending the instance name.

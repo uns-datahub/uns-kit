@@ -15,6 +15,12 @@ export declare class MqttTopicBuilder {
      */
     constructor(processStatusTopic: string);
     /**
+     * Sanitize topic
+     * @param name
+     * @returns
+     */
+    static sanitizeTopicPart(name: string): string;
+    /**
      * Returns the process status topic.
      *
      * Example: "uns-infra/packageName/version/processName"

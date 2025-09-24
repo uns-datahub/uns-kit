@@ -2,3 +2,4 @@ packages:
   - packages/*
   - sandbox-app
   - packages/uns-demo
+  - sandbox-*

@@ -20,6 +20,19 @@ export class MqttTopicBuilder {
         this.processStatusTopic = processStatusTopic;
     }
     /**
+     * Sanitize topic
+     * @param name
+     * @returns
+     */
+    static sanitizeTopicPart(name) {
+        const sanitized = name
+            .replace(/[^a-zA-Z0-9_-]+/g, "-")
+            .replace(/-{2,}/g, "-")
+            .replace(/^-+|-+$/g, "");
+        return sanitized.length > 0 ? sanitized : "uns-process";
+    }
+    ;
+    /**
      * Returns the process status topic.
      *
      * Example: "uns-infra/packageName/version/processName"
