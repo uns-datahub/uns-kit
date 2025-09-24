@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { execSync } from "child_process";
 import fs from "fs";
 import { readFile } from "fs/promises";
+import { Buffer } from "node:buffer";
 import readline from "node:readline";
 import * as path from "path";
 import * as prettier from "prettier";
@@ -15,6 +16,7 @@ const rl = readline.createInterface({
     output: process.stdout,
 });
 const question = util.promisify(rl.question).bind(rl);
+process.env.GIT_TERMINAL_PROMPT = process.env.GIT_TERMINAL_PROMPT ?? "0";
 const git = simpleGit("./").clean(CleanOptions.FORCE);
 const packageJsonPath = path.join(basePath, "package.json");
 const unsLibraryPath = path.join(basePath, "uns-library.json");
@@ -45,6 +47,7 @@ const currentBranch = branches.current;
 const gitStatus = await git.status();
 let token = "";
 let gitApi;
+let gitWithAuth;
 try {
     await main();
     rl.close();
@@ -88,6 +91,11 @@ async function main() {
                 }
             }
         }
+        const authHeader = buildGitAuthorizationHeader(token);
+        gitWithAuth = simpleGit({
+            baseDir: "./",
+            config: [`http.extraheader=${authHeader}`],
+        }).clean(CleanOptions.FORCE);
         await assertNotDefaultBranch();
         const version = await getVersion();
         await setVersion(version);
@@ -97,11 +105,12 @@ async function main() {
     }
 }
 async function getVersion() {
+    const authenticatedGit = requireGitWithAuth();
     let versionExists = true;
     let newVersion = version;
     while (versionExists) {
         newVersion = await question(`Every PR needs a unique version, please accept current version or enter a new one [${version}]: `) || version;
-        const remoteTags = await git.listRemote(["--tags"]);
+        const remoteTags = await authenticatedGit.listRemote(["--tags"]);
         if (remoteTags.indexOf(`refs/tags/${newVersion}`) > 0) {
             console.log(chalk.bold.red(`Version ${newVersion} already exists on the server`));
         }
@@ -122,8 +131,9 @@ async function commitChanges(newVersion) {
     console.log(chalk.green.bold(` ... OK`));
 }
 async function pushChanges() {
+    const authenticatedGit = requireGitWithAuth();
     process.stdout.write(`Push changes to remote branch ${currentBranch} `);
-    await git.push("origin", currentBranch);
+    await authenticatedGit.push("origin", currentBranch);
     console.log(chalk.green.bold(` ... OK`));
 }
 async function setVersion(newVersion) {
@@ -210,5 +220,15 @@ function normalizeBranchName(refName) {
     }
     const prefix = "refs/heads/";
     return refName.startsWith(prefix) ? refName.slice(prefix.length) : refName;
+}
+function buildGitAuthorizationHeader(personalAccessToken) {
+    const encoded = Buffer.from(`:${personalAccessToken}`).toString("base64");
+    return `Authorization: Basic ${encoded}`;
+}
+function requireGitWithAuth() {
+    if (!gitWithAuth) {
+        throw new Error("Git authentication is not initialized.");
+    }
+    return gitWithAuth;
 }
 //# sourceMappingURL=pull-request.js.map
