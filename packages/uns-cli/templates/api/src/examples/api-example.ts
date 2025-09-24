@@ -3,7 +3,8 @@
  */
 import { UnsProxyProcess, ConfigFile } from "@uns-kit/core";
 import { IApiProxyOptions } from "@uns-kit/core";
-import unsApiPlugin, { type UnsProxyProcessWithApi } from "@uns-kit/api";
+import type { UnsEvents } from "@uns-kit/core";
+import { type UnsProxyProcessWithApi } from "@uns-kit/api";
 
 /**
  * Load the configuration from a file.
@@ -49,7 +50,7 @@ apiInput.get("sij/", "summary-2",{
   ]
 });
 
-apiInput.event.on("apiGetEvent", (event) => {
+apiInput.event.on("apiGetEvent", (event: UnsEvents["apiGetEvent"]) => {
   try {
     const appContext = event.req.appContext;
     // Add SQL query or any other code here
