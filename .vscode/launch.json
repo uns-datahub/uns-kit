@@ -233,6 +233,8 @@
       "program": "${workspaceFolder}/packages/uns-cli/src/index.ts",
       "args": ["configure-devops", "sandbox-app"],
       "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
       "outputCapture": "std",
       "sourceMaps": true,
       "resolveSourceMapLocations": [
