@@ -101,7 +101,7 @@ class UnsProxyProcess {
     const { name: packageName, version } = PACKAGE_INFO;
 
     // Instantiate the topic builder.
-    const topicBuilder = new MqttTopicBuilder(`uns-infra/${packageName}/${version}/${this.processName}/`);
+    const topicBuilder = new MqttTopicBuilder(`uns-infra/${MqttTopicBuilder.sanitizeTopicPart(packageName)}/${MqttTopicBuilder.sanitizeTopicPart(version)}/${MqttTopicBuilder.sanitizeTopicPart(this.processName)}/`);
 
     // Generate topics.
     const processStatusTopic = topicBuilder.getProcessStatusTopic();

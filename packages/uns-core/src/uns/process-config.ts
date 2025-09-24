@@ -15,20 +15,11 @@ interface PackageInfo {
   version: string;
 }
 
-const sanitizePackageName = (name: string): string => {
-  const sanitized = name
-    .replace(/[^a-zA-Z0-9_-]+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return sanitized.length > 0 ? sanitized : "uns-process";
-};
-
 const rawPackageInfo: PackageInfo = JSON.parse(readFileSync(PACKAGE_JSON_PATH, "utf8"));
 
 export const PACKAGE_INFO: PackageInfo = {
   ...rawPackageInfo,
-  name: sanitizePackageName(rawPackageInfo.name)
+  name: rawPackageInfo.name
 };
 
 // Other configuration values (update intervals, timeouts, etc.)

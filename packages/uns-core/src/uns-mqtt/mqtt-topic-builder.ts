@@ -15,11 +15,26 @@ export class MqttTopicBuilder {
      * Example: "uns-infra/packageName/version/processName/"
      */
     constructor(processStatusTopic: string) {
+      
       if (!/^uns-infra\/[^/]+\/[^/]+\/[^/]+\/$/.test(processStatusTopic)) {
         throw new Error("processStatusTopic must follow the pattern 'uns-infra/<packageName>/<version>/<processName>/'");
       }
       this.processStatusTopic = processStatusTopic;
     }
+
+    /**
+     * Sanitize topic
+     * @param name 
+     * @returns 
+     */
+    public static sanitizeTopicPart(name: string): string {
+      const sanitized = name
+        .replace(/[^a-zA-Z0-9_-]+/g, "-")
+        .replace(/-{2,}/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+      return sanitized.length > 0 ? sanitized : "uns-process";
+    };    
   
     /**
      * Returns the process status topic.
