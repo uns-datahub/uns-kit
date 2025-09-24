@@ -1,6 +1,6 @@
 {
   "name": "@uns-kit/cli",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Command line scaffolding tool for UNS applications",
   "type": "module",
   "license": "MIT",
