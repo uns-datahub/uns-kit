@@ -18,13 +18,21 @@ const question = util.promisify(rl.question).bind(rl);
 const git = simpleGit("./").clean(CleanOptions.FORCE);
 const packageJsonPath = path.join(basePath, "package.json");
 const unsLibraryPath = path.join(basePath, "uns-library.json");
-let azureOrganization = "sijit";
+let azureOrganization = "";
+let azureProject = "";
 try {
     const appConfig = ConfigFile.loadRawConfig();
     azureOrganization = appConfig.devops?.organization?.trim() || azureOrganization;
+    azureProject = appConfig.devops?.project?.trim() || azureProject;
 }
 catch (error) {
     // Use default organization when config.json is missing
+}
+if (!azureOrganization) {
+    throw new Error("Azure DevOps organization is not configured. Please set devops.organization in config.json (run `uns-kit configure-devops`).");
+}
+if (!azureProject) {
+    throw new Error("Azure DevOps project is not configured. Please set devops.project in config.json (run `uns-kit configure-devops`).");
 }
 const orgUrl = `https://${azureOrganization}@dev.azure.com/${azureOrganization}`;
 const orgBaseUrl = `https://dev.azure.com/${azureOrganization}`;
@@ -36,6 +44,7 @@ const branches = await git.branchLocal();
 const currentBranch = branches.current;
 const gitStatus = await git.status();
 let token = "";
+let gitApi;
 try {
     await main();
     rl.close();
@@ -58,6 +67,7 @@ async function main() {
                 try {
                     console.log("Using PAT from your AZURE_PAT environment");
                     await connection.connect();
+                    gitApi = await connection.getGitApi();
                 }
                 catch (error) {
                     console.log("The provided PAT is invalid or expired. Please provide a valid PAT.");
@@ -70,6 +80,7 @@ async function main() {
                 const connection = new azdev.WebApi(orgUrl, authHandler);
                 try {
                     await connection.connect();
+                    gitApi = await connection.getGitApi();
                 }
                 catch (error) {
                     console.log("The provided PAT is invalid or expired. Please provide a valid PAT.");
@@ -77,9 +88,9 @@ async function main() {
                 }
             }
         }
+        await assertNotDefaultBranch();
         const version = await getVersion();
         await setVersion(version);
-        await runMake();
         await commitChanges(version);
         await pushChanges();
         await createPullRequest(version);
@@ -146,10 +157,12 @@ async function createPullRequest(tag) {
     const title = await question(`Title for the pull request: `);
     const description = await question(`Description for the pull request: `);
     process.stdout.write(`Create new pull request from ${currentBranch} to master `);
-    const authHandler = azdev.getPersonalAccessTokenHandler(token);
-    const connection = new azdev.WebApi(orgUrl, authHandler);
-    const gitApi = await connection.getGitApi();
-    const project = "industry40";
+    if (!gitApi) {
+        const authHandler = azdev.getPersonalAccessTokenHandler(token);
+        const connection = new azdev.WebApi(orgUrl, authHandler);
+        gitApi = await connection.getGitApi();
+    }
+    const project = azureProject;
     const repos = await gitApi.getRepositories(project);
     const repoId = repos.filter((x) => x.name == repoName)[0].id;
     const gitPullRequestToCreate = {
@@ -162,5 +175,34 @@ async function createPullRequest(tag) {
     gitApi.createPullRequest(gitPullRequestToCreate, repoId, project);
     console.log(chalk.green.bold(` ... OK`));
     console.log(`Pull request created at ` + chalk.green.bold(`[${orgBaseUrl}/${project}/_git/${repoName}/pullrequests]`));
+}
+async function assertNotDefaultBranch() {
+    if (!gitApi) {
+        return;
+    }
+    const project = azureProject.trim();
+    if (!project) {
+        return;
+    }
+    try {
+        const repository = await gitApi.getRepository(repoName, project);
+        const defaultBranch = normalizeBranchName(repository?.defaultBranch);
+        if (defaultBranch && defaultBranch === currentBranch) {
+            throw new Error(`You can not create a pull request from the default branch (${defaultBranch}). Please create a feature branch instead.`);
+        }
+    }
+    catch (error) {
+        const message = error.message || "";
+        if (message) {
+            console.log(`Warning: Unable to verify default branch: ${message}`);
+        }
+    }
+}
+function normalizeBranchName(refName) {
+    if (!refName) {
+        return undefined;
+    }
+    const prefix = "refs/heads/";
+    return refName.startsWith(prefix) ? refName.slice(prefix.length) : refName;
 }
 //# sourceMappingURL=pull-request.js.map
