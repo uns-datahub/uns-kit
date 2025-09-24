@@ -317,6 +317,30 @@
         "${workspaceFolder}/**/node_modules/@uns-kit/*/src/*": "${workspaceFolder}/packages/uns-*/src/*"
       },
       "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "core: tools refresh-uns",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--import",
+        "tsx",
+      ],
+      "program": "${workspaceFolder}/packages/uns-core/src/tools/refresh-uns.ts",
+      "preLaunchTask": "prep: core dist",
+      "cwd": "${workspaceFolder}/sandbox-app",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "outputCapture": "std",
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ],
+      "sourceMapPathOverrides": {
+        "${workspaceFolder}/**/node_modules/@uns-kit/*/src/*": "${workspaceFolder}/packages/uns-*/src/*"
+      },
+      "skipFiles": ["<node_internals>/**"]
     }
   ]
 }

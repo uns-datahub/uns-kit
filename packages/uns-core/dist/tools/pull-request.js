@@ -19,7 +19,6 @@ const question = util.promisify(rl.question).bind(rl);
 process.env.GIT_TERMINAL_PROMPT = process.env.GIT_TERMINAL_PROMPT ?? "0";
 const git = simpleGit("./").clean(CleanOptions.FORCE);
 const packageJsonPath = path.join(basePath, "package.json");
-const unsLibraryPath = path.join(basePath, "uns-library.json");
 let azureOrganization = "";
 let azureProject = "";
 try {
@@ -78,7 +77,7 @@ async function main() {
                 }
             }
             if (!token) {
-                token = await question(`Please enter your PAT, you can create one at [${tokensUrl}]: `);
+                token = await question(`Please enter your PAT, you can create one at ` + chalk.green.bold(`[${tokensUrl}]: `));
                 const authHandler = azdev.getPersonalAccessTokenHandler(token);
                 const connection = new azdev.WebApi(orgUrl, authHandler);
                 try {
@@ -142,26 +141,6 @@ async function setVersion(newVersion) {
         parser: "json",
     });
     fs.writeFileSync("package.json", docString, "utf8");
-    if (repoName === "template-uns-rtt") {
-        try {
-            const unsLibraryFile = await readFile(unsLibraryPath, "utf8");
-            const unsLibrary = JSON.parse(unsLibraryFile);
-            unsLibrary.version = newVersion;
-            const unsLibraryDoc = await prettier.format(JSON.stringify(unsLibrary), {
-                parser: "json",
-            });
-            fs.writeFileSync(unsLibraryPath, unsLibraryDoc, "utf8");
-        }
-        catch (error) {
-            if (error.code === "ENOENT") {
-                const unsLibraryDoc = await prettier.format(JSON.stringify({ name: repoName, version: newVersion }), { parser: "json" });
-                fs.writeFileSync(unsLibraryPath, unsLibraryDoc, "utf8");
-            }
-            else {
-                throw error;
-            }
-        }
-    }
 }
 async function createPullRequest(tag) {
     const title = await question(`Title for the pull request: `);

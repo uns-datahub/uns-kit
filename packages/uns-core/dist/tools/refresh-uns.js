@@ -1,7 +1,7 @@
 import { GraphQLClient, gql, ClientError } from "graphql-request";
-import { basePath } from "./base-path.js";
 import * as path from "path";
 import * as fs from 'fs';
+import { mkdir } from "fs/promises";
 import { ConfigFile } from "../config-file.js";
 import { AuthClient } from "./auth/index.js";
 const config = await ConfigFile.loadConfig();
@@ -89,7 +89,9 @@ async function refreshUnsTopics() {
     const query = await requestWithAuth(document);
     const tree = query.GetTreeStructure;
     const vsebina = `export type UnsTopics = ${generateUnsTopics(tree, '')}\n(string & {});`;
-    await writeToFile(path.join(basePath, "src/uns/uns-topics.ts"), vsebina);
+    const outputPath = path.resolve(process.cwd(), "src/uns/uns-topics.ts");
+    await ensureDirectory(path.dirname(outputPath));
+    await writeToFile(outputPath, vsebina);
 }
 // Fetch and generate UnsTags
 async function refreshUnsTags() {
@@ -100,11 +102,16 @@ async function refreshUnsTags() {
     const query = await requestWithAuth(document);
     const tags = query.GetTags;
     const vsebina = `export type UnsTags = ${tags.map(tag => `"${tag}" |`).join('')}\n(string & {});`;
-    await writeToFile(path.join(basePath, "src/uns/uns-tags.ts"), vsebina);
+    const outputPath = path.resolve(process.cwd(), "src/uns/uns-tags.ts");
+    await ensureDirectory(path.dirname(outputPath));
+    await writeToFile(outputPath, vsebina);
 }
 // Execute the refresh processes
 async function refresh() {
     await Promise.all([refreshUnsTopics(), refreshUnsTags()]);
 }
 refresh().catch(error => console.error('Error during refresh:', error));
+async function ensureDirectory(dirPath) {
+    await mkdir(dirPath, { recursive: true });
+}
 //# sourceMappingURL=refresh-uns.js.map
