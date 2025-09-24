@@ -211,6 +211,7 @@
       "program": "${workspaceFolder}/packages/uns-cli/src/index.ts",
       "args": ["create", "sandbox-app"],
       "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
       "outputCapture": "std",
       "sourceMaps": true,
       "resolveSourceMapLocations": [
