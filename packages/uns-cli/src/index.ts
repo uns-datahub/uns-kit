@@ -335,7 +335,9 @@ async function configureCodegen(targetPath?: string): Promise<void> {
     "@graphql-codegen/cli": "^5.0.7",
     "@graphql-codegen/typescript": "^4.1.6",
     "@graphql-codegen/typescript-operations": "^4.6.1",
-    "@graphql-codegen/typescript-resolvers": "^4.3.1"
+    "@graphql-codegen/typescript-resolvers": "^4.3.1",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.2.0"
   };
 
   let pkgChanged = false;
@@ -349,6 +351,10 @@ async function configureCodegen(targetPath?: string): Promise<void> {
   const scripts = (pkg.scripts ??= {});
   if (!scripts.codegen) {
     scripts.codegen = "graphql-code-generator --config codegen.ts";
+    pkgChanged = true;
+  }
+  if (!scripts["refresh-uns"]) {
+    scripts["refresh-uns"] = "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js";
     pkgChanged = true;
   }
 
