@@ -48,6 +48,17 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "configure-codegen") {
+    const targetPath = args[1];
+    try {
+      await configureCodegen(targetPath);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   if (command === "create") {
     const projectName = args[1];
     if (!projectName) {
@@ -77,6 +88,7 @@ function printHelp(): void {
     "  create <name>           Scaffold a new UNS application\n" +
     "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n" +
     "  configure-vscode [dir]  Add VS Code workspace configuration files\n" +
+    "  configure-codegen [dir] Copy GraphQL codegen template and dependencies\n" +
     "  help                    Show this message\n",
   );
 }
@@ -288,6 +300,83 @@ async function configureVscode(targetPath?: string): Promise<void> {
   }
   if (!copied.length && !skipped.length) {
     console.log("  No files were found in the VS Code template directory.");
+  }
+}
+
+async function configureCodegen(targetPath?: string): Promise<void> {
+  const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
+  const templateDir = path.resolve(__dirname, "../templates/codegen");
+  const packagePath = path.join(targetDir, "package.json");
+
+  try {
+    await access(templateDir);
+  } catch (error) {
+    throw new Error("GraphQL codegen template directory is missing. Please ensure templates/codegen is available.");
+  }
+
+  let pkgRaw: string;
+  try {
+    pkgRaw = await readFile(packagePath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`Could not find package.json in ${targetDir}`);
+    }
+    throw error;
+  }
+
+  const pkg = JSON.parse(pkgRaw) as PackageJson;
+
+  const { copied, skipped } = await copyTemplateDirectory(templateDir, targetDir, targetDir);
+
+  const devDeps = (pkg.devDependencies ??= {});
+  const deps = pkg.dependencies ?? {};
+
+  const requiredDevDeps: Record<string, string> = {
+    "@graphql-codegen/cli": "^5.0.7",
+    "@graphql-codegen/typescript": "^4.1.6",
+    "@graphql-codegen/typescript-operations": "^4.6.1",
+    "@graphql-codegen/typescript-resolvers": "^4.3.1"
+  };
+
+  let pkgChanged = false;
+  for (const [name, version] of Object.entries(requiredDevDeps)) {
+    if (!devDeps[name] && !deps[name]) {
+      devDeps[name] = version;
+      pkgChanged = true;
+    }
+  }
+
+  const scripts = (pkg.scripts ??= {});
+  if (!scripts.codegen) {
+    scripts.codegen = "graphql-code-generator --config codegen.ts";
+    pkgChanged = true;
+  }
+
+  if (pkgChanged) {
+    await writeFile(packagePath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+  }
+
+  console.log("\nGraphQL code generation setup complete.");
+  if (copied.length) {
+    console.log("  Added files:");
+    for (const file of copied) {
+      console.log(`    ${file}`);
+    }
+  }
+  if (skipped.length) {
+    console.log("  Skipped existing files:");
+    for (const file of skipped) {
+      console.log(`    ${file}`);
+    }
+  }
+  if (!copied.length && !skipped.length) {
+    console.log("  No template files were copied.");
+  }
+
+  if (pkgChanged) {
+    console.log("  Updated package.json scripts/devDependencies. Run pnpm install to fetch new packages.");
+  } else {
+    console.log("  Existing package.json already contained required scripts and dependencies.");
   }
 }
 
