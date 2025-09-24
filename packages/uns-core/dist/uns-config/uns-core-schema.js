@@ -23,7 +23,9 @@ export const unsCoreSchema = z.object({
     output: mqttChannelSchema.optional(),
     infra: mqttChannelSchema,
     devops: z.object({
+        provider: z.enum(["azure-devops"]).default("azure-devops"),
         organization: z.string().min(1),
+        project: z.string().min(1).optional(),
     }).strict().optional(),
 }).strict();
 //# sourceMappingURL=uns-core-schema.js.map

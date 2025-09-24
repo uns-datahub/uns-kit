@@ -482,11 +482,17 @@ export declare const unsCoreSchema: z.ZodObject<{
         clientId?: string;
     }>;
     devops: z.ZodOptional<z.ZodObject<{
+        provider: z.ZodDefault<z.ZodEnum<["azure-devops"]>>;
         organization: z.ZodString;
+        project: z.ZodOptional<z.ZodString>;
     }, "strict", z.ZodTypeAny, {
+        provider?: "azure-devops";
         organization?: string;
+        project?: string;
     }, {
+        provider?: "azure-devops";
         organization?: string;
+        project?: string;
     }>>;
 }, "strict", z.ZodTypeAny, {
     uns?: {
@@ -599,7 +605,9 @@ export declare const unsCoreSchema: z.ZodObject<{
         clientId?: string;
     };
     devops?: {
+        provider?: "azure-devops";
         organization?: string;
+        project?: string;
     };
 }, {
     uns?: {
@@ -712,7 +720,9 @@ export declare const unsCoreSchema: z.ZodObject<{
         clientId?: string;
     };
     devops?: {
+        provider?: "azure-devops";
         organization?: string;
+        project?: string;
     };
 }>;
 export type UnsCore = z.infer<typeof unsCoreSchema>;

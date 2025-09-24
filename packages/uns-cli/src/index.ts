@@ -7,12 +7,15 @@ import { createRequire } from "node:module";
 import process from "node:process";
 import readline from "node:readline/promises";
 import { promisify } from "node:util";
+import * as azdev from "azure-devops-node-api";
+import type { IGitApi } from "azure-devops-node-api/GitApi";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 const coreVersion = resolveCoreVersion();
 const execFileAsync = promisify(execFile);
+const AZURE_DEVOPS_PROVIDER = "azure-devops" as const;
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -79,6 +82,32 @@ async function createProject(projectName: string): Promise<void> {
   console.log("  pnpm run dev");
 }
 
+type PackageJson = {
+  name?: string;
+  devDependencies?: Record<string, string>;
+  dependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
+  [key: string]: unknown;
+};
+
+type DevopsConfig = {
+  provider?: string;
+  organization?: string;
+  project?: string;
+  [key: string]: unknown;
+};
+
+type ConfigJson = {
+  devops?: DevopsConfig;
+  [key: string]: unknown;
+};
+
+type AzureRemoteInfo = {
+  organization?: string;
+  project?: string;
+  repository?: string;
+};
+
 async function configureDevops(targetPath?: string): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
   const packagePath = path.join(targetDir, "package.json");
@@ -104,47 +133,69 @@ async function configureDevops(targetPath?: string): Promise<void> {
     throw error;
   }
 
-  const pkg = JSON.parse(pkgRaw) as {
-    devDependencies?: Record<string, string>;
-    dependencies?: Record<string, string>;
-    scripts?: Record<string, string>;
-    [key: string]: unknown;
-  };
-  const config = JSON.parse(configRaw) as {
-    devops?: { organization?: string };
-    [key: string]: unknown;
-  };
+  const pkg = JSON.parse(pkgRaw) as PackageJson;
+  const config = JSON.parse(configRaw) as ConfigJson;
 
   await ensureGitRepository(targetDir);
 
   const remoteUrl = await getGitRemoteUrl(targetDir, "origin");
-  let gitRemoteMessage: string | undefined;
-  let ensuredRemoteUrl = remoteUrl;
+  const remoteInfo = remoteUrl ? parseAzureRemote(remoteUrl) : undefined;
 
-  if (!ensuredRemoteUrl) {
-    const remoteAnswer = (await promptQuestion(
-      "Azure DevOps repository URL (e.g. https://dev.azure.com/sijit/industry40/_git/my-repo): ",
-    )).trim();
+  const repositoryName = inferRepositoryNameFromPackage(pkg.name) || inferRepositoryNameFromPackage(path.basename(targetDir));
 
-    if (!remoteAnswer) {
-      throw new Error("A repository URL is required to set the git remote origin.");
-    }
+  const defaultOrganization = config.devops?.organization?.trim() || remoteInfo?.organization || "sijit";
+  const organization = await promptWithDefault(
+    defaultOrganization ? `Azure DevOps organization [${defaultOrganization}]: ` : "Azure DevOps organization: ",
+    defaultOrganization,
+    "Azure DevOps organization is required.",
+  );
 
-    await addGitRemote(targetDir, "origin", remoteAnswer);
-    ensuredRemoteUrl = remoteAnswer;
-    gitRemoteMessage = `  Added git remote origin -> ${remoteAnswer}`;
-  }
-
-  const inferredOrganization = ensuredRemoteUrl ? inferAzureOrganization(ensuredRemoteUrl) : undefined;
-
-  const defaultOrg = config.devops?.organization?.trim() || inferredOrganization || "sijit";
-  const answer = (await promptQuestion(`Azure DevOps organization [${defaultOrg}]: `)).trim();
-  const organization = answer || defaultOrg;
+  const defaultProject = config.devops?.project?.trim() || remoteInfo?.project || "";
+  const project = await promptWithDefault(
+    defaultProject ? `Azure DevOps project [${defaultProject}]: ` : "Azure DevOps project: ",
+    defaultProject,
+    "Azure DevOps project is required.",
+  );
 
   if (!config.devops || typeof config.devops !== "object") {
     config.devops = {};
   }
-  config.devops.organization = organization;
+  const devopsConfig = config.devops as DevopsConfig;
+  devopsConfig.provider = AZURE_DEVOPS_PROVIDER;
+  devopsConfig.organization = organization;
+  devopsConfig.project = project;
+
+  let gitRemoteMessage: string | undefined;
+  let repositoryUrlMessage: string | undefined;
+  let ensuredRemoteUrl = remoteUrl ?? "";
+
+  if (!remoteUrl) {
+    const { gitApi } = await resolveAzureGitApi(organization);
+    const repositoryDetails = await ensureAzureRepositoryExists(gitApi, {
+      organization,
+      project,
+      repository: repositoryName,
+    });
+
+    ensuredRemoteUrl = repositoryDetails.remoteUrl ?? buildAzureGitRemoteUrl(organization, project, repositoryName);
+    await addGitRemote(targetDir, "origin", ensuredRemoteUrl);
+    gitRemoteMessage = `  Added git remote origin -> ${ensuredRemoteUrl}`;
+    const friendlyUrl = repositoryDetails.webUrl ?? buildAzureRepositoryUrl(organization, project, repositoryName);
+    if (friendlyUrl) {
+      repositoryUrlMessage = `  Repository URL: ${friendlyUrl}`;
+    }
+  } else {
+    ensuredRemoteUrl = remoteUrl;
+    gitRemoteMessage = `  Git remote origin detected -> ${ensuredRemoteUrl}`;
+    const friendlyUrl = buildAzureRepositoryUrl(
+      remoteInfo?.organization ?? organization,
+      remoteInfo?.project ?? project,
+      remoteInfo?.repository ?? repositoryName,
+    );
+    if (friendlyUrl) {
+      repositoryUrlMessage = `  Repository URL: ${friendlyUrl}`;
+    }
+  }
 
   const requiredDevDeps: Record<string, string> = {
     "azure-devops-node-api": "^15.1.0",
@@ -176,7 +227,12 @@ async function configureDevops(targetPath?: string): Promise<void> {
   }
 
   console.log(`\nDevOps tooling configured.`);
+  console.log(`  DevOps provider: ${AZURE_DEVOPS_PROVIDER}`);
   console.log(`  Azure organization: ${organization}`);
+  console.log(`  Azure project: ${project}`);
+  if (repositoryUrlMessage) {
+    console.log(repositoryUrlMessage);
+  }
   if (gitRemoteMessage) {
     console.log(gitRemoteMessage);
   }
@@ -252,18 +308,127 @@ async function addGitRemote(dir: string, remoteName: string, remoteUrl: string):
   }
 }
 
-function inferAzureOrganization(remoteUrl: string): string | undefined {
+async function resolveAzureGitApi(organization: string): Promise<{ gitApi: IGitApi }> {
+  const tokensUrl = `https://dev.azure.com/${organization}/_usersSettings/tokens`;
+  const envPat = process.env.AZURE_PAT?.trim();
+
+  if (envPat) {
+    try {
+      const gitApi = await createAzureGitApi(organization, envPat);
+      console.log("Using PAT from AZURE_PAT environment variable.");
+      return { gitApi };
+    } catch (error) {
+      console.log("The AZURE_PAT environment variable is invalid or expired. Please provide a new PAT.");
+    }
+  }
+
+  while (true) {
+    const input = (await promptQuestion(
+      `Azure DevOps Personal Access Token (create at ${tokensUrl}): `,
+    )).trim();
+
+    if (!input) {
+      console.log("A Personal Access Token is required to create the repository.");
+      continue;
+    }
+
+    try {
+      const gitApi = await createAzureGitApi(organization, input);
+      return { gitApi };
+    } catch (error) {
+      console.log("The provided PAT is invalid or expired. Please try again.");
+    }
+  }
+}
+
+async function createAzureGitApi(organization: string, personalAccessToken: string): Promise<IGitApi> {
+  const authHandler = azdev.getPersonalAccessTokenHandler(personalAccessToken);
+  const connection = new azdev.WebApi(`https://dev.azure.com/${organization}`, authHandler);
+  await connection.connect();
+  return connection.getGitApi();
+}
+
+async function ensureAzureRepositoryExists(
+  gitApi: IGitApi,
+  params: { organization: string; project: string; repository: string },
+): Promise<{ remoteUrl?: string; webUrl?: string }> {
+  const repositoryName = params.repository.trim();
+  if (!repositoryName) {
+    throw new Error("Repository name is required.");
+  }
+
+  let existingRemoteUrl: string | undefined;
+  let existingWebUrl: string | undefined;
+
+  try {
+    const repositories = await gitApi.getRepositories(params.project);
+    const existing = repositories?.find(
+      (repo) => repo.name?.toLowerCase() === repositoryName.toLowerCase(),
+    );
+    if (existing) {
+      existingRemoteUrl = existing.remoteUrl ?? undefined;
+      existingWebUrl = existing.webUrl ?? existingRemoteUrl;
+      return { remoteUrl: existingRemoteUrl, webUrl: existingWebUrl };
+    }
+  } catch (error) {
+    // Fallback to attempting creation even if listing failed (e.g., limited permissions)
+  }
+
+  try {
+    const created = await gitApi.createRepository({ name: repositoryName }, params.project);
+    const remoteUrl = created?.remoteUrl ?? buildAzureGitRemoteUrl(params.organization, params.project, repositoryName);
+    const webUrl = created?.webUrl ?? created?.remoteUrl ?? buildAzureRepositoryUrl(params.organization, params.project, repositoryName);
+    console.log(`  Created Azure DevOps repository "${repositoryName}" in project "${params.project}".`);
+    return { remoteUrl, webUrl };
+  } catch (error) {
+    try {
+      const repository = await gitApi.getRepository(repositoryName, params.project);
+      if (repository?.remoteUrl) {
+        return {
+          remoteUrl: repository.remoteUrl,
+          webUrl: repository.webUrl ?? repository.remoteUrl,
+        };
+      }
+    } catch (lookupError) {
+      // Ignore lookup failure; we'll rethrow original error below.
+    }
+
+    const message = (error as Error).message || String(error);
+    throw new Error(
+      `Failed to create Azure DevOps repository "${repositoryName}" in project "${params.project}": ${message}`,
+    );
+  }
+}
+
+function parseAzureRemote(remoteUrl: string): AzureRemoteInfo | undefined {
   try {
     const url = new URL(remoteUrl);
     const hostname = url.hostname.toLowerCase();
-    if (hostname === "dev.azure.com" || hostname.endsWith(".visualstudio.com")) {
-      const segments = url.pathname.split("/").filter(Boolean);
-      if (segments.length >= 1) {
-        return segments[0];
-      }
+    const segments = url.pathname.split("/").filter(Boolean);
+
+    if (hostname === "dev.azure.com") {
+      const organization = segments[0] || url.username || undefined;
+      const project = segments[1];
+      const repository = extractRepositoryFromSegments(segments.slice(2));
+      return {
+        organization: organization ? decodeURIComponent(organization) : undefined,
+        project: project ? decodeURIComponent(project) : undefined,
+        repository,
+      };
+    }
+
+    if (hostname.endsWith(".visualstudio.com")) {
+      const organization = hostname.replace(/\.visualstudio\.com$/, "");
+      const project = segments[0];
+      const repository = extractRepositoryFromSegments(segments.slice(1));
+      return {
+        organization,
+        project: project ? decodeURIComponent(project) : undefined,
+        repository,
+      };
     }
   } catch (error) {
-    // ignore parse errors for non-HTTP(S) remotes
+    // Non-HTTP remote (e.g., SSH)
   }
 
   if (remoteUrl.startsWith("git@ssh.dev.azure.com:")) {
@@ -271,13 +436,66 @@ function inferAzureOrganization(remoteUrl: string): string | undefined {
     if (pathPart) {
       const segments = pathPart.split("/").filter(Boolean);
       // Format: v3/{organization}/{project}/{repo}
-      if (segments.length >= 2) {
-        return segments[1];
+      if (segments[0]?.toLowerCase() === "v3") {
+        return {
+          organization: segments[1] ? decodeURIComponent(segments[1]) : undefined,
+          project: segments[2] ? decodeURIComponent(segments[2]) : undefined,
+          repository: stripGitExtension(segments.slice(3).join("/")),
+        };
       }
     }
   }
 
   return undefined;
+}
+
+function extractRepositoryFromSegments(segments: string[]): string | undefined {
+  if (!segments.length) {
+    return undefined;
+  }
+
+  if (segments[0] === "_git") {
+    return stripGitExtension(segments.slice(1).join("/"));
+  }
+
+  if (segments.length >= 2 && segments[1] === "_git") {
+    return stripGitExtension(segments.slice(2).join("/"));
+  }
+
+  return stripGitExtension(segments.join("/"));
+}
+
+function stripGitExtension(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  return value.endsWith(".git") ? value.slice(0, -4) : value;
+}
+
+function encodeAzureSegment(segment: string): string {
+  return encodeURIComponent(segment.trim());
+}
+
+function buildAzureGitRemoteUrl(organization: string, project: string, repository: string): string {
+  const segments = [organization, project, "_git", repository].map(encodeAzureSegment);
+  return `https://dev.azure.com/${segments.join("/")}`;
+}
+
+function buildAzureRepositoryUrl(organization: string, project: string, repository: string): string | undefined {
+  if (!organization || !project || !repository) {
+    return undefined;
+  }
+  return buildAzureGitRemoteUrl(organization, project, repository);
+}
+
+function inferRepositoryNameFromPackage(pkgName: unknown): string {
+  if (typeof pkgName !== "string" || !pkgName.trim()) {
+    return "uns-app";
+  }
+
+  const trimmed = pkgName.trim();
+  const baseName = trimmed.startsWith("@") ? trimmed.split("/").pop() ?? trimmed : trimmed;
+  return baseName.replace(/[^A-Za-z0-9._-]+/g, "-");
 }
 
 function isGitRemoteMissingError(error: unknown): boolean {
@@ -302,6 +520,19 @@ type ExecFileError = NodeJS.ErrnoException & {
   stdout?: string;
   stderr?: string;
 };
+
+async function promptWithDefault(message: string, defaultValue: string, requiredMessage: string): Promise<string> {
+  while (true) {
+    const answer = (await promptQuestion(message)).trim();
+    if (answer) {
+      return answer;
+    }
+    if (defaultValue) {
+      return defaultValue;
+    }
+    console.log(requiredMessage);
+  }
+}
 
 async function promptQuestion(message: string): Promise<string> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });

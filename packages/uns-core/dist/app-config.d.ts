@@ -175,7 +175,9 @@ export type AppConfig = {
         clientId?: string | undefined;
     };
     devops?: {
+        provider?: string | undefined;
         organization: string;
+        project?: string | undefined;
     } | undefined;
 };
 //# sourceMappingURL=app-config.d.ts.map

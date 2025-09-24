@@ -18,6 +18,8 @@
     "host": "localhost:1883"
   },
   "devops": {
-    "organization": "sijit"
+    "provider": "azure-devops",
+    "organization": "sijit",
+    "project": "industry40"
   }
 }
