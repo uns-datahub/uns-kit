@@ -16,6 +16,7 @@ npm install @uns-kit/core
 - **MQTT helpers** – resilient publishers, topic builders, throttled queues, and handover support.
 - **Configuration utilities** – Zod-powered config schema generation and secret resolution helpers.
 - **gRPC gateway helpers** – infrastructure to bridge Python workers into the UNS message fabric.
+- **GraphQL tooling** – utilities such as `refresh-uns` that rebuild UNS topic/tag unions from your environment.
 
 ## Usage
 
@@ -28,6 +29,16 @@ const process = new UnsProxyProcess("mqtt-broker.svc:1883", { processName: "my-r
 ```
 
 See the individual plugin packages (`@uns-kit/cron`, `@uns-kit/api`, `@uns-kit/temporal`) for examples on extending the process with runtime capabilities.
+
+### Refresh UNS topic/tag unions
+
+The package ships a CLI tool that regenerates strongly-typed UNS topics and tags based on the live GraphQL schema:
+
+```bash
+pnpm run refresh-uns
+```
+
+When configured via `uns-kit configure-codegen`, this script lives in your project `package.json` and writes into `src/uns/`.
 
 ## Development
 

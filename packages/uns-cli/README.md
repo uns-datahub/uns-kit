@@ -25,6 +25,8 @@ pnpm run dev
 
 - `uns-kit create <name>` – create a new UNS project in the specified directory.
 - `uns-kit configure-devops [path]` – add Azure DevOps tooling (dependencies, script, config) to an existing project.
+- `uns-kit configure-vscode [path]` – copy VS Code launch/workspace files into an existing project.
+- `uns-kit configure-codegen [path]` – scaffold GraphQL code generation and UNS refresh scripts.
 - `uns-kit help` – display usage information.
 
 ### Configure Azure DevOps
@@ -37,7 +39,26 @@ pnpm install
 pnpm run pull-request
 ```
 
-The command prompts for your Azure DevOps organization and updates `config.json` along with the necessary dev dependencies.
+The command prompts for your Azure DevOps organization/project, ensures the remote repository exists, and updates `config.json` along with the necessary dev dependencies.
+
+### Configure VS Code workspace
+
+```bash
+uns-kit configure-vscode
+```
+
+Copies `.vscode/launch.json` plus a baseline workspace file into the project. Existing files are never overwritten, making it safe to re-run after hand edits.
+
+### Configure GraphQL code generation
+
+```bash
+uns-kit configure-codegen
+pnpm install
+pnpm run codegen
+pnpm run refresh-uns
+```
+
+Adds `codegen.ts`, seeds `src/uns/` placeholder types, and wires the GraphQL Code Generator / `refresh-uns` script into `package.json`. After installing the new dev dependencies you can regenerate strongly-typed operations (`pnpm run codegen`) and rebuild UNS topics/tags from your environment (`pnpm run refresh-uns`).
 
 ### Extend the Config Schema
 

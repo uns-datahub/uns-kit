@@ -44,12 +44,19 @@ pnpm install
 pnpm run dev
 ```
 
-Optional Azure DevOps tooling setup (run inside the generated project):
+Optional tooling setup (run inside the generated project):
 
 ```bash
 uns-kit configure-devops
 pnpm install
 pnpm run pull-request
+
+uns-kit configure-vscode
+
+uns-kit configure-codegen
+pnpm install
+pnpm run codegen
+pnpm run refresh-uns
 ```
 
 Keep your project schema aligned by editing `src/config/project.config.extension.ts` and running `pnpm run generate-config-schema` inside the generated app.
