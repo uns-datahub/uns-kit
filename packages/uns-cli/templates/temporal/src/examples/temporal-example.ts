@@ -1,9 +1,10 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/core";
-import { UnsAttributeType } from "../graphql/schema.js";
-import { ITemporalTopic } from "@uns-kit/t;
+import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
+import { ITemporalTopic } from "@uns-kit/temporal";
+import { type UnsProxyProcessWithTemporal } from "@uns-kit/temporal";
+import { UnsAttributeType } from "@uns-kit/core/graphql/schema.js";
 
 /**
  * Load the configuration from a file.
@@ -15,7 +16,7 @@ const config = await ConfigFile.loadConfig();
 /**
  * Connect to the temporal and register uns topic for temporal
  */
-const unsProxyProcess = new UnsProxyProcess(config.infra.host, {processName:config.uns.processName});
+const unsProxyProcess = new UnsProxyProcess(config.infra.host!, {processName:config.uns.processName}) as UnsProxyProcessWithTemporal;
 const temporalTopic: ITemporalTopic = {
   attribute: "temporal-data",
   topic: "sij/",

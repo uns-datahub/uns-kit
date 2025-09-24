@@ -1,14 +1,14 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import UnsProxyProcess from "../uns/uns-proxy-process.js";
-import { ConfigFile } from "../config-file.js";
-import logger from "../logger.js";
-import { IUnsMessage, UnsEvents } from "../uns/uns-interfaces.js";
-import { PhysicalMeasurements } from "../uns/uns-measurements.js";
-import { UnsPacket } from "../uns/uns-packet.js";
+import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
+import type { IUnsMessage, UnsEvents } from "@uns-kit/core";
+import { type UnsProxyProcessWithCron } from "@uns-kit/cron";
 import { UnsTags } from "../uns/uns-tags.js";
 import { UnsTopics } from "../uns/uns-topics.js";
+import { PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
+import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
+
 
 /**
  * Load the configuration from a file.
@@ -20,8 +20,8 @@ const config = await ConfigFile.loadConfig();
 /**
  * Connect to the output broker and create a crontab proxy
  */
-const unsProxyProcess = new UnsProxyProcess(config.infra.host, {processName:config.uns.processName});
-const mqttOutput = await unsProxyProcess.createUnsMqttProxy(config.output.host, "templateUnsRttOutput", config.uns.instanceMode, config.uns.handover, { publishThrottlingDelay: 1000});
+const unsProxyProcess = new UnsProxyProcess(config.infra.host!, {processName:config.uns.processName}) as UnsProxyProcessWithCron;;
+const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host)!, "templateUnsRttOutput", config.uns.instanceMode, config.uns.handover, { publishThrottlingDelay: 1000});
 const cronInput = await unsProxyProcess.createCrontabProxy("* * * * * *");
 
 /**
@@ -38,7 +38,8 @@ cronInput.event.on("cronEvent", async (event: UnsEvents["cronEvent"]) => {
     const packet = await UnsPacket.unsPacketFromUnsMessage(message);
     mqttOutput.publishMqttMessage({ topic, attribute: "data-number", packet, description: "Number value", tags });
   } catch (error) {
-    logger.error(`Error publishing message to MQTT: ${error.message}`);
+    const reason = error instanceof Error ? error : new Error(String(error));
+    logger.error(`Error publishing message to MQTT: ${reason.message}`);
     throw error;
   }
 });
