@@ -197,6 +197,9 @@ importers:
 
   sandbox-app:
     dependencies:
+      '@uns-kit/api':
+        specifier: ^0.0.7
+        version: 0.0.7(typescript@5.9.2)
       '@uns-kit/core':
         specifier: ^0.0.16
         version: 0.0.16(typescript@5.9.2)
@@ -1518,8 +1521,14 @@ packages:
     resolution: {integrity: sha512-zaz9u8EJ4GBmnehlrpoKvj/E3dNbuQ7q0ucyZImm3cLqJ8INTc970B1qEqDX/Rzq65r3TvVTN7kHWPBoyW7DWw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@uns-kit/api@0.0.7':
+    resolution: {integrity: sha512-aQjevqGb/NTcvAnBbSdi9r66662bo96yPN7woNX2autNGmHuq61P17sV16lh2J3LdkIfuQB/K6sFaLR0OZFo8w==}
+
   '@uns-kit/core@0.0.16':
     resolution: {integrity: sha512-W/vebiCAyDhLDKdcwAGGhxlSPv++rLuDZx/WvSOrjzRPlz69F186GMmlP/NwI6naN7c+7fLpx/Now1RY2BT12g==}
+
+  '@uns-kit/core@0.0.19':
+    resolution: {integrity: sha512-iusQQj0DU6TrjwH0Fap2cv7F1MIlJgdESBlqONlHWnTnyLpJ6UJx2iytLshxnzVpSHjwqAYBFFlDJZAVU5YhIg==}
 
   '@vitest/expect@3.2.4':
     resolution: {integrity: sha512-Io0yyORnB6sikFlt8QW5K7slY4OjqNX9jmJQ02QDda8lyM6B5oNgVWoSoKPac8/kgnCUzuHQKrSLtu/uOqqrig==}
@@ -5409,7 +5418,44 @@ snapshots:
       '@typescript-eslint/types': 8.44.0
       eslint-visitor-keys: 4.2.1
 
+  '@uns-kit/api@0.0.7(typescript@5.9.2)':
+    dependencies:
+      '@uns-kit/core': 0.0.19(typescript@5.9.2)
+      cookie-parser: 1.4.7
+      express: 5.1.0
+      jsonwebtoken: 9.0.2
+      multer: 2.0.2
+    transitivePeerDependencies:
+      - aws-crt
+      - bufferutil
+      - debug
+      - supports-color
+      - typescript
+      - utf-8-validate
+
   '@uns-kit/core@0.0.16(typescript@5.9.2)':
+    dependencies:
+      '@grpc/grpc-js': 1.14.0
+      '@grpc/proto-loader': 0.8.0
+      '@infisical/sdk': 4.0.5
+      get-port: 7.1.0
+      jsonwebtoken: 9.0.2
+      mqtt: 5.14.1
+      pkg-dir: 9.0.0
+      winston: 3.17.0
+      ws: 8.18.3
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
+      zod-to-ts: 1.2.0(typescript@5.9.2)(zod@3.25.76)
+    transitivePeerDependencies:
+      - aws-crt
+      - bufferutil
+      - debug
+      - supports-color
+      - typescript
+      - utf-8-validate
+
+  '@uns-kit/core@0.0.19(typescript@5.9.2)':
     dependencies:
       '@grpc/grpc-js': 1.14.0
       '@grpc/proto-loader': 0.8.0

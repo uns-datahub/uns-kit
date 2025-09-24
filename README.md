@@ -57,6 +57,11 @@ uns-kit configure-codegen
 pnpm install
 pnpm run codegen
 pnpm run refresh-uns
+
+uns-kit configure-api
+uns-kit configure-cron
+uns-kit configure-temporal
+pnpm install
 ```
 
 Keep your project schema aligned by editing `src/config/project.config.extension.ts` and running `pnpm run generate-config-schema` inside the generated app.

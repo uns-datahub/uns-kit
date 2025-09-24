@@ -60,6 +60,33 @@ pnpm run refresh-uns
 
 Adds `codegen.ts`, seeds `src/uns/` placeholder types, and wires the GraphQL Code Generator / `refresh-uns` script into `package.json`. After installing the new dev dependencies you can regenerate strongly-typed operations (`pnpm run codegen`) and rebuild UNS topics/tags from your environment (`pnpm run refresh-uns`).
 
+### Add UNS API scaffolding
+
+```bash
+uns-kit configure-api
+pnpm install
+```
+
+Copies API-oriented examples (under `src/examples/`) and adds `@uns-kit/api` to your project dependencies.
+
+### Add cron-based scaffolding
+
+```bash
+uns-kit configure-cron
+pnpm install
+```
+
+Adds cron-oriented example stubs and installs `@uns-kit/cron`.
+
+### Add Temporal scaffolding
+
+```bash
+uns-kit configure-temporal
+pnpm install
+```
+
+Copies Temporal example placeholders and installs `@uns-kit/temporal`.
+
 ### Extend the Config Schema
 
 Edit `src/config/project.config.extension.ts` inside your generated project and run `pnpm run generate-config-schema`. This regenerates `config.schema.json` and `src/config/app-config.ts` so editors and runtime types stay in sync.

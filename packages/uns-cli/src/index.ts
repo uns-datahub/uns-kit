@@ -59,6 +59,39 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "configure-api") {
+    const targetPath = args[1];
+    try {
+      await configureApi(targetPath);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  if (command === "configure-cron") {
+    const targetPath = args[1];
+    try {
+      await configureCron(targetPath);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  if (command === "configure-temporal") {
+    const targetPath = args[1];
+    try {
+      await configureTemporal(targetPath);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   if (command === "create") {
     const projectName = args[1];
     if (!projectName) {
@@ -89,6 +122,9 @@ function printHelp(): void {
     "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n" +
     "  configure-vscode [dir]  Add VS Code workspace configuration files\n" +
     "  configure-codegen [dir] Copy GraphQL codegen template and dependencies\n" +
+    "  configure-api [dir]     Copy UNS API examples and add @uns-kit/api\n" +
+    "  configure-cron [dir]    Copy UNS cron examples and add @uns-kit/cron\n" +
+    "  configure-temporal [dir] Copy UNS Temporal examples and add @uns-kit/temporal\n" +
     "  help                    Show this message\n",
   );
 }
@@ -386,6 +422,36 @@ async function configureCodegen(targetPath?: string): Promise<void> {
   }
 }
 
+async function configureApi(targetPath?: string): Promise<void> {
+  await configurePlugin({
+    targetPath,
+    templateName: "api",
+    dependencyName: "@uns-kit/api",
+    dependencyVersion: resolveUnsPackageVersion("@uns-kit/api", "../../uns-api/package.json"),
+    label: "UNS API",
+  });
+}
+
+async function configureCron(targetPath?: string): Promise<void> {
+  await configurePlugin({
+    targetPath,
+    templateName: "cron",
+    dependencyName: "@uns-kit/cron",
+    dependencyVersion: resolveUnsPackageVersion("@uns-kit/cron", "../../uns-cron/package.json"),
+    label: "UNS cron",
+  });
+}
+
+async function configureTemporal(targetPath?: string): Promise<void> {
+  await configurePlugin({
+    targetPath,
+    templateName: "temporal",
+    dependencyName: "@uns-kit/temporal",
+    dependencyVersion: resolveUnsPackageVersion("@uns-kit/temporal", "../../uns-temporal/package.json"),
+    label: "UNS Temporal",
+  });
+}
+
 async function ensureGitRepository(dir: string): Promise<void> {
   try {
     const { stdout } = await execFileAsync("git", ["rev-parse", "--is-inside-work-tree"], {
@@ -485,6 +551,73 @@ async function copyTemplateDirectory(
   }
 
   return { copied, skipped };
+}
+
+async function configurePlugin(options: {
+  targetPath?: string;
+  templateName: string;
+  dependencyName: string;
+  dependencyVersion: string;
+  label: string;
+}): Promise<void> {
+  const { targetPath, templateName, dependencyName, dependencyVersion, label } = options;
+  const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
+  const templateDir = path.resolve(__dirname, `../templates/${templateName}`);
+  const packagePath = path.join(targetDir, "package.json");
+
+  try {
+    await access(templateDir);
+  } catch (error) {
+    throw new Error(`${label} template directory is missing. Please ensure templates/${templateName} exists.`);
+  }
+
+  let pkgRaw: string;
+  try {
+    pkgRaw = await readFile(packagePath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`Could not find package.json in ${targetDir}`);
+    }
+    throw error;
+  }
+
+  const pkg = JSON.parse(pkgRaw) as PackageJson;
+
+  const { copied, skipped } = await copyTemplateDirectory(templateDir, targetDir, targetDir);
+
+  let pkgChanged = false;
+  const deps = (pkg.dependencies ??= {});
+  if (dependencyVersion && !deps[dependencyName]) {
+    deps[dependencyName] = `^${dependencyVersion}`;
+    pkgChanged = true;
+  }
+
+  if (pkgChanged) {
+    await writeFile(packagePath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+  }
+
+  console.log(`\n${label} assets processed.`);
+  if (copied.length) {
+    console.log("  Added files:");
+    for (const file of copied) {
+      console.log(`    ${file}`);
+    }
+  }
+  if (skipped.length) {
+    console.log("  Skipped existing files:");
+    for (const file of skipped) {
+      console.log(`    ${file}`);
+    }
+  }
+  if (!copied.length && !skipped.length) {
+    console.log("  No template files were copied.");
+  }
+
+  if (pkgChanged) {
+    console.log(`  Added dependency ${dependencyName}@^${dependencyVersion}. Run pnpm install to fetch it.`);
+  } else {
+    console.log("  Existing package.json already contained the required dependency.");
+  }
 }
 
 async function resolveAzureGitApi(organization: string): Promise<{ gitApi: IGitApi }> {
@@ -821,6 +954,50 @@ function normalizePackageName(input: string): string {
     .replace(/[^a-z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "")
     || "uns-app";
+}
+
+function resolveUnsPackageVersion(packageName: string, relativeLocalPath: string): string {
+  const attempt = (factory: () => string | undefined): string | undefined => {
+    try {
+      return factory();
+    } catch (error) {
+      return undefined;
+    }
+  };
+
+  const directVersion = attempt(() => {
+    const pkg = require(`${packageName}/package.json`) as { version?: string };
+    return pkg?.version;
+  });
+  if (directVersion) {
+    return directVersion;
+  }
+
+  const workspaceVersion = attempt(() => {
+    const pkgPath = path.resolve(__dirname, relativeLocalPath);
+    const pkg = require(pkgPath) as { version?: string };
+    return pkg?.version;
+  });
+  if (workspaceVersion) {
+    return workspaceVersion;
+  }
+
+  const cliDependencyVersion = attempt(() => {
+    const cliPkg = require("../package.json") as {
+      dependencies?: Record<string, string>;
+    };
+    const range = cliPkg.dependencies?.[packageName];
+    if (typeof range === "string") {
+      const match = range.match(/\d+\.\d+\.\d+/);
+      return match?.[0];
+    }
+    return undefined;
+  });
+  if (cliDependencyVersion) {
+    return cliDependencyVersion;
+  }
+
+  return "0.0.1";
 }
 
 function resolveCoreVersion(): string {
