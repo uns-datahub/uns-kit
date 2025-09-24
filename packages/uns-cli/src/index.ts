@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFile } from "node:child_process";
 import { access, cp, mkdir, readFile, readdir, stat, writeFile, copyFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -427,7 +428,7 @@ async function configureApi(targetPath?: string): Promise<void> {
     targetPath,
     templateName: "api",
     dependencyName: "@uns-kit/api",
-    dependencyVersion: resolveUnsPackageVersion("@uns-kit/api", "../../uns-api/package.json"),
+    dependencySpecifier: resolveUnsPackageSpecifier("@uns-kit/api", "../../uns-api/package.json"),
     label: "UNS API",
   });
 }
@@ -437,7 +438,7 @@ async function configureCron(targetPath?: string): Promise<void> {
     targetPath,
     templateName: "cron",
     dependencyName: "@uns-kit/cron",
-    dependencyVersion: resolveUnsPackageVersion("@uns-kit/cron", "../../uns-cron/package.json"),
+    dependencySpecifier: resolveUnsPackageSpecifier("@uns-kit/cron", "../../uns-cron/package.json"),
     label: "UNS cron",
   });
 }
@@ -447,7 +448,7 @@ async function configureTemporal(targetPath?: string): Promise<void> {
     targetPath,
     templateName: "temporal",
     dependencyName: "@uns-kit/temporal",
-    dependencyVersion: resolveUnsPackageVersion("@uns-kit/temporal", "../../uns-temporal/package.json"),
+    dependencySpecifier: resolveUnsPackageSpecifier("@uns-kit/temporal", "../../uns-temporal/package.json"),
     label: "UNS Temporal",
   });
 }
@@ -557,10 +558,10 @@ async function configurePlugin(options: {
   targetPath?: string;
   templateName: string;
   dependencyName: string;
-  dependencyVersion: string;
+  dependencySpecifier: string;
   label: string;
 }): Promise<void> {
-  const { targetPath, templateName, dependencyName, dependencyVersion, label } = options;
+  const { targetPath, templateName, dependencyName, dependencySpecifier, label } = options;
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
   const templateDir = path.resolve(__dirname, `../templates/${templateName}`);
   const packagePath = path.join(targetDir, "package.json");
@@ -587,8 +588,8 @@ async function configurePlugin(options: {
 
   let pkgChanged = false;
   const deps = (pkg.dependencies ??= {});
-  if (dependencyVersion && !deps[dependencyName]) {
-    deps[dependencyName] = `^${dependencyVersion}`;
+  if (dependencySpecifier && deps[dependencyName] !== dependencySpecifier) {
+    deps[dependencyName] = dependencySpecifier;
     pkgChanged = true;
   }
 
@@ -614,7 +615,7 @@ async function configurePlugin(options: {
   }
 
   if (pkgChanged) {
-    console.log(`  Added dependency ${dependencyName}@^${dependencyVersion}. Run pnpm install to fetch it.`);
+    console.log(`  Added dependency ${dependencyName}@${dependencySpecifier}. Run pnpm install to fetch it.`);
   } else {
     console.log("  Existing package.json already contained the required dependency.");
   }
@@ -954,6 +955,18 @@ function normalizePackageName(input: string): string {
     .replace(/[^a-z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "")
     || "uns-app";
+}
+
+function resolveUnsPackageSpecifier(packageName: string, relativeLocalPath: string): string {
+  const localPath = path.resolve(__dirname, relativeLocalPath);
+  if (existsSync(localPath)) {
+    const pkg = require(localPath) as { version?: string };
+    const version = pkg?.version ?? "0.0.1";
+    return `workspace:^${version}`;
+  }
+
+  const version = resolveUnsPackageVersion(packageName, relativeLocalPath);
+  return `^${version}`;
 }
 
 function resolveUnsPackageVersion(packageName: string, relativeLocalPath: string): string {

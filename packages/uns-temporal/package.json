@@ -22,6 +22,10 @@
     "dist"
   ],
   "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
     "./*": "./dist/*"
   },
   "main": "dist/index.js",
