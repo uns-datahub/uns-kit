@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFile } from "node:child_process";
-import { access, cp, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, readFile, readdir, stat, writeFile, copyFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -37,6 +37,17 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "configure-vscode") {
+    const targetPath = args[1];
+    try {
+      await configureVscode(targetPath);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   if (command === "create") {
     const projectName = args[1];
     if (!projectName) {
@@ -60,7 +71,14 @@ async function main(): Promise<void> {
 }
 
 function printHelp(): void {
-  console.log(`\nUsage: uns-kit <command> [options]\n\nCommands:\n  create <name>           Scaffold a new UNS application\n  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n  help                    Show this message\n`);
+  console.log(
+    "\nUsage: uns-kit <command> [options]\n" +
+    "\nCommands:\n" +
+    "  create <name>           Scaffold a new UNS application\n" +
+    "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n" +
+    "  configure-vscode [dir]  Add VS Code workspace configuration files\n" +
+    "  help                    Show this message\n",
+  );
 }
 
 async function createProject(projectName: string): Promise<void> {
@@ -243,6 +261,36 @@ async function configureDevops(targetPath?: string): Promise<void> {
   }
 }
 
+async function configureVscode(targetPath?: string): Promise<void> {
+  const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
+  const templateDir = path.resolve(__dirname, "../templates/vscode");
+
+  try {
+    await access(templateDir);
+  } catch (error) {
+    throw new Error("VS Code template directory is missing. Please ensure templates/vscode is available.");
+  }
+
+  const { copied, skipped } = await copyTemplateDirectory(templateDir, targetDir, targetDir);
+
+  console.log("\nVS Code configuration files processed.");
+  if (copied.length) {
+    console.log("  Added:");
+    for (const file of copied) {
+      console.log(`    ${file}`);
+    }
+  }
+  if (skipped.length) {
+    console.log("  Skipped (already exists):");
+    for (const file of skipped) {
+      console.log(`    ${file}`);
+    }
+  }
+  if (!copied.length && !skipped.length) {
+    console.log("  No files were found in the VS Code template directory.");
+  }
+}
+
 async function ensureGitRepository(dir: string): Promise<void> {
   try {
     const { stdout } = await execFileAsync("git", ["rev-parse", "--is-inside-work-tree"], {
@@ -306,6 +354,42 @@ async function addGitRemote(dir: string, remoteName: string, remoteUrl: string):
 
     throw new Error(`Failed to add git remote origin: ${(error as Error).message}`);
   }
+}
+
+async function copyTemplateDirectory(
+  sourceDir: string,
+  targetDir: string,
+  targetRoot: string,
+): Promise<{ copied: string[]; skipped: string[] }> {
+  const entries = await readdir(sourceDir, { withFileTypes: true });
+  const copied: string[] = [];
+  const skipped: string[] = [];
+
+  for (const entry of entries) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const destinationPath = path.join(targetDir, entry.name);
+    const relativePath = path.relative(targetRoot, destinationPath) || entry.name;
+
+    if (entry.isDirectory()) {
+      await mkdir(destinationPath, { recursive: true });
+      const result = await copyTemplateDirectory(sourcePath, destinationPath, targetRoot);
+      copied.push(...result.copied);
+      skipped.push(...result.skipped);
+      continue;
+    }
+
+    if (entry.isFile()) {
+      await mkdir(path.dirname(destinationPath), { recursive: true });
+      if (await fileExists(destinationPath)) {
+        skipped.push(relativePath);
+        continue;
+      }
+      await copyFile(sourcePath, destinationPath);
+      copied.push(relativePath);
+    }
+  }
+
+  return { copied, skipped };
 }
 
 async function resolveAzureGitApi(organization: string): Promise<{ gitApi: IGitApi }> {
@@ -540,6 +624,18 @@ async function promptQuestion(message: string): Promise<string> {
     return await rl.question(message);
   } finally {
     rl.close();
+  }
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return false;
+    }
+    throw error;
   }
 }
 

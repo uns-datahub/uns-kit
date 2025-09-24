@@ -249,6 +249,30 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "cli: configure-vscode",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--import",
+        "tsx",
+      ],
+      "program": "${workspaceFolder}/packages/uns-cli/src/index.ts",
+      "args": ["configure-vscode", "sandbox-app"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "outputCapture": "std",
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ],
+      "sourceMapPathOverrides": {
+        "${workspaceFolder}/**/node_modules/@uns-kit/*/src/*": "${workspaceFolder}/packages/uns-*/src/*"
+      },
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "core: tools pull-request",
       "runtimeArgs": [
         "--enable-source-maps",
