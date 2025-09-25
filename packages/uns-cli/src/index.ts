@@ -93,6 +93,17 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "configure-python") {
+    const targetPath = args[1];
+    try {
+      await configurePython(targetPath);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   if (command === "create") {
     const projectName = args[1];
     if (!projectName) {
@@ -126,6 +137,7 @@ function printHelp(): void {
     "  configure-api [dir]     Copy UNS API examples and add @uns-kit/api\n" +
     "  configure-cron [dir]    Copy UNS cron examples and add @uns-kit/cron\n" +
     "  configure-temporal [dir] Copy UNS Temporal examples and add @uns-kit/temporal\n" +
+    "  configure-python [dir]   Copy Python gateway client scaffolding\n" +
     "  help                    Show this message\n",
   );
 }
@@ -453,6 +465,14 @@ async function configureTemporal(targetPath?: string): Promise<void> {
   });
 }
 
+async function configurePython(targetPath?: string): Promise<void> {
+  await configurePlugin({
+    targetPath,
+    templateName: "python",
+    label: "UNS Python client",
+  });
+}
+
 async function ensureGitRepository(dir: string): Promise<void> {
   try {
     const { stdout } = await execFileAsync("git", ["rev-parse", "--is-inside-work-tree"], {
@@ -557,8 +577,8 @@ async function copyTemplateDirectory(
 async function configurePlugin(options: {
   targetPath?: string;
   templateName: string;
-  dependencyName: string;
-  dependencySpecifier: string;
+  dependencyName?: string;
+  dependencySpecifier?: string;
   label: string;
 }): Promise<void> {
   const { targetPath, templateName, dependencyName, dependencySpecifier, label } = options;
@@ -587,10 +607,12 @@ async function configurePlugin(options: {
   const { copied, skipped } = await copyTemplateDirectory(templateDir, targetDir, targetDir);
 
   let pkgChanged = false;
-  const deps = (pkg.dependencies ??= {});
-  if (dependencySpecifier && deps[dependencyName] !== dependencySpecifier) {
-    deps[dependencyName] = dependencySpecifier;
-    pkgChanged = true;
+  if (dependencyName && dependencySpecifier) {
+    const deps = (pkg.dependencies ??= {});
+    if (deps[dependencyName] !== dependencySpecifier) {
+      deps[dependencyName] = dependencySpecifier;
+      pkgChanged = true;
+    }
   }
 
   if (pkgChanged) {
@@ -614,10 +636,12 @@ async function configurePlugin(options: {
     console.log("  No template files were copied.");
   }
 
-  if (pkgChanged) {
-    console.log(`  Added dependency ${dependencyName}@${dependencySpecifier}. Run pnpm install to fetch it.`);
-  } else {
-    console.log("  Existing package.json already contained the required dependency.");
+  if (dependencyName && dependencySpecifier) {
+    if (pkgChanged) {
+      console.log(`  Added dependency ${dependencyName}@${dependencySpecifier}. Run pnpm install to fetch it.`);
+    } else {
+      console.log("  Existing package.json already contained the required dependency.");
+    }
   }
 }
 

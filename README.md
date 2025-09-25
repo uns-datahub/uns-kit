@@ -61,6 +61,7 @@ pnpm run refresh-uns
 uns-kit configure-api
 uns-kit configure-cron
 uns-kit configure-temporal
+uns-kit configure-python
 pnpm install
 ```
 

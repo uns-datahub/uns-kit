@@ -27,6 +27,10 @@ pnpm run dev
 - `uns-kit configure-devops [path]` – add Azure DevOps tooling (dependencies, script, config) to an existing project.
 - `uns-kit configure-vscode [path]` – copy VS Code launch/workspace files into an existing project.
 - `uns-kit configure-codegen [path]` – scaffold GraphQL code generation and UNS refresh scripts.
+- `uns-kit configure-api [path]` – copy UNS API examples and add `@uns-kit/api`.
+- `uns-kit configure-cron [path]` – copy UNS cron examples and add `@uns-kit/cron`.
+- `uns-kit configure-temporal [path]` – copy UNS Temporal examples and add `@uns-kit/temporal`.
+- `uns-kit configure-python [path]` – copy Python gateway client scaffolding (no npm dependency required).
 - `uns-kit help` – display usage information.
 
 ### Configure Azure DevOps
@@ -86,6 +90,14 @@ pnpm install
 ```
 
 Copies Temporal example placeholders and installs `@uns-kit/temporal`.
+
+### Add Python gateway scaffolding
+
+```bash
+uns-kit configure-python
+```
+
+Copies the Python gateway client template (examples, scripts, requirements, proto) into your project so you can iterate on the gRPC gateway from Python alongside your TypeScript project.
 
 ### Extend the Config Schema
 
