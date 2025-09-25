@@ -10,7 +10,8 @@ import UnsProxyProcess from "../uns/uns-proxy-process.js";
 import { MessageMode } from "../uns-mqtt/uns-mqtt-proxy.js";
 import { UnsPacket } from "../uns/uns-packet.js";
 import { randomUUID } from "crypto";
-const GATEWAY_PROTO = path.resolve("python/proto/uns-gateway.proto");
+import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
+const GATEWAY_PROTO = path.resolve("./src/uns-grpc/uns-gateway.proto");
 export class UnsGatewayServer {
     server = null;
     unsProcess = null;
@@ -61,7 +62,8 @@ export class UnsGatewayServer {
         let addr = desiredAddr || process.env.UNS_GATEWAY_ADDR || null;
         if (!addr) {
             if (isUnix) {
-                const sock = `/tmp/${this.getProcessName()}-uns-gateway.sock`;
+                const sanitizedProcess = MqttTopicBuilder.sanitizeTopicPart(this.getProcessName());
+                const sock = `/tmp/${sanitizedProcess}-uns-gateway.sock`;
                 addr = `unix:${sock}`;
             }
             else {
@@ -421,5 +423,8 @@ export class UnsGatewayServer {
 export async function startUnsGateway(addrOverride, opts) {
     const gw = new UnsGatewayServer();
     return gw.start(addrOverride, opts);
+}
+function sanitizeTopicPart(getProcessName) {
+    throw new Error("Function not implemented.");
 }
 //# sourceMappingURL=uns-gateway-server.js.map
