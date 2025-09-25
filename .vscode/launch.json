@@ -145,7 +145,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "demo: uns-gateway-cli",
+      "name": "demo: start uns-gateway-server",
       "runtimeArgs": [
         "--enable-source-maps",
         "--import",

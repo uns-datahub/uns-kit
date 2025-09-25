@@ -3,6 +3,7 @@ import protoLoader from "@grpc/proto-loader";
 import path from "path";
 import getPort from "get-port";
 import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
 import { basePath } from "../base-path.js";
 import logger from "../logger.js";
 import { ConfigFile } from "../config-file.js";
@@ -11,7 +12,12 @@ import { MessageMode } from "../uns-mqtt/uns-mqtt-proxy.js";
 import { UnsPacket } from "../uns/uns-packet.js";
 import { randomUUID } from "crypto";
 import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
-const GATEWAY_PROTO = path.resolve("./src/uns-grpc/uns-gateway.proto");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const defaultGatewayProto = path.resolve(__dirname, "uns-gateway.proto");
+const GATEWAY_PROTO = process.env.UNS_GATEWAY_PROTO
+    ? path.resolve(process.cwd(), process.env.UNS_GATEWAY_PROTO)
+    : defaultGatewayProto;
 export class UnsGatewayServer {
     server = null;
     unsProcess = null;
