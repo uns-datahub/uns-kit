@@ -360,13 +360,13 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "core: uns-gateway-server",
+      "name": "core: uns-gateway-cli",
       "runtimeArgs": [
         "--enable-source-maps",
         "--import",
         "tsx",
       ],
-      "program": "${workspaceFolder}/packages/uns-core/src/uns-grpc/uns-gateway-server.ts",
+      "program": "${workspaceFolder}/packages/uns-core/src/uns-grpc/uns-gateway-cli.ts",
       "preLaunchTask": "prep: core dist",
       "cwd": "${workspaceFolder}/packages/uns-core",
       "console": "integratedTerminal",
