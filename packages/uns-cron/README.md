@@ -16,15 +16,19 @@ You will also need `@uns-kit/core` in your project because the plugin augments `
 
 ```ts
 import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process";
-import unsCronPlugin, { type UnsProxyProcessWithCron } from "@uns-kit/cron";
+import type { UnsProxyProcessWithCron } from "@uns-kit/cron";
+import "@uns-kit/cron";
 
-const process = new UnsProxyProcess("mqtt-broker:1883", { processName: "cron-demo" }) as UnsProxyProcessWithCron;
-unsCronPlugin;
+async function main() {
+  const process = new UnsProxyProcess("mqtt-broker:1883", { processName: "cron-demo" }) as UnsProxyProcessWithCron;
 
-const cronProxy = await process.createCrontabProxy("* * * * * *");
-cronProxy.event.on("cronEvent", () => {
-  console.log("tick");
-});
+  const cronProxy = await process.createCrontabProxy("*/5 * * * *");
+  cronProxy.event.on("cronEvent", () => {
+    console.log("tick");
+  });
+}
+
+void main();
 ```
 
 ## Scripts

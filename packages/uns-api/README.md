@@ -16,16 +16,25 @@ Make sure `@uns-kit/core` is also installed; the plugin augments its runtime typ
 
 ```ts
 import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process";
-import unsApiPlugin, { type UnsProxyProcessWithApi } from "@uns-kit/api";
+import type { UnsProxyProcessWithApi } from "@uns-kit/api";
+import "@uns-kit/api"; // registers the plugin side-effect
 
-const process = new UnsProxyProcess("mqtt-broker:1883", { processName: "api-gateway" }) as UnsProxyProcessWithApi;
-unsApiPlugin;
+async function main() {
+  const process = new UnsProxyProcess("mqtt-broker:1883", { processName: "api-gateway" }) as UnsProxyProcessWithApi;
 
-const api = await process.createApiProxy("gateway", { jwtSecret: "super-secret" });
-await api.get("factory/", "status", {
-  apiDescription: "Factory status endpoint",
-  tags: ["status"],
-});
+  const api = await process.createApiProxy("gateway", { jwtSecret: "super-secret" });
+
+  api.get("factory/", "status", {
+    apiDescription: "Factory status endpoint",
+    tags: ["status"],
+  });
+
+  api.event.on("apiGetEvent", (event) => {
+    event.res.json({ status: "ok" });
+  });
+}
+
+void main();
 ```
 
 ## Scripts

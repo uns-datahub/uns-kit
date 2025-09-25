@@ -16,19 +16,24 @@ Install `@uns-kit/core` as well—the plugin augments its runtime.
 
 ```ts
 import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process";
-import unsTemporalPlugin, { type UnsProxyProcessWithTemporal } from "@uns-kit/temporal";
+import { UnsAttributeType } from "@uns-kit/core/uns/uns-interfaces";
+import type { UnsProxyProcessWithTemporal } from "@uns-kit/temporal";
+import "@uns-kit/temporal";
 
-const process = new UnsProxyProcess("mqtt-broker:1883", { processName: "temporal-demo" }) as UnsProxyProcessWithTemporal;
-unsTemporalPlugin;
+async function main() {
+  const process = new UnsProxyProcess("mqtt-broker:1883", { processName: "temporal-demo" }) as UnsProxyProcessWithTemporal;
 
-const temporal = await process.createTemporalProxy("hv-etl", "temporal:7233", "hv-namespace");
-await temporal.initializeTemporalProxy({
-  topic: "factory/",
-  attribute: "hv-status",
-  attributeType: UnsAttributeType.Data,
-});
+  const temporal = await process.createTemporalProxy("hv-etl", "temporal:7233", "hv-namespace");
+  await temporal.initializeTemporalProxy({
+    topic: "factory/",
+    attribute: "hv-status",
+    attributeType: UnsAttributeType.Data,
+  });
 
-await temporal.startWorkflow("TransformHvSclData", { coil_id: "42" }, "ETL_HV_SCL_TASK_QUEUE");
+  await temporal.startWorkflow("TransformHvSclData", { coil_id: "42" }, "ETL_HV_SCL_TASK_QUEUE");
+}
+
+void main();
 ```
 
 ## Scripts
