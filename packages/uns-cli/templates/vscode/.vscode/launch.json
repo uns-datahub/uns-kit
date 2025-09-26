@@ -55,6 +55,57 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "demo: api-example-example",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--import",
+        "tsx",
+      ],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/api-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "demo: cron-example",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--import",
+        "tsx",
+      ],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/cron-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "demo: temporal-example",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--import",
+        "tsx",
+      ],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/tamporal-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "demo: start uns-gateway-server",
       "runtimeArgs": [
         "--enable-source-maps",
