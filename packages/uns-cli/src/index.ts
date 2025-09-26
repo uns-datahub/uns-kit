@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFile } from "node:child_process";
-import { access, cp, mkdir, readFile, readdir, stat, writeFile, copyFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, stat, writeFile, copyFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +14,7 @@ import type { IGitApi } from "azure-devops-node-api/GitApi";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
+const cliVersion = resolveCliVersion();
 const coreVersion = resolveCoreVersion();
 const execFileAsync = promisify(execFile);
 const AZURE_DEVOPS_PROVIDER = "azure-devops" as const;
@@ -128,6 +129,7 @@ async function main(): Promise<void> {
 
 function printHelp(): void {
   console.log(
+    `\nuns-kit v${cliVersion}\n` +
     "\nUsage: uns-kit <command> [options]\n" +
     "\nCommands:\n" +
     "  create <name>           Scaffold a new UNS application\n" +
@@ -147,7 +149,7 @@ async function createProject(projectName: string): Promise<void> {
   await ensureTargetDir(targetDir);
 
   const templateDir = path.resolve(__dirname, "../templates/default");
-  await cp(templateDir, targetDir, { recursive: true, force: false });
+  await copyTemplateDirectory(templateDir, targetDir, targetDir);
 
   const pkgName = normalizePackageName(projectName);
   await patchPackageJson(targetDir, pkgName);
@@ -549,8 +551,9 @@ async function copyTemplateDirectory(
 
   for (const entry of entries) {
     const sourcePath = path.join(sourceDir, entry.name);
-    const destinationPath = path.join(targetDir, entry.name);
-    const relativePath = path.relative(targetRoot, destinationPath) || entry.name;
+    const destinationName = entry.isFile() ? normalizeTemplateFilename(entry.name) : entry.name;
+    const destinationPath = path.join(targetDir, destinationName);
+    const relativePath = path.relative(targetRoot, destinationPath) || destinationName;
 
     if (entry.isDirectory()) {
       await mkdir(destinationPath, { recursive: true });
@@ -572,6 +575,13 @@ async function copyTemplateDirectory(
   }
 
   return { copied, skipped };
+}
+
+function normalizeTemplateFilename(filename: string): string {
+  if (filename === "gitignore" || filename === ".npmignore") {
+    return ".gitignore";
+  }
+  return filename;
 }
 
 async function configurePlugin(options: {
@@ -1035,6 +1045,31 @@ function resolveUnsPackageVersion(packageName: string, relativeLocalPath: string
   }
 
   return "0.0.1";
+}
+
+function resolveCliVersion(): string {
+  const attempt = (factory: () => string | undefined): string | undefined => {
+    try {
+      return factory();
+    } catch (error) {
+      return undefined;
+    }
+  };
+
+  const packageVersion = attempt(() => {
+    const pkg = require("../package.json") as { version?: string };
+    return pkg?.version;
+  });
+  if (packageVersion) {
+    return packageVersion;
+  }
+
+  const envVersion = attempt(() => process.env.npm_package_version?.trim());
+  if (envVersion) {
+    return envVersion;
+  }
+
+  return "0.0.0";
 }
 
 function resolveCoreVersion(): string {
