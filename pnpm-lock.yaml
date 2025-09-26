@@ -108,6 +108,9 @@ importers:
       '@uns-kit/core':
         specifier: workspace:*
         version: link:../uns-core
+      azure-devops-node-api:
+        specifier: ^15.1.1
+        version: 15.1.1
 
   packages/uns-core:
     dependencies:
@@ -120,6 +123,15 @@ importers:
       '@infisical/sdk':
         specifier: ^4.0.5
         version: 4.0.5
+      azure-devops-node-api:
+        specifier: ^15.1.1
+        version: 15.1.1
+      chalk:
+        specifier: ^5.6.2
+        version: 5.6.2
+      fs-extra:
+        specifier: ^11.3.2
+        version: 11.3.2
       get-port:
         specifier: ^7.1.0
         version: 7.1.0
@@ -132,6 +144,15 @@ importers:
       pkg-dir:
         specifier: ^9.0.0
         version: 9.0.0
+      prettier:
+        specifier: ^3.6.2
+        version: 3.6.2
+      simple-git:
+        specifier: ^3.28.0
+        version: 3.28.0
+      tsx:
+        specifier: ^4.20.5
+        version: 4.20.5
       winston:
         specifier: ^3.17.0
         version: 3.17.0

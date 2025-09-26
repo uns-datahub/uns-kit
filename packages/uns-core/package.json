@@ -1,6 +1,6 @@
 {
   "name": "@uns-kit/core",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Core utilities and runtime building blocks for UNS-based realtime transformers.",
   "type": "module",
   "license": "MIT",
@@ -46,7 +46,13 @@
     "ws": "^8.18.3",
     "zod": "^3",
     "zod-to-json-schema": "^3.24.6",
-    "zod-to-ts": "^1.2.0"
+    "zod-to-ts": "^1.2.0",
+    "azure-devops-node-api": "^15.1.1",
+    "chalk": "^5.6.2",
+    "fs-extra": "^11.3.2",
+    "prettier": "^3.6.2",
+    "simple-git": "^3.28.0",
+    "tsx": "^4.20.5"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.9",
