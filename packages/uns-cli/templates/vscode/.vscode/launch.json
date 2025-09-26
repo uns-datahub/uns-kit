@@ -4,14 +4,65 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "uns-kit: dev",
+      "name": "demo: data-example",
       "runtimeArgs": [
         "--enable-source-maps",
         "--import",
-        "tsx"
+        "tsx",
       ],
-      "program": "${workspaceFolder}/src/index.ts",
-      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/data-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "demo: table-example",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--import",
+        "tsx",
+      ],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/table-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "demo: load-test-example",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--import",
+        "tsx",
+      ],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/load-test-example.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "demo: start uns-gateway-server",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--import",
+        "tsx",
+      ],
+      "program": "${workspaceFolder}/packages/uns-demo/src/examples/uns-gateway-cli.ts",
+      "cwd": "${workspaceFolder}/packages/uns-demo",
       "sourceMaps": true,
       "skipFiles": ["<node_internals>/**"],
       "resolveSourceMapLocations": [

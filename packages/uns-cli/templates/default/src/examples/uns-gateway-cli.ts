@@ -1,4 +1,4 @@
-import { startUnsGateway } from "../uns-grpc/uns-gateway-server.js";
+import { startUnsGateway } from "@uns-kit/core/uns-grpc/uns-gateway-server.js";
 
 const addr = await startUnsGateway();
 console.log(`UNS Gateway listening on ${addr.address} (UDS=${addr.isUDS})`);

@@ -5,7 +5,6 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.json",
-    "start": "node ./dist/index.js",
     "dev": "tsx watch src/index.ts",
     "generate-config-schema": "node ./node_modules/@uns-kit/core/dist/tools/generate-config-schema.js"
   },
