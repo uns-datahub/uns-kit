@@ -28,6 +28,17 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "configure") {
+    const configureArgs = args.slice(1);
+    try {
+      await runConfigureCommand(configureArgs);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   if (command === "configure-devops") {
     const targetPath = args[1];
     try {
@@ -133,6 +144,7 @@ function printHelp(): void {
     "\nUsage: uns-kit <command> [options]\n" +
     "\nCommands:\n" +
     "  create <name>           Scaffold a new UNS application\n" +
+    "  configure [dir] [features...] Configure multiple templates (--all for everything)\n" +
     "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n" +
     "  configure-vscode [dir]  Add VS Code workspace configuration files\n" +
     "  configure-codegen [dir] Copy GraphQL codegen template and dependencies\n" +
@@ -473,6 +485,136 @@ async function configurePython(targetPath?: string): Promise<void> {
     templateName: "python",
     label: "UNS Python client",
   });
+}
+
+const configureFeatureHandlers = {
+  devops: configureDevops,
+  vscode: configureVscode,
+  codegen: configureCodegen,
+  api: configureApi,
+  cron: configureCron,
+  temporal: configureTemporal,
+  python: configurePython,
+} as const;
+
+type ConfigureFeatureName = keyof typeof configureFeatureHandlers;
+
+const AVAILABLE_CONFIGURE_FEATURES = Object.keys(configureFeatureHandlers) as ConfigureFeatureName[];
+
+const configureFeatureLabels: Record<ConfigureFeatureName, string> = {
+  devops: "Azure DevOps tooling",
+  vscode: "VS Code workspace",
+  codegen: "GraphQL codegen tooling",
+  api: "UNS API resources",
+  cron: "UNS cron resources",
+  temporal: "UNS Temporal resources",
+  python: "Python client scaffolding",
+};
+
+type ConfigureCommandOptions = {
+  targetPath?: string;
+  features: ConfigureFeatureName[];
+};
+
+async function runConfigureCommand(args: string[]): Promise<void> {
+  const { targetPath, features } = parseConfigureArgs(args);
+  if (!features.length) {
+    throw new Error("No features specified. Provide feature names or pass --all.");
+  }
+
+  const location = targetPath ?? ".";
+  const featureSummary = features.map((feature) => configureFeatureLabels[feature]).join(", ");
+  console.log(`Configuring ${featureSummary} in ${location}`);
+  for (const feature of features) {
+    const handler = configureFeatureHandlers[feature];
+    await handler(targetPath);
+  }
+}
+
+function parseConfigureArgs(args: string[]): ConfigureCommandOptions {
+  let targetPath: string | undefined;
+  let includeAll = false;
+  const featureInputs: string[] = [];
+
+  for (const arg of args) {
+    if (arg === "--all") {
+      includeAll = true;
+      continue;
+    }
+    if (arg.startsWith("--")) {
+      throw new Error(`Unknown option ${arg}.`);
+    }
+
+    const normalized = arg.trim().toLowerCase();
+    if (configureFeatureAliases[normalized]) {
+      featureInputs.push(arg);
+      continue;
+    }
+
+    if (!targetPath) {
+      targetPath = arg;
+      continue;
+    }
+
+    featureInputs.push(arg);
+  }
+
+  const featureOrder: ConfigureFeatureName[] = [];
+  const featureSet = new Set<ConfigureFeatureName>();
+
+  const addFeature = (feature: ConfigureFeatureName): void => {
+    if (!featureSet.has(feature)) {
+      featureSet.add(feature);
+      featureOrder.push(feature);
+    }
+  };
+
+  if (includeAll) {
+    for (const feature of AVAILABLE_CONFIGURE_FEATURES) {
+      addFeature(feature);
+    }
+  }
+
+  for (const input of featureInputs) {
+    addFeature(resolveConfigureFeatureName(input));
+  }
+
+  return { targetPath, features: featureOrder };
+}
+
+const configureFeatureAliases: Record<string, ConfigureFeatureName> = {
+  devops: "devops",
+  "configure-devops": "devops",
+  vscode: "vscode",
+  "configure-vscode": "vscode",
+  codegen: "codegen",
+  "configure-codegen": "codegen",
+  api: "api",
+  "configure-api": "api",
+  cron: "cron",
+  "configure-cron": "cron",
+  temporal: "temporal",
+  "configure-temporal": "temporal",
+  python: "python",
+  "configure-python": "python",
+};
+
+function resolveConfigureFeatureName(input: unknown): ConfigureFeatureName {
+  if (typeof input !== "string") {
+    throw new Error(
+      `Invalid feature value ${JSON.stringify(input)}. Expected a string from: ${AVAILABLE_CONFIGURE_FEATURES.join(", ")}.`,
+    );
+  }
+
+  const normalized = input.trim().toLowerCase();
+  const feature = configureFeatureAliases[normalized];
+  if (!feature) {
+    throw new Error(
+      `Unknown feature "${input}". Available features: ${AVAILABLE_CONFIGURE_FEATURES.join(", ")}.`,
+    );
+  }
+
+  return feature;
 }
 
 async function ensureGitRepository(dir: string): Promise<void> {

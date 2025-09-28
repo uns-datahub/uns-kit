@@ -24,6 +24,7 @@ pnpm run dev
 ## Commands
 
 - `uns-kit create <name>` – create a new UNS project in the specified directory.
+- `uns-kit configure [path] [features...]` – run multiple configure templates in sequence (`--all` applies every template).
 - `uns-kit configure-devops [path]` – add Azure DevOps tooling (dependencies, script, config) to an existing project.
 - `uns-kit configure-vscode [path]` – copy VS Code launch/workspace files into an existing project.
 - `uns-kit configure-codegen [path]` – scaffold GraphQL code generation and UNS refresh scripts.
@@ -32,6 +33,17 @@ pnpm run dev
 - `uns-kit configure-temporal [path]` – copy UNS Temporal examples and add `@uns-kit/temporal`.
 - `uns-kit configure-python [path]` – copy Python gateway client scaffolding (no npm dependency required).
 - `uns-kit help` – display usage information.
+
+### Configure multiple features at once
+
+Chain several add-ons without running each subcommand manually:
+
+```bash
+uns-kit configure --all
+uns-kit configure ./apps/gateway devops vscode codegen
+```
+
+Mix and match feature names after an optional target directory. Use `--all` to apply every available template in one shot.
 
 ### Configure Azure DevOps
 
