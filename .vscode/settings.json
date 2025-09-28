@@ -1,5 +1,7 @@
 {
-  "npm.exclude": ["**/bin"],
+  "npm.exclude": [
+    "**/packages/**"
+  ],
   "npm.packageManager": "pnpm",
   "npm.scriptExplorerExclude": [
     ".*darwin.*",
@@ -17,7 +19,9 @@
   "python.defaultInterpreterPath": "python/.venv/bin/python",
   "json.schemas": [
     {
-      "fileMatch": ["config.json"],
+      "fileMatch": [
+        "config.json"
+      ],
       "url": "./config.schema.json"
     }
   ]
