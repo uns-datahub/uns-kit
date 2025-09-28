@@ -34,7 +34,7 @@ const apiInput = await unsProxyProcess.createApiProxy("templateUnsApiInput", api
 /**
  * Register an API endpoint and event handler
  */
-apiInput.get("sij/", "summary-1",{
+apiInput.get("example/", "summary-1",{
   tags: ["Tag1"],
   apiDescription: "Test API endpoint 1",
   queryParams: [
@@ -43,7 +43,7 @@ apiInput.get("sij/", "summary-1",{
   ]
 }); 
 
-apiInput.get("sij/", "summary-2",{
+apiInput.get("example/", "summary-2",{
   tags: ["Tag2"],
   apiDescription: "Test API endpoint 2",
   queryParams: [

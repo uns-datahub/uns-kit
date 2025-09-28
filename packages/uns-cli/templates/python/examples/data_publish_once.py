@@ -126,7 +126,7 @@ def main():
     parser = argparse.ArgumentParser(description="Publish one UNS data packet")
     parser.add_argument("--addr", default=None)
     parser.add_argument("--auto", action="store_true")
-    parser.add_argument("--out-topic", default="sij/")
+    parser.add_argument("--out-topic", default="example/")
     parser.add_argument("--attribute", default="data-number")
     parser.add_argument("--value", type=float, default=42.0)
     parser.add_argument("--uom", default="mV")

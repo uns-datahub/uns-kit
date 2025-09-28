@@ -22,7 +22,7 @@ def make_channel(addr: str) -> grpc.Channel:
 
 
 def register_endpoints(stub: gw.UnsGatewayStub) -> None:
-    # Mirror TS api-example.ts for two GET endpoints under /api/sij/summary-1 and -2
+    # Mirror TS api-example.ts for two GET endpoints under /api/example/summary-1 and -2
     qp = [
         pb2.ApiQueryParam(name="filter", type="string", required=True, description="Filter za podatke"),
         pb2.ApiQueryParam(name="limit", type="number", required=False, description="Koliko podatkov želiš"),
@@ -30,7 +30,7 @@ def register_endpoints(stub: gw.UnsGatewayStub) -> None:
 
     for idx, tag in [(1, "Tag1"), (2, "Tag2")]:
         req = pb2.RegisterApiGetRequest(
-            topic="sij/",
+            topic="example/",
             attribute=f"summary-{idx}",
             api_description=f"Test API endpoint {idx}",
             tags=[tag],
@@ -54,7 +54,7 @@ def serve_requests(stub: gw.UnsGatewayStub, echo: bool = False) -> None:
     stream = stub.ApiEventStream(req_iter())
     try:
         for ev in stream:
-            # ev.path e.g. /sij/summary-1; ev.query is a map<string,string>
+            # ev.path e.g. /example/summary-1; ev.query is a map<string,string>
             path = ev.path
             query: Dict[str, str] = dict(ev.query)
             filt = query.get("filter", "")

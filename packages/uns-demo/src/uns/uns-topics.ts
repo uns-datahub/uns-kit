@@ -1,2 +1,2 @@
-export type UnsTopics = "sij/" |"sij/data-number/" |"sij/summary-1/" |"sij/summary-2/" |
+export type UnsTopics = "example/" |"example/data-number/" |"example/summary-1/" |"example/summary-2/" |
 (string & {});

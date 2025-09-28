@@ -26,7 +26,7 @@ async function main() {
   const tmpRtt = path.join(basePath, "/tmp-rtt");
   try {
     console.log(`Pull template-ts-nodejs into tmp-rtt`);
-    await git.clone("git@ssh.dev.azure.com:v3/sijit/industry40/template-uns-rtt", tmpRtt);
+    await git.clone("git@ssh.dev.azure.com:v3/example-org/example-project/template-uns-rtt", tmpRtt);
   } catch (error) {
     console.error(chalk.red.bold(`exec error: ${error}`));    
     return;

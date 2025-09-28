@@ -38,7 +38,7 @@ mqttInput.event.on("input", async (event) => {
       const values = event.message.split(",");
       const numberValue: number = parseFloat(values[0]);
       const message: IUnsMessage = { data: { dataGroup:"electricity", time, value: numberValue, uom: PhysicalMeasurements.MiliVolt } };
-      const topic: UnsTopics = "sij/";
+      const topic: UnsTopics = "example/";
       const tags: UnsTags[] = [];
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
       mqttOutput.publishMqttMessage({ topic, attribute: "data-number", packet, description: "Number value", tags });

@@ -140,7 +140,7 @@ def transform(addr: str | None, in_topic: str, out_topic: str, out_attribute: st
             req = pb2.PublishRequest(
                 topic=out_topic,
                 attribute=out_attribute,
-                table=pb2.Table(time=time_iso, values=tv_list, data_group="iba_test"),
+                table=pb2.Table(time=time_iso, values=tv_list, data_group="demo_table"),
             )
             res = stub.Publish(req)
             if not res.ok:
@@ -148,12 +148,12 @@ def transform(addr: str | None, in_topic: str, out_topic: str, out_attribute: st
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Subscribe to IBA topic and publish UNS table packets")
+    parser = argparse.ArgumentParser(description="Subscribe to an upstream topic and publish UNS table packets")
     parser.add_argument("--addr", default=None, help="Gateway address (unix:/path.sock or host:port); defaults to unique per-script")
     parser.add_argument("--auto", action="store_true", help="auto-start gateway if not running")
-    parser.add_argument("--in-topic", default="iba/zrm")
-    parser.add_argument("--out-topic", default="sij/acroni/hv/")
-    parser.add_argument("--attribute", default="zrm")
+    parser.add_argument("--in-topic", default="integration/raw-table")
+    parser.add_argument("--out-topic", default="example/factory-a/line-1/")
+    parser.add_argument("--attribute", default="table-sample")
     args = parser.parse_args()
 
     transform(args.addr, args.in_topic, args.out_topic, args.attribute, args.auto)

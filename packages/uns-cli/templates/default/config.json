@@ -19,7 +19,7 @@
   },
   "devops": {
     "provider": "azure-devops",
-    "organization": "sijit",
-    "project": "industry40"
+    "organization": "example-org",
+    "project": "example-project"
   }
 }

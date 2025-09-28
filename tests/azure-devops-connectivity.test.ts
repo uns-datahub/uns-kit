@@ -3,13 +3,13 @@ import { describe, it, expect } from 'vitest';
 import * as azdev from 'azure-devops-node-api';
 import * as CoreApi from 'azure-devops-node-api/CoreApi';
 
-const orgUrl = 'https://dev.azure.com/sijit';
+const orgUrl = 'https://dev.azure.com/example-org';
 const pat = process.env.AZURE_PAT;
 
 if (!pat) {
   console.warn(
     'AZURE_PAT environment variable is not set. ' +
-    'To generate a PAT, go to [https://dev.azure.com/sijit/_usersSettings/tokens] and create one with appropriate scopes, ' +
+    'To generate a PAT, go to [https://dev.azure.com/example-org/_usersSettings/tokens] and create one with appropriate scopes, ' +
     'then run:\n\n' +
     '  export AZURE_PAT=<your-token>\n'
   );

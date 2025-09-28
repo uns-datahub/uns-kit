@@ -19,7 +19,7 @@ const config = await ConfigFile.loadConfig();
  */
 const unsProxyProcess = new UnsProxyProcess(config.infra.host!, {processName: config.uns.processName!});
 const mqttInput = await unsProxyProcess.createUnsMqttProxy((config.input?.host)!, "templateUnsRttInput", config.uns.instanceMode!, config.uns.handover!, {
-  mqttSubToTopics: ["iba/zrm"],
+  mqttSubToTopics: ["integration/raw-table"],
   publishThrottlingDelay:0,
   subscribeThrottlingDelay:0
 });
@@ -29,23 +29,23 @@ const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host
 });
 
 /**
- * The input worker connects to the IBA broker and listens for incoming messages.
+ * The input worker connects to the upstream broker and listens for incoming messages.
  * It processes the messages and transforms them into a table-type IUnsMessage.
  * The resulting message is published to the output broker.
  */
 mqttInput.event.on("input", async (event) => {
   try {
-    if (event.topic === "iba/zrm") {
+    if (event.topic === "integration/raw-table") {
       const jsonObject = JSON.parse(event.message);
       const timestamp = jsonObject.Timestamp;
       delete(jsonObject.Timestamp);
 
       const time = UnsPacket.formatToISO8601(new Date(timestamp));
-      const message: IUnsMessage = { table: {dataGroup:"iba_test", values:jsonObject, time}};
-      const topic: UnsTopics = "sij/acroni/hv/";
+      const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, time}};
+      const topic: UnsTopics = "example/factory-a/line-1/";
       const tags: UnsTags[] = [];
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
-      mqttOutput.publishMqttMessage({ topic, attribute: "zrm", packet, description: "Table", tags });
+      mqttOutput.publishMqttMessage({ topic, attribute: "table-sample", packet, description: "Table", tags });
     }
   } catch (error) {
     const reason = error instanceof Error ? error : new Error(String(error));

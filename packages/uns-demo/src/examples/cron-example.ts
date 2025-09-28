@@ -35,7 +35,7 @@ cronInput.event.on("cronEvent", async (event: UnsEvents["cronEvent"]) => {
     const time = UnsPacket.formatToISO8601(new Date());
     const numberValue: number = 42;
     const message: IUnsMessage = { data: { time, value: numberValue, uom: PhysicalMeasurements.MiliVolt } };
-    const topic: UnsTopics = "sij/";
+    const topic: UnsTopics = "example/";
     const tags: UnsTags[] = [];
     const packet = await UnsPacket.unsPacketFromUnsMessage(message);
     mqttOutput.publishMqttMessage({ topic, attribute: "data-number", packet, description: "Number value", tags });

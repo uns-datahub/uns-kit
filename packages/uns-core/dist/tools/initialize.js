@@ -8,7 +8,7 @@ import fs from "fs-extra";
 import { basePath } from "./base-path.js";
 const git = simpleGit("./").clean(CleanOptions.FORCE);
 export const packageJsonPath = path.join(basePath, "package.json");
-const orgUrl = "https://sijit@dev.azure.com/sijit";
+const orgUrl = "https://example-org@dev.azure.com/example-org";
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -19,7 +19,7 @@ const repoName = packageJson.name;
 async function run() {
     let repos;
     let gitApi;
-    const project = "industry40";
+    const project = "example-project";
     try {
         const authHandler = azdev.getPersonalAccessTokenHandler(token);
         const connection = new azdev.WebApi(orgUrl, authHandler);
@@ -29,7 +29,7 @@ async function run() {
     catch (error) {
         console.error("Your AZURE_PAT environment variable has probably expired.");
         console.log("Please update your AZURE_PAT environment with a new one on.");
-        console.log("You can create a new one at[https://dev.azure.com/sijit/_usersSettings/tokens]");
+        console.log("You can create a new one at[https://dev.azure.com/example-org/_usersSettings/tokens]");
     }
     if (repos.filter((x) => x.name == repoName).length > 0) {
         console.log(chalk.red.bold(`Error: Repository ${repoName} in project ${project} already exists.`));
@@ -59,7 +59,7 @@ async function run() {
             await git.remote([
                 "add",
                 "origin",
-                `git@ssh.dev.azure.com:v3/sijit/industry40/${repoName}`,
+                `git@ssh.dev.azure.com:v3/example-org/example-project/${repoName}`,
             ]);
             console.log(chalk.green.bold(` ... OK`));
         }
@@ -95,7 +95,7 @@ if (envPat && envPat.length > 10) {
 }
 else {
     console.log("Could not find AZURE_PAT environment.");
-    rl.question(`Please enter your PAT, you can create one at [https://dev.azure.com/sijit/_usersSettings/tokens]: `, (newToken) => {
+    rl.question(`Please enter your PAT, you can create one at [https://dev.azure.com/example-org/_usersSettings/tokens]: `, (newToken) => {
         rl.close();
         token = newToken;
         run();

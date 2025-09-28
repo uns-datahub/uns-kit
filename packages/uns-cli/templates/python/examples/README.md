@@ -31,28 +31,28 @@ Readiness: Examples call the gateway’s `Ready()` RPC to wait for the requested
 ## Scripts
 
 - `data_transformer.py`
-  - Subscribes to input topics (default `raw/#`) and publishes UNS data packets (`sij/` + `data-number`).
+  - Subscribes to input topics (default `raw/#`) and publishes UNS data packets (`example/` + `data-number`).
   - Examples:
-    - Unix/macOS: `python python/examples/data_transformer.py --addr unix:/tmp/uns-gateway.sock --auto --in raw/# --out-topic sij/ --attribute data-number --uom mV --group electricity`
-    - Windows: `python python/examples/data_transformer.py --addr 127.0.0.1:50051 --auto --in raw/# --out-topic sij/ --attribute data-number --uom mV --group electricity`
+    - Unix/macOS: `python python/examples/data_transformer.py --addr unix:/tmp/uns-gateway.sock --auto --in raw/# --out-topic example/ --attribute data-number --uom mV --group electricity`
+    - Windows: `python python/examples/data_transformer.py --addr 127.0.0.1:50051 --auto --in raw/# --out-topic example/ --attribute data-number --uom mV --group electricity`
 
 - `table_transformer.py`
-  - Subscribes to `iba/zrm` JSON and publishes a UNS table packet (`sij/acroni/hv/` + `zrm`).
+  - Subscribes to `integration/raw-table` JSON and publishes a UNS table packet (`example/factory-a/line-1/` + `table-sample`).
   - Examples:
-    - Unix/macOS: `python python/examples/table_transformer.py --addr unix:/tmp/uns-gateway.sock --auto --in-topic iba/zrm --out-topic sij/acroni/hv/ --attribute zrm`
-    - Windows: `python python/examples/table_transformer.py --addr 127.0.0.1:50051 --auto --in-topic iba/zrm --out-topic sij/acroni/hv/ --attribute zrm`
+    - Unix/macOS: `python python/examples/table_transformer.py --addr unix:/tmp/uns-gateway.sock --auto --in-topic integration/raw-table --out-topic example/factory-a/line-1/ --attribute table-sample`
+    - Windows: `python python/examples/table_transformer.py --addr 127.0.0.1:50051 --auto --in-topic integration/raw-table --out-topic example/factory-a/line-1/ --attribute table-sample`
 
 - `data_publisher_loop.py`
   - Cron-like loop that publishes a data value periodically (default 1000 ms).
   - Examples:
-    - Unix/macOS: `python python/examples/data_publisher_loop.py --addr unix:/tmp/uns-gateway.sock --auto --out-topic sij/ --attribute data-number --uom mV --period-ms 1000`
-    - Windows: `python python/examples/data_publisher_loop.py --addr 127.0.0.1:50051 --auto --out-topic sij/ --attribute data-number --uom mV --period-ms 1000`
+    - Unix/macOS: `python python/examples/data_publisher_loop.py --addr unix:/tmp/uns-gateway.sock --auto --out-topic example/ --attribute data-number --uom mV --period-ms 1000`
+    - Windows: `python python/examples/data_publisher_loop.py --addr 127.0.0.1:50051 --auto --out-topic example/ --attribute data-number --uom mV --period-ms 1000`
 
 - `data_publish_once.py`
   - Sends a single UNS data packet.
   - Examples:
-    - Unix/macOS: `python python/examples/data_publish_once.py --addr unix:/tmp/uns-gateway.sock --auto --out-topic sij/ --attribute data-number --value 42 --uom mV --group electricity`
-    - Windows: `python python/examples/data_publish_once.py --addr 127.0.0.1:50051 --auto --out-topic sij/ --attribute data-number --value 42 --uom mV --group electricity`
+    - Unix/macOS: `python python/examples/data_publish_once.py --addr unix:/tmp/uns-gateway.sock --auto --out-topic example/ --attribute data-number --value 42 --uom mV --group electricity`
+    - Windows: `python python/examples/data_publish_once.py --addr 127.0.0.1:50051 --auto --out-topic example/ --attribute data-number --value 42 --uom mV --group electricity`
 
 - `data_subscribe.py`
   - Subscribes to topics via the gateway and prints messages.
@@ -61,11 +61,11 @@ Readiness: Examples call the gateway’s `Ready()` RPC to wait for the requested
     - Windows: `python python/examples/data_subscribe.py --addr 127.0.0.1:50051 --auto raw/# some/other/topic`
 
 - `api_register_and_serve.py`
-  - Registers `/api/sij/summary-1` and `/api/sij/summary-2` endpoints and serves requests over a bidirectional stream.
+  - Registers `/api/example/summary-1` and `/api/example/summary-2` endpoints and serves requests over a bidirectional stream.
   - Examples:
     - Unix/macOS: `python python/examples/api_register_and_serve.py --addr unix:/tmp/uns-gateway.sock --auto`
     - Windows: `python python/examples/api_register_and_serve.py --addr 127.0.0.1:50051 --auto`
-    - Then call: `http://<gateway-host>:<gateway-port>/api/sij/summary-1?filter=foo&limit=10`
+    - Then call: `http://<gateway-host>:<gateway-port>/api/example/summary-1?filter=foo&limit=10`
 
 - `api_handler.py`
   - Another API handler demo that returns structured JSON responses. Similar to `api_register_and_serve.py`.

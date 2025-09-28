@@ -134,7 +134,7 @@ def main():
     parser.add_argument("--addr", default=None, help="Gateway address (unix:/path.sock or host:port); defaults to unique per-script")
     parser.add_argument("--auto", action="store_true", help="auto-start gateway if not running")
     parser.add_argument("--in", dest="in_topics", nargs="+", default=["raw/#"], help="input topics to subscribe")
-    parser.add_argument("--out-topic", default="sij/", help="output UNS base topic")
+    parser.add_argument("--out-topic", default="example/", help="output UNS base topic")
     parser.add_argument("--attribute", default="data-number", help="output attribute")
     parser.add_argument("--uom", default="mV", help="unit of measure")
     parser.add_argument("--group", default="electricity", help="dataGroup")

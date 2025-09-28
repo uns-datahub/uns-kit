@@ -19,16 +19,16 @@ const config = await ConfigFile.loadConfig();
 const unsProxyProcess = new UnsProxyProcess(config.infra.host!, {processName:config.uns.processName}) as UnsProxyProcessWithTemporal;
 const temporalTopic: ITemporalTopic = {
   attribute: "temporal-data",
-  topic: "sij/",
+  topic: "example/",
   attributeType: UnsAttributeType.Data,
   attributeNeedsPersistence: true,
   dataGroup: "temporal",
   description: "Temporal data example",
   tags: ["temporal"],
 }
-const temporalProxy = await unsProxyProcess.createTemporalProxy("templateUnsTemporal", "temporal-1.sij.digital:7233", "hv");
+const temporalProxy = await unsProxyProcess.createTemporalProxy("templateUnsTemporal", "temporal.example.local:7233", "line-namespace");
 await temporalProxy.initializeTemporalProxy(temporalTopic);
 
 // Start temporal workflow
-const result = await temporalProxy.startWorkflow("TransformHvSclData", {'coil_id': "42"}, "ETL_HV_SCL_TASK_QUEUE");
+const result = await temporalProxy.startWorkflow("TransformLineData", {'coil_id': "42"}, "ETL_LINE_TASK_QUEUE");
 logger.info(`Workflow result: ${JSON.stringify(result)}`);

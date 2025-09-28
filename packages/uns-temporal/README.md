@@ -23,14 +23,14 @@ import "@uns-kit/temporal";
 async function main() {
   const process = new UnsProxyProcess("mqtt-broker:1883", { processName: "temporal-demo" }) as UnsProxyProcessWithTemporal;
 
-  const temporal = await process.createTemporalProxy("hv-etl", "temporal:7233", "hv-namespace");
+  const temporal = await process.createTemporalProxy("line-etl", "temporal:7233", "line-namespace");
   await temporal.initializeTemporalProxy({
     topic: "factory/",
-    attribute: "hv-status",
+    attribute: "line-status",
     attributeType: UnsAttributeType.Data,
   });
 
-  await temporal.startWorkflow("TransformHvSclData", { coil_id: "42" }, "ETL_HV_SCL_TASK_QUEUE");
+  await temporal.startWorkflow("TransformLineData", { coil_id: "42" }, "ETL_LINE_TASK_QUEUE");
 }
 
 void main();

@@ -129,7 +129,7 @@ def main():
     parser = argparse.ArgumentParser(description="Publish UNS data packets periodically (cron-like)")
     parser.add_argument("--addr", default=None)
     parser.add_argument("--auto", action="store_true")
-    parser.add_argument("--out-topic", default="sij/")
+    parser.add_argument("--out-topic", default="example/")
     parser.add_argument("--attribute", default="data-number")
     parser.add_argument("--uom", default="mV")
     parser.add_argument("--period-ms", type=int, default=1000)

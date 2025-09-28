@@ -287,7 +287,7 @@ async function configureDevops(targetPath?: string): Promise<void> {
 
   const repositoryName = inferRepositoryNameFromPackage(pkg.name) || inferRepositoryNameFromPackage(path.basename(targetDir));
 
-  const defaultOrganization = config.devops?.organization?.trim() || remoteInfo?.organization || "sijit";
+  const defaultOrganization = config.devops?.organization?.trim() || remoteInfo?.organization || "example-org";
   const organization = await promptWithDefault(
     defaultOrganization ? `Azure DevOps organization [${defaultOrganization}]: ` : "Azure DevOps organization: ",
     defaultOrganization,

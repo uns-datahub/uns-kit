@@ -102,7 +102,7 @@ def register(stub: gw.UnsGatewayStub) -> None:
     ]
     for idx, tag in [(1, "Tag1"), (2, "Tag2")]:
         res = stub.RegisterApiGet(pb2.RegisterApiGetRequest(
-            topic="sij/",
+            topic="example/",
             attribute=f"summary-{idx}",
             api_description=f"Test API endpoint {idx}",
             tags=[tag],

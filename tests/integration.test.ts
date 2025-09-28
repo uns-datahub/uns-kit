@@ -40,7 +40,7 @@ describe('Integration Tests for Message Transformation', () => {
     uns = new UnsProxyProcess(`localhost:${mqttPort}`);
 
     inputProxy = await uns.createUnsMqttProxy(`localhost:${mqttPort}`, 'templateUnsRttInput', {
-      mqttSubToTopics: ['sij/#'],
+      mqttSubToTopics: ['example/#'],
       subscribeThrottlingDelay: 0,
       publishThrottlingDelay: 0
     });
@@ -74,7 +74,7 @@ describe('Integration Tests for Message Transformation', () => {
     // Send data packet
     const time = UnsPacket.formatToISO8601(new Date());
     const message: IUnsMessage = { data: { time, value: 123 } };
-    const topic: UnsTopics = "sij/";
+    const topic: UnsTopics = "example/";
     const tags: UnsTags[] = [];
     const packet = await UnsPacket.unsPacketFromUnsMessage(message);
     outputProxy.publishMqttMessage({ topic, attribute: "data-single", packet, description: "Number value", tags });
@@ -82,7 +82,7 @@ describe('Integration Tests for Message Transformation', () => {
     await new Promise((r) => setTimeout(r, 200));
 
     expect(received).toHaveLength(1);
-    expect(received[0].topic).toBe('sij/data-single');
+    expect(received[0].topic).toBe('example/data-single');
     expect(received[0].message).toBe(123);
   });  
 });
