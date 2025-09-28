@@ -167,12 +167,63 @@ async function createProject(projectName: string): Promise<void> {
   await patchPackageJson(targetDir, pkgName);
   await patchConfigJson(targetDir, pkgName);
   await replacePlaceholders(targetDir, pkgName);
+  const initializedGit = await initGitRepository(targetDir);
 
   console.log(`\nCreated ${pkgName} in ${path.relative(process.cwd(), targetDir)}`);
   console.log("Next steps:");
   console.log(`  cd ${projectName}`);
   console.log("  pnpm install");
   console.log("  pnpm run dev");
+  if (initializedGit) {
+    console.log("  git status  # verify the new repository");
+  }
+}
+
+async function initGitRepository(targetDir: string): Promise<boolean> {
+  try {
+    const { stdout } = await execFileAsync("git", ["rev-parse", "--is-inside-work-tree"], {
+      cwd: targetDir,
+      encoding: "utf8",
+    });
+    if (stdout.trim() === "true") {
+      return false;
+    }
+  } catch (error) {
+    if (isGitCommandNotFoundError(error)) {
+      console.log("Git not found on PATH. Skipping repository initialization.");
+      return false;
+    }
+
+    const execError = error as ExecFileError;
+    const stderr = typeof execError.stderr === "string" ? execError.stderr : "";
+    if (stderr && !stderr.includes("not a git repository")) {
+      console.warn("Unable to determine git repository status:", stderr.trim());
+      return false;
+    }
+  }
+
+  try {
+    await execFileAsync("git", ["init"], {
+      cwd: targetDir,
+      encoding: "utf8",
+    });
+    console.log("Initialized empty Git repository.");
+    return true;
+  } catch (error) {
+    if (isGitCommandNotFoundError(error)) {
+      console.log("Git not found on PATH. Skipping repository initialization.");
+      return false;
+    }
+
+    const execError = error as ExecFileError;
+    const stderr = typeof execError.stderr === "string" ? execError.stderr.trim() : "";
+    if (stderr) {
+      console.warn(`Failed to initialize git repository: ${stderr}`);
+    } else {
+      console.warn(`Failed to initialize git repository: ${(error as Error).message}`);
+    }
+    return false;
+  }
 }
 
 type PackageJson = {

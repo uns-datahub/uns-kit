@@ -2,6 +2,12 @@
 
 Command line scaffolding tool for the UNS toolkit. It bootstraps a new project with `@uns-kit/core` preconfigured and ready to extend with additional plugins.
 
+## Prerequisites
+
+- Node.js 18 or newer (ES2022 runtime features)
+- A package manager such as `pnpm`, `npm`, or `yarn`
+- `git` available on PATH (required for `configure-devops`, used to initialize new projects automatically)
+
 ## Usage
 
 ```bash
@@ -20,6 +26,8 @@ cd my-uns-app
 pnpm install
 pnpm run dev
 ```
+
+When `git` is available on your PATH the scaffold also initializes a fresh repository so you can commit immediately.
 
 ## Commands
 
