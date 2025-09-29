@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import { IClientPublishOptions } from "mqtt";
 import * as path from "path";
 import { Worker } from "worker_threads";
+import { fileURLToPath } from "url";
 import { basePath } from "../base-path.js";
 import logger from "../logger.js";
 import { IMqttMessage, IUnsPacket, IUnsParameters, UnsEvents, ValueType } from "../uns/uns-interfaces.js";
@@ -14,6 +15,10 @@ import { UnsAttributeType } from "../graphql/schema.js";
 
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+
+const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
+const packageRoot = path.resolve(moduleDirectory, "..", "..");
+const workerScriptPath = path.join(packageRoot, "dist/uns-mqtt/mqtt-worker-init.js");
 
 export enum MessageMode {
   Raw = 'raw',     // Send only the original message
@@ -84,7 +89,7 @@ export default class UnsMqttProxy extends UnsProxy {
       subscriberActive
     };
 
-    this.worker = new Worker(path.join(basePath, "./dist/uns-mqtt/mqtt-worker-init.js"), { workerData });
+    this.worker = new Worker(workerScriptPath, { workerData });
 
     this.worker.on("message", (msg) => {
       if (msg && msg.command === "enqueueResult" && msg.id) {
