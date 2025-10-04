@@ -246,52 +246,6 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "sandbox-app: api-example",
-      "runtimeArgs": [
-        "--enable-source-maps",
-        "--import",
-        "tsx",
-      ],
-      "program": "${workspaceFolder}/sandbox-app/src/examples/api-example.ts",
-      "cwd": "${workspaceFolder}/sandbox-app",
-      "console": "internalConsole",
-      "internalConsoleOptions": "neverOpen",
-      "outputCapture": "std",
-      "sourceMaps": true,
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/**"
-      ],
-      "sourceMapPathOverrides": {
-        "${workspaceFolder}/**/node_modules/@uns-kit/*/src/*": "${workspaceFolder}/packages/uns-*/src/*"
-      },
-      "skipFiles": ["<node_internals>/**"]
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "sandbox-app: cron-example",
-      "runtimeArgs": [
-        "--enable-source-maps",
-        "--import",
-        "tsx",
-      ],
-      "program": "${workspaceFolder}/sandbox-app/src/examples/cron-example.ts",
-      "cwd": "${workspaceFolder}/sandbox-app",
-      "console": "internalConsole",
-      "internalConsoleOptions": "neverOpen",
-      "outputCapture": "std",
-      "sourceMaps": true,
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/**"
-      ],
-      "sourceMapPathOverrides": {
-        "${workspaceFolder}/**/node_modules/@uns-kit/*/src/*": "${workspaceFolder}/packages/uns-*/src/*"
-      },
-      "skipFiles": ["<node_internals>/**"]
-    },
-    {
-      "type": "node",
-      "request": "launch",
       "name": "sandbox-app: data-example",
       "runtimeArgs": [
         "--enable-source-maps",
@@ -315,15 +269,15 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "sandbox-app: load-test-example",
+      "name": "sandbox-app: load-test-data",
       "runtimeArgs": [
         "--enable-source-maps",
         "--import",
         "tsx",
       ],
-      "program": "${workspaceFolder}/sandbox-app/src/examples/load-test-example.ts",
+      "program": "${workspaceFolder}/sandbox-app/src/examples/load-test-data.ts",
       "cwd": "${workspaceFolder}/sandbox-app",
-      "console": "internalConsole",
+      "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "outputCapture": "std",
       "sourceMaps": true,
@@ -361,39 +315,17 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "sandbox-app: temporal-example",
+      "name": "sandbox-app: uns-gateway-cli",
       "runtimeArgs": [
         "--enable-source-maps",
         "--import",
         "tsx",
       ],
-      "program": "${workspaceFolder}/sandbox-app/src/examples/temporal-example.ts",
-      "cwd": "${workspaceFolder}/sandbox-app",
-      "console": "internalConsole",
-      "internalConsoleOptions": "neverOpen",
-      "outputCapture": "std",
-      "sourceMaps": true,
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/**"
-      ],
-      "sourceMapPathOverrides": {
-        "${workspaceFolder}/**/node_modules/@uns-kit/*/src/*": "${workspaceFolder}/packages/uns-*/src/*"
-      },
-      "skipFiles": ["<node_internals>/**"]
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "sandbox-app: start uns-gateway-server",
-      "runtimeArgs": [
-        "--enable-source-maps",
-        "--import",
-        "tsx",
-      ],
-      "program": "${workspaceFolder}/packages/uns-core/src/uns-grpc/uns-gateway-cli.ts",
+      "program": "${workspaceFolder}/sandbox-app/src/examples/uns-gateway-cli.ts",
       "preLaunchTask": "prep: core dist",
       "cwd": "${workspaceFolder}/sandbox-app",
-      "internalConsoleOptions": "openOnSessionStart",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
       "outputCapture": "std",
       "sourceMaps": true,
       "resolveSourceMapLocations": [
