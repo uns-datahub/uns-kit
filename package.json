@@ -4,9 +4,7 @@
   "private": true,
   "description": "Monorepo for the UNS toolkit (core runtime and plugin packages)",
   "packageManager": "pnpm@9.12.1",
-  "scripts": {
-    "build": "pnpm -r run build",
-    "typecheck": "pnpm -r run typecheck",
+  "scripts": {    
     "core:version:patch": "cd packages/uns-core; pnpm version patch",
     "core:build": "pnpm --filter @uns-kit/core build",
     "core:publish": "pnpm publish --filter @uns-kit/core --access public",
