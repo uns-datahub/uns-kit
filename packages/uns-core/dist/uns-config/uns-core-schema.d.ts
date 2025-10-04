@@ -12,19 +12,19 @@ export declare const unsCoreSchema: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
+        processName?: string;
         graphql?: string;
         rest?: string;
         instanceMode?: "wait" | "force" | "handover";
-        processName?: string;
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     }, {
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
+        processName?: string;
         graphql?: string;
         rest?: string;
         instanceMode?: "wait" | "force" | "handover";
-        processName?: string;
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     }>;
@@ -498,10 +498,10 @@ export declare const unsCoreSchema: z.ZodObject<{
     uns?: {
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
+        processName?: string;
         graphql?: string;
         rest?: string;
         instanceMode?: "wait" | "force" | "handover";
-        processName?: string;
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     };
@@ -613,10 +613,10 @@ export declare const unsCoreSchema: z.ZodObject<{
     uns?: {
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
+        processName?: string;
         graphql?: string;
         rest?: string;
         instanceMode?: "wait" | "force" | "handover";
-        processName?: string;
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     };

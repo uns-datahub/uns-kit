@@ -1,4 +1,4 @@
-export type AppConfig = {
+export interface AppConfig {
     uns: {
         graphql: string;
         rest: string;
@@ -179,5 +179,5 @@ export type AppConfig = {
         organization: string;
         project?: string | undefined;
     } | undefined;
-};
+}
 //# sourceMappingURL=app-config.d.ts.map

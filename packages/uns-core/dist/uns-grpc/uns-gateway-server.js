@@ -18,6 +18,12 @@ const defaultGatewayProto = path.resolve(__dirname, "uns-gateway.proto");
 const GATEWAY_PROTO = process.env.UNS_GATEWAY_PROTO
     ? path.resolve(process.cwd(), process.env.UNS_GATEWAY_PROTO)
     : defaultGatewayProto;
+const requireHost = (value, pathLabel) => {
+    if (typeof value !== "string" || value.length === 0) {
+        throw new Error(`Configuration value '${pathLabel}' is required and must resolve to a string host.`);
+    }
+    return value;
+};
 export class UnsGatewayServer {
     server = null;
     unsProcess = null;
@@ -47,10 +53,11 @@ export class UnsGatewayServer {
         const instanceMode = opts?.instanceModeOverride ?? cfg.uns.instanceMode;
         const handover = (typeof opts?.handoverOverride === "boolean") ? opts.handoverOverride : cfg.uns.handover;
         const suffix = opts?.instanceSuffix ? `-${opts.instanceSuffix}` : "";
-        this.unsProcess = new UnsProxyProcess(cfg.infra.host, { processName });
+        const infraHost = requireHost(cfg.infra?.host, "infra.host");
+        this.unsProcess = new UnsProxyProcess(infraHost, { processName });
         // cache hosts/options; proxies created lazily on first use
-        this.inputHost = cfg.input.host;
-        this.outputHost = cfg.output.host;
+        this.inputHost = requireHost(cfg.input?.host, "input.host");
+        this.outputHost = requireHost(cfg.output?.host, "output.host");
         this.apiOptions = cfg.uns?.jwksWellKnownUrl
             ? { jwks: { wellKnownJwksUrl: cfg.uns.jwksWellKnownUrl, activeKidUrl: cfg.uns.kidWellKnownUrl } }
             : { jwtSecret: "CHANGEME" };

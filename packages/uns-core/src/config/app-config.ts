@@ -1,5 +1,5 @@
 /* Auto-generated. Do not edit by hand. */
-export type AppConfig = {
+export interface AppConfig {
     uns: {
         graphql: string;
         rest: string;
