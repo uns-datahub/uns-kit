@@ -1,6 +1,6 @@
 import os from "node:os";
 import type { NetworkInterfaceInfo } from "node:os";
-import type { AppConfig } from "../app-config.js";
+import type { AppConfig } from "../config/app-config.js";
 import {
   isSecretPlaceholder,
   type EnvSecretPlaceholder,

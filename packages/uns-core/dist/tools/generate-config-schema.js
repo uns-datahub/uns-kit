@@ -61,5 +61,20 @@ const tsContent = "/* Auto-generated. Do not edit by hand. */\n" +
     printNode(node) +
     "\n";
 write(path.resolve("./src/config/app-config.ts"), tsContent);
-console.log("Generated config.schema.json and src/config/app-config.ts");
+try {
+    const corePackageDir = path.dirname(require.resolve("@uns-kit/core/package.json", {
+        paths: [process.cwd()]
+    }));
+    const coreDistConfigDir = path.join(corePackageDir, "dist", "config");
+    write(path.join(coreDistConfigDir, "app-config.d.ts"), tsContent);
+    const coreSrcConfigPath = path.join(corePackageDir, "src", "config", "app-config.ts");
+    if (fs.existsSync(path.dirname(coreSrcConfigPath))) {
+        write(coreSrcConfigPath, tsContent);
+    }
+}
+catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`Warning: unable to update @uns-kit/core app-config types: ${reason}`);
+}
+console.log("Generated config.schema.json and propagated app-config types");
 //# sourceMappingURL=generate-config-schema.js.map

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { AppConfig } from "./app-config.js";
+import type { AppConfig } from "./config/app-config.js";
 import {
   clearSecretResolverCaches,
   resolveConfigSecrets,

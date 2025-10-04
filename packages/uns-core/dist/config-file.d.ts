@@ -1,4 +1,4 @@
-import type { AppConfig } from "./app-config.js";
+import type { AppConfig } from "./config/app-config.js";
 import { type ResolvedAppConfig, type SecretResolverOptions } from "./uns-config/secret-resolver.js";
 export declare class ConfigFile {
     private static rawCache?;
