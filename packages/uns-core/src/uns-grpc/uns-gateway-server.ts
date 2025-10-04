@@ -47,6 +47,13 @@ type UnsProxyProcessWithApi = UnsProxyProcess & {
   createApiProxy(instanceName: string, options: IApiProxyOptions): Promise<UnsApiProxyLike>;
 };
 
+const requireHost = (value: unknown, pathLabel: string): string => {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`Configuration value '${pathLabel}' is required and must resolve to a string host.`);
+  }
+  return value;
+};
+
 export class UnsGatewayServer {
   private server: GrpcServer | null = null;
   private unsProcess: UnsProxyProcessWithApi | null = null;
@@ -88,10 +95,11 @@ export class UnsGatewayServer {
     const handover = (typeof opts?.handoverOverride === "boolean") ? opts.handoverOverride : cfg.uns.handover;
     const suffix = opts?.instanceSuffix ? `-${opts.instanceSuffix}` : "";
 
-    this.unsProcess = new UnsProxyProcess(cfg.infra.host, { processName }) as UnsProxyProcessWithApi;
+    const infraHost = requireHost(cfg.infra?.host, "infra.host");
+    this.unsProcess = new UnsProxyProcess(infraHost, { processName }) as UnsProxyProcessWithApi;
     // cache hosts/options; proxies created lazily on first use
-    this.inputHost = cfg.input.host;
-    this.outputHost = cfg.output.host;
+    this.inputHost = requireHost(cfg.input?.host, "input.host");
+    this.outputHost = requireHost(cfg.output?.host, "output.host");
     this.apiOptions = cfg.uns?.jwksWellKnownUrl
       ? { jwks: { wellKnownJwksUrl: cfg.uns.jwksWellKnownUrl, activeKidUrl: cfg.uns.kidWellKnownUrl } }
       : { jwtSecret: "CHANGEME" };
