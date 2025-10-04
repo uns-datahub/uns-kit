@@ -20,9 +20,9 @@
   "json.schemas": [
     {
       "fileMatch": [
-        "config.json"
+        "sandbox-app/config.json"
       ],
-      "url": "./config.schema.json"
+      "url": "./sandbox-app/config.schema.json"
     }
   ]
 }

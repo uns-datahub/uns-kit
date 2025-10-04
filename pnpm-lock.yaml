@@ -4,6 +4,12 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  sandbox-app>@uns-kit/core: workspace:^
+  sandbox-app>@uns-kit/api: workspace:^
+  sandbox-app>@uns-kit/cron: workspace:^
+  sandbox-app>@uns-kit/temporal: workspace:^
+
 importers:
 
   .:
@@ -185,28 +191,6 @@ importers:
         specifier: ^4.2.1
         version: 4.2.1
 
-  packages/uns-demo:
-    dependencies:
-      '@uns-kit/api':
-        specifier: workspace:*
-        version: link:../uns-api
-      '@uns-kit/core':
-        specifier: workspace:*
-        version: link:../uns-core
-      '@uns-kit/cron':
-        specifier: workspace:*
-        version: link:../uns-cron
-      '@uns-kit/temporal':
-        specifier: workspace:*
-        version: link:../uns-temporal
-    devDependencies:
-      tsx:
-        specifier: ^4.20.5
-        version: 4.20.5
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.2
-
   packages/uns-temporal:
     dependencies:
       '@temporalio/client':
@@ -215,6 +199,22 @@ importers:
       '@uns-kit/core':
         specifier: workspace:*
         version: link:../uns-core
+
+  sandbox-app:
+    dependencies:
+      '@uns-kit/core':
+        specifier: workspace:^
+        version: link:../packages/uns-core
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      tsx:
+        specifier: ^4.20.5
+        version: 4.20.5
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
 
 packages:
 
