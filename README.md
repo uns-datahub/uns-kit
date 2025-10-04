@@ -65,7 +65,7 @@ uns-kit configure-python
 pnpm install
 ```
 
-Keep your project schema aligned by editing `src/config/project.config.extension.ts` and running `pnpm run generate-config-schema` inside the generated app.
+Keep your project schema aligned by editing `src/config/project.config.extension.ts` and running `pnpm run generate-config-schema` inside the generated app. The command refreshes both `config.schema.json` and `src/config/app-config.ts`, which augments `@uns-kit/core`'s `AppConfig`. Reload your editor's TypeScript server if completions lag behind.
 
 ## Publishing
 
