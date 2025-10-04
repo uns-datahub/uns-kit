@@ -54,5 +54,13 @@
     "vitest": "^3.2.4",
     "zod-to-json-schema": "^3.24.6",
     "zod-to-ts": "^1.2.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "sandbox-app>@uns-kit/core": "workspace:^",
+      "sandbox-app>@uns-kit/api": "workspace:^",
+      "sandbox-app>@uns-kit/cron": "workspace:^",
+      "sandbox-app>@uns-kit/temporal": "workspace:^"
+    }
   }
 }

@@ -1120,8 +1120,14 @@ async function patchPackageJson(targetDir: string, packageName: string): Promise
   const pkg = JSON.parse(raw);
   pkg.name = packageName;
 
-  if (pkg.dependencies && pkg.dependencies["@uns-kit/core"]) {
-    pkg.dependencies["@uns-kit/core"] = `^${coreVersion}`;
+  const dependencies = (pkg.dependencies ??= {});
+  if (dependencies["@uns-kit/core"]) {
+    dependencies["@uns-kit/core"] = resolveUnsPackageSpecifier(
+      "@uns-kit/core",
+      "../../uns-core/package.json",
+    );
+  } else {
+    dependencies["@uns-kit/core"] = `^${coreVersion}`;
   }
 
   await writeFile(pkgFile, JSON.stringify(pkg, null, 2) + "\n", "utf8");
