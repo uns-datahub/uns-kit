@@ -2,10 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { zodToTs, printNode } from "zod-to-ts";
+import { zodToTs, printNode, withGetType } from "zod-to-ts";
 import { composeConfigSchema } from "../uns-config/schema-tools.js";
 import { unsCoreSchema } from "../uns-config/uns-core-schema.js";
 import { projectExtrasSchema as coreProjectExtrasSchema } from "../config/project.config.extension.js";
+import { hostValueSchema } from "../uns-config/host-placeholders.js";
+import { secretValueSchema } from "../uns-config/secret-placeholders.js";
 function write(filePath, data) {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, data);
@@ -55,9 +57,15 @@ const baseSchema = composeConfigSchema(unsCoreSchema, projectExtrasSchema).stric
 const jsonSchema = zodToJsonSchema(baseSchema, "AppConfig");
 write(path.resolve("config.schema.json"), JSON.stringify(jsonSchema, null, 2));
 // 2) TypeScript `export type AppConfig = {...}`
+// Keep placeholder-backed values as plain strings in the generated TypeScript typings so
+// consuming code reflects the resolved shapes while the JSON schema still exposes full unions.
+const renderAsString = (typescript) => typescript.factory.createKeywordTypeNode(typescript.SyntaxKind.StringKeyword);
+for (const schema of [hostValueSchema, secretValueSchema]) {
+    withGetType(schema, renderAsString);
+}
 const { node } = zodToTs(baseSchema, "AppConfig");
 const interfaceBody = printNode(node);
-const tsContent = `/* Auto-generated. Do not edit by hand. */\nexport interface ProjectAppConfig ${interfaceBody}\n\nexport type AppConfig = ProjectAppConfig;\n\ndeclare module "@uns-kit/core/config/app-config.js" {\n  interface AppConfig extends ProjectAppConfig {}\n}\n`;
+const tsContent = `/* Auto-generated. Do not edit by hand. */\nexport interface ProjectAppConfig ${interfaceBody}\n\nexport interface AppConfig extends ProjectAppConfig {}\n\ndeclare module "@uns-kit/core/config/app-config.js" {\n  interface AppConfig extends ProjectAppConfig {}\n}\n`;
 write(path.resolve("./src/config/app-config.ts"), tsContent);
 console.log("Generated config.schema.json and updated src/config/app-config.ts");
 //# sourceMappingURL=generate-config-schema.js.map
