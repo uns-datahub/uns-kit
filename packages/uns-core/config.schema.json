@@ -15,6 +15,95 @@
               "type": "string",
               "format": "uri"
             },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "description": "Email used when authenticating to graphql endpoint of the UNS instance."
+            },
+            "password": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "provider": {
+                          "type": "string",
+                          "const": "env",
+                          "description": "Load the secret from an environment variable."
+                        },
+                        "key": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Name of the environment variable to read."
+                        },
+                        "optional": {
+                          "type": "boolean",
+                          "description": "Allow the variable to be absent without throwing during resolution."
+                        },
+                        "default": {
+                          "type": "string",
+                          "description": "Fallback value when optional is true and the variable is missing."
+                        }
+                      },
+                      "required": [
+                        "provider",
+                        "key"
+                      ],
+                      "additionalProperties": false,
+                      "description": "Secret placeholder resolved from process.env."
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "provider": {
+                          "type": "string",
+                          "const": "infisical",
+                          "description": "Load the secret from Infisical."
+                        },
+                        "path": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Secret folder path in Infisical, e.g. '/app/database'."
+                        },
+                        "key": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Secret key/name inside the given path."
+                        },
+                        "optional": {
+                          "type": "boolean",
+                          "description": "Allow the secret to be absent without throwing during resolution."
+                        },
+                        "environment": {
+                          "type": "string",
+                          "description": "Infisical environment override (defaults to current mode if omitted)."
+                        },
+                        "projectId": {
+                          "type": "string",
+                          "description": "Optional Infisical project identifier when not using the default."
+                        },
+                        "default": {
+                          "type": "string",
+                          "description": "Fallback value when the secret is missing and optional resolution is allowed."
+                        }
+                      },
+                      "required": [
+                        "provider",
+                        "path",
+                        "key"
+                      ],
+                      "additionalProperties": false,
+                      "description": "Secret placeholder resolved from Infisical."
+                    }
+                  ]
+                }
+              ],
+              "description": "Password or secret value paired with the UNS email."
+            },
             "instanceMode": {
               "type": "string",
               "enum": [
@@ -53,7 +142,9 @@
           },
           "required": [
             "graphql",
-            "rest"
+            "rest",
+            "email",
+            "password"
           ],
           "additionalProperties": false
         },
@@ -165,83 +256,10 @@
             "password": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "$ref": "#/definitions/AppConfig/properties/uns/properties/password/anyOf/0"
                 },
                 {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "provider": {
-                          "type": "string",
-                          "const": "env",
-                          "description": "Load the secret from an environment variable."
-                        },
-                        "key": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Name of the environment variable to read."
-                        },
-                        "optional": {
-                          "type": "boolean",
-                          "description": "Allow the variable to be absent without throwing during resolution."
-                        },
-                        "default": {
-                          "type": "string",
-                          "description": "Fallback value when optional is true and the variable is missing."
-                        }
-                      },
-                      "required": [
-                        "provider",
-                        "key"
-                      ],
-                      "additionalProperties": false,
-                      "description": "Secret placeholder resolved from process.env."
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "provider": {
-                          "type": "string",
-                          "const": "infisical",
-                          "description": "Load the secret from Infisical."
-                        },
-                        "path": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Secret folder path in Infisical, e.g. '/app/database'."
-                        },
-                        "key": {
-                          "type": "string",
-                          "minLength": 1,
-                          "description": "Secret key/name inside the given path."
-                        },
-                        "optional": {
-                          "type": "boolean",
-                          "description": "Allow the secret to be absent without throwing during resolution."
-                        },
-                        "environment": {
-                          "type": "string",
-                          "description": "Infisical environment override (defaults to current mode if omitted)."
-                        },
-                        "projectId": {
-                          "type": "string",
-                          "description": "Optional Infisical project identifier when not using the default."
-                        },
-                        "default": {
-                          "type": "string",
-                          "description": "Fallback value when the secret is missing and optional resolution is allowed."
-                        }
-                      },
-                      "required": [
-                        "provider",
-                        "path",
-                        "key"
-                      ],
-                      "additionalProperties": false,
-                      "description": "Secret placeholder resolved from Infisical."
-                    }
-                  ]
+                  "$ref": "#/definitions/AppConfig/properties/uns/properties/password/anyOf/1"
                 }
               ]
             },
