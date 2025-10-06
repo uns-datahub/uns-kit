@@ -52,7 +52,17 @@ export class AuthClient {
     }
 
     // First try to get email and password from config
-    
+    const configEmail = cfg?.uns?.email;
+    const configPassword = cfg?.uns?.password;
+    if (typeof configEmail === "string" && typeof configPassword === "string") {
+      try {
+        const loggedIn = await this.login(configEmail, configPassword);
+        await this.persistTokens(loggedIn.accessToken, loggedIn.refreshToken);
+        return loggedIn.accessToken;
+      } catch {
+        // ignore, fallback to interactive login
+      }
+    }
 
     // Interactive login
     const { email, password } = await AuthClient.promptCredentials();
