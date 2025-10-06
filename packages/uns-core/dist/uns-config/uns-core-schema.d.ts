@@ -3,6 +3,47 @@ export declare const unsCoreSchema: z.ZodObject<{
     uns: z.ZodObject<{
         graphql: z.ZodString;
         rest: z.ZodString;
+        email: z.ZodString;
+        password: z.ZodUnion<[z.ZodString, z.ZodDiscriminatedUnion<"provider", [z.ZodObject<{
+            provider: z.ZodLiteral<"env">;
+            key: z.ZodString;
+            optional: z.ZodOptional<z.ZodBoolean>;
+            default: z.ZodOptional<z.ZodString>;
+        }, "strict", z.ZodTypeAny, {
+            provider?: "env";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        }, {
+            provider?: "env";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        }>, z.ZodObject<{
+            provider: z.ZodLiteral<"infisical">;
+            path: z.ZodString;
+            key: z.ZodString;
+            optional: z.ZodOptional<z.ZodBoolean>;
+            environment: z.ZodOptional<z.ZodString>;
+            projectId: z.ZodOptional<z.ZodString>;
+            default: z.ZodOptional<z.ZodString>;
+        }, "strict", z.ZodTypeAny, {
+            provider?: "infisical";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+            path?: string;
+            environment?: string;
+            projectId?: string;
+        }, {
+            provider?: "infisical";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+            path?: string;
+            environment?: string;
+            projectId?: string;
+        }>]>]>;
         instanceMode: z.ZodDefault<z.ZodEnum<["wait", "force", "handover"]>>;
         processName: z.ZodOptional<z.ZodString>;
         handover: z.ZodDefault<z.ZodBoolean>;
@@ -13,8 +54,23 @@ export declare const unsCoreSchema: z.ZodObject<{
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
         processName?: string;
+        password?: string | {
+            provider?: "env";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "infisical";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+            path?: string;
+            environment?: string;
+            projectId?: string;
+        };
         graphql?: string;
         rest?: string;
+        email?: string;
         instanceMode?: "wait" | "force" | "handover";
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
@@ -22,8 +78,23 @@ export declare const unsCoreSchema: z.ZodObject<{
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
         processName?: string;
+        password?: string | {
+            provider?: "env";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "infisical";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+            path?: string;
+            environment?: string;
+            projectId?: string;
+        };
         graphql?: string;
         rest?: string;
+        email?: string;
         instanceMode?: "wait" | "force" | "handover";
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
@@ -499,8 +570,23 @@ export declare const unsCoreSchema: z.ZodObject<{
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
         processName?: string;
+        password?: string | {
+            provider?: "env";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "infisical";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+            path?: string;
+            environment?: string;
+            projectId?: string;
+        };
         graphql?: string;
         rest?: string;
+        email?: string;
         instanceMode?: "wait" | "force" | "handover";
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
@@ -614,8 +700,23 @@ export declare const unsCoreSchema: z.ZodObject<{
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
         processName?: string;
+        password?: string | {
+            provider?: "env";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "infisical";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+            path?: string;
+            environment?: string;
+            projectId?: string;
+        };
         graphql?: string;
         rest?: string;
+        email?: string;
         instanceMode?: "wait" | "force" | "handover";
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
