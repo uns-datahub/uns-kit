@@ -365,6 +365,22 @@ async function configureDevops(targetPath?: string): Promise<void> {
     pkgChanged = true;
   }
 
+  const azurePipelineTemplatePath = path.resolve(__dirname, "../templates/azure-pipelines.yml");
+  try {
+    await access(azurePipelineTemplatePath);
+  } catch (error) {
+    throw new Error("Azure Pipelines template is missing. Please ensure templates/azure-pipelines.yml exists.");
+  }
+
+  const pipelineTargetPath = path.join(targetDir, "azure-pipelines.yml");
+  let pipelineMessage = "";
+  if (await fileExists(pipelineTargetPath)) {
+    pipelineMessage = "  azure-pipelines.yml already exists (skipped).";
+  } else {
+    await copyFile(azurePipelineTemplatePath, pipelineTargetPath);
+    pipelineMessage = "  Added azure-pipelines.yml pipeline definition.";
+  }
+
   await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
   if (pkgChanged) {
     await writeFile(packagePath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
@@ -379,6 +395,9 @@ async function configureDevops(targetPath?: string): Promise<void> {
   }
   if (gitRemoteMessage) {
     console.log(gitRemoteMessage);
+  }
+  if (pipelineMessage) {
+    console.log(pipelineMessage);
   }
   if (pkgChanged) {
     console.log("  Updated package.json scripts/devDependencies. Run pnpm install to fetch new packages.");
