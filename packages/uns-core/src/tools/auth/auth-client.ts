@@ -3,6 +3,8 @@ import { SecureStoreFactory, ISecureStore } from "./secure-store.js";
 import jwt from "jsonwebtoken";
 import readline from "readline";
 
+const cfg = await ConfigFile.loadConfig();
+
 type LoginResponse = {
   accessToken: string;
 };
@@ -23,7 +25,6 @@ export class AuthClient {
   }
 
   static async create(): Promise<AuthClient> {
-    const cfg = await ConfigFile.loadConfig();
     const restBase: string = cfg?.uns?.rest;
     if (!restBase) throw new Error("config.uns.rest is not set");
     const client = new AuthClient(restBase);
@@ -49,6 +50,9 @@ export class AuthClient {
         // ignore, fallback to login
       }
     }
+
+    // First try to get email and password from config
+    
 
     // Interactive login
     const { email, password } = await AuthClient.promptCredentials();
