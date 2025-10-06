@@ -4,6 +4,26 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "index",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--import",
+        "tsx",
+      ],
+      "program": "${workspaceFolder}/src/index.ts",
+      "console": "internalConsole",
+      "internalConsoleOptions": "openOnSessionStart",
+      "outputCapture": "std",
+      "cwd": "${workspaceFolder}",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ]
+    },    
+    {
+      "type": "node",
+      "request": "launch",
       "name": "demo: data-example",
       "runtimeArgs": [
         "--enable-source-maps",
