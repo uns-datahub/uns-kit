@@ -36,12 +36,22 @@ const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host
 mqttInput.event.on("input", async (event) => {
   try {
     if (event.topic === "integration/raw-table") {
-      const jsonObject = JSON.parse(event.message);
+      const x = 10;
+      const a = `{
+        "kolona_a": "${x}",
+        "kolona_b": "1",
+        "kolona_c"; "${x}",
+        "kolona_d": 3
+      }`;
+      type questDbCoulmnTypes = "number" | "float" | "string";
+      const columnTypes:questDbCoulmnTypes[]  = ['number', 'float', 'string', 'number', 'number'];
+
+      const jsonObject = JSON.parse(a);
       const timestamp = jsonObject.Timestamp;
-      delete(jsonObject.Timestamp);
+      // delete(jsonObject.Timestamp);
 
       const time = UnsPacket.formatToISO8601(new Date(timestamp));
-      const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, time}};
+      const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, columnTypes, time}};
       const topic: UnsTopics = "example/factory-a/line-1/";
       const tags: UnsTags[] = [];
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
