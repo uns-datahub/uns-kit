@@ -22,8 +22,7 @@
     "cli:publish": "pnpm publish --filter @uns-kit/cli --access public",
     "all:version:patch": "pnpm run core:version:patch && pnpm run api:version:patch && pnpm run cron:version:patch && pnpm run temporal:version:patch && pnpm run cli:version:patch",
     "all:build": "pnpm --filter @uns-kit/core build && pnpm --filter @uns-kit/api build && pnpm --filter @uns-kit/cron build && pnpm --filter @uns-kit/temporal build && pnpm --filter @uns-kit/cli build",
-    "all:publish": "pnpm publish --filter @uns-kit/core --access public && pnpm publish --filter @uns-kit/api --access public && pnpm publish --filter @uns-kit/cron --access public && pnpm publish --filter @uns-kit/temporal --access public && pnpm publish --filter @uns-kit/cli --access public",
-    "core:generate-config-schema": "cd packages/uns-core; node dist/tools/generate-config-schema.js"
+    "all:publish": "pnpm publish --filter @uns-kit/core --access public && pnpm publish --filter @uns-kit/api --access public && pnpm publish --filter @uns-kit/cron --access public && pnpm publish --filter @uns-kit/temporal --access public && pnpm publish --filter @uns-kit/cli --access public"
   },
   "author": "Aljosa Vister",
   "license": "ISC",

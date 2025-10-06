@@ -64,11 +64,3 @@ export interface ProjectAppConfig {
 }
 
 export interface AppConfig extends ProjectAppConfig {}
-
-type GeneratedProjectAppConfig = ProjectAppConfig;
-type GeneratedAppConfig = AppConfig;
-
-declare module "@uns-kit/core/config/app-config.js" {
-  interface ProjectAppConfig extends GeneratedProjectAppConfig {}
-  interface AppConfig extends GeneratedAppConfig {}
-}

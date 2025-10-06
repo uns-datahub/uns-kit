@@ -2,6 +2,7 @@ import { ConfigFile } from "../../config-file.js";
 import { SecureStoreFactory } from "./secure-store.js";
 import jwt from "jsonwebtoken";
 import readline from "readline";
+const cfg = await ConfigFile.loadConfig();
 /**
  * AuthClient handles acquiring and refreshing JWT access tokens
  * using the configured REST base URL.
@@ -16,7 +17,6 @@ export class AuthClient {
         this.namespace = `uns-auth:${this.restBase}`;
     }
     static async create() {
-        const cfg = await ConfigFile.loadConfig();
         const restBase = cfg?.uns?.rest;
         if (!restBase)
             throw new Error("config.uns.rest is not set");
@@ -39,6 +39,19 @@ export class AuthClient {
             }
             catch {
                 // ignore, fallback to login
+            }
+        }
+        // First try to get email and password from config
+        const configEmail = cfg?.uns?.email;
+        const configPassword = cfg?.uns?.password;
+        if (typeof configEmail === "string" && typeof configPassword === "string") {
+            try {
+                const loggedIn = await this.login(configEmail, configPassword);
+                await this.persistTokens(loggedIn.accessToken, loggedIn.refreshToken);
+                return loggedIn.accessToken;
+            }
+            catch {
+                // ignore, fallback to interactive login
             }
         }
         // Interactive login

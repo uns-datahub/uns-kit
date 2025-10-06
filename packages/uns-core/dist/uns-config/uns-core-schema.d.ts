@@ -51,8 +51,8 @@ export declare const unsCoreSchema: z.ZodObject<{
         kidWellKnownUrl: z.ZodOptional<z.ZodString>;
         env: z.ZodDefault<z.ZodEnum<["dev", "staging", "test", "prod"]>>;
     }, "strict", z.ZodTypeAny, {
-        handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
+        handover?: boolean;
         processName?: string;
         password?: string | {
             provider?: "env";
@@ -75,8 +75,8 @@ export declare const unsCoreSchema: z.ZodObject<{
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     }, {
-        handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
+        handover?: boolean;
         processName?: string;
         password?: string | {
             provider?: "env";
@@ -567,8 +567,8 @@ export declare const unsCoreSchema: z.ZodObject<{
     }>>;
 }, "strict", z.ZodTypeAny, {
     uns?: {
-        handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
+        handover?: boolean;
         processName?: string;
         password?: string | {
             provider?: "env";
@@ -697,8 +697,8 @@ export declare const unsCoreSchema: z.ZodObject<{
     };
 }, {
     uns?: {
-        handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
+        handover?: boolean;
         processName?: string;
         password?: string | {
             provider?: "env";
