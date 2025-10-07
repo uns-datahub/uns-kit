@@ -7,6 +7,20 @@ import readline from "readline";
 import { ConfigFile, logger } from "@uns-kit/core";
 import UnsMqttProxy from "@uns-kit/core/uns-mqtt/uns-mqtt-proxy.js";
 
+/**
+ * Produces a smooth oscillating value to mimic a real-world sensor signal.
+ * Combines fast and slow sine waves plus tiny ripple so that subsequent values
+ * rise and fall without appearing purely random.
+ */
+function simulateSensorValue(step: number): number {
+  const baseValue = 42; // arbitrary midpoint for the simulated signal
+  const fastCycle = Math.sin(step / 5) * 3;
+  const slowCycle = Math.sin(step / 25) * 6;
+  const ripple = Math.sin(step / 2 + Math.PI / 4) * 0.5;
+  const value = baseValue + fastCycle + slowCycle + ripple;
+
+  return Number(value.toFixed(2));
+}
 
 /**
  * This script initializes an MQTT output proxy for load testing purposes.
@@ -50,7 +64,8 @@ async function main() {
             while (count < maxIntervals) {
               try {
                 const currentDate = new Date();
-                const rawData = `${count},${currentDate.getTime()}`;
+                const sensorValue = simulateSensorValue(count);
+                const rawData = `${count},${currentDate.getTime()},${sensorValue}`;
                 await mqttOutput.publishMessage("raw/data", rawData);
               } catch (error) {
                 const reason = error instanceof Error ? error : new Error(String(error));

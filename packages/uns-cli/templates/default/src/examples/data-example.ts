@@ -2,7 +2,7 @@
  * Change this file according to your specifications and rename it to index.ts
  */
 import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/core";
-import { PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
+import { DataSizeMeasurements, PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTags } from "@uns-kit/core/uns/uns-tags.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
@@ -31,14 +31,34 @@ const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host
 mqttInput.event.on("input", async (event) => {
   try {
     if (event.topic === "raw/data") {
-      const time = UnsPacket.formatToISO8601(new Date());
       const values = event.message.split(",");
-      const numberValue: number = parseFloat(values[0]);
-      const message: IUnsMessage = { data: { dataGroup:"electricity", time, value: numberValue, uom: PhysicalMeasurements.MiliVolt } };
+      const [countRaw, timestampRaw, sensorRaw] = values;
+      const numberValue = Number.parseFloat(countRaw);
+      const eventDate = new Date(Number.parseInt(timestampRaw, 10));
+      const sensorValue = Number.parseFloat(sensorRaw);
+      const time = UnsPacket.formatToISO8601(eventDate);
+
+      const dataGroup = "sensor";
+
+      const message: IUnsMessage = {
+        data: { dataGroup, time, value: numberValue, uom: PhysicalMeasurements.None },
+      };
       const topic: UnsTopics = "example/";
       const tags: UnsTags[] = [];
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
-      mqttOutput.publishMqttMessage({ topic, attribute: "data-number", packet, description: "Number value", tags });
+      mqttOutput.publishMqttMessage({ topic, attribute: "data-count", packet, description: "Counter", tags });
+
+      const sensorMessage: IUnsMessage = {
+        data: { dataGroup, time, value: sensorValue, uom: PhysicalMeasurements.Celsius },
+      };
+      const sensorPacket = await UnsPacket.unsPacketFromUnsMessage(sensorMessage);
+      mqttOutput.publishMqttMessage({
+        topic,
+        attribute: "data-sensor",
+        packet: sensorPacket,
+        description: "Simulated sensor value",
+        tags,
+      });
     }
   } catch (error) {
     const reason = error instanceof Error ? error : new Error(String(error));
