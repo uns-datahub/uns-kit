@@ -255,7 +255,7 @@
       "program": "${workspaceFolder}/sandbox-app/src/examples/data-example.ts",
       "cwd": "${workspaceFolder}/sandbox-app",
       "console": "internalConsole",
-      "internalConsoleOptions": "neverOpen",
+      "internalConsoleOptions": "openOnSessionStart",
       "outputCapture": "std",
       "sourceMaps": true,
       "resolveSourceMapLocations": [

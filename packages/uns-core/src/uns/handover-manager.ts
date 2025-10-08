@@ -35,7 +35,9 @@ export class HandoverManager {
     this.forceStartEnabled = forceStartEnabled;
 
     // Instantiate the topic builder.
-    this.topicBuilder = new MqttTopicBuilder(`uns-infra/${PACKAGE_INFO.name}/${PACKAGE_INFO.version}/${processName}/`);
+    const packageName = PACKAGE_INFO.name;
+    const version = PACKAGE_INFO.version;
+    this.topicBuilder = new MqttTopicBuilder(`uns-infra/${MqttTopicBuilder.sanitizeTopicPart(packageName)}/${MqttTopicBuilder.sanitizeTopicPart(version)}/${MqttTopicBuilder.sanitizeTopicPart(this.processName)}/`);
 
     // Set status as active after a timeout if no other active process are detected.
     this.activeTimeout = setTimeout(() => {
