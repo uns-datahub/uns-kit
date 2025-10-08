@@ -51,7 +51,8 @@ mqttInput.event.on("input", async (event) => {
       // delete(jsonObject.Timestamp);
 
       const time = UnsPacket.formatToISO8601(new Date(timestamp));
-      const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, columnTypes, time}};
+      // const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, columnTypes, time}};
+      const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, time}};
       const topic: UnsTopics = "example/factory-a/line-1/";
       const tags: UnsTags[] = [];
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
