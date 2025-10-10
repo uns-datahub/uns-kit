@@ -5,7 +5,7 @@ set -euo pipefail
 # Navigate to the project root
 cd "$(dirname "$0")/.."
 
-# Detect OS and set python & venv paths
+# Detect OS and set paths
 PLATFORM="$(uname)"
 if [[ "$PLATFORM" == "Linux" || "$PLATFORM" == "Darwin" ]]; then
   PYTHON_EXEC="python3"
@@ -20,16 +20,23 @@ else
   exit 1
 fi
 
-# Check if Python is available
-if ! command -v "$PYTHON_EXEC" &> /dev/null; then
-  echo "[setup] Error: $PYTHON_EXEC not found in PATH."
-  exit 1
+if [[ "$PLATFORM" =~ MINGW.*|MSYS.*|CYGWIN.*|Windows_NT ]]; then
+    UV_CMD="$HOME/.local/bin/uv.exe"
+else
+    UV_CMD="$HOME/.cargo/bin/uv"
 fi
 
-# Create virtual environment if it doesn't exist
+if [ ! -f "$UV_CMD" ]; then
+    echo "[setup] uv not found. Installing it..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+else
+    echo "[setup] uv already installed at $UV_CMD"
+fi
+
+# Create virtual environment using uv
 if [ ! -d "$VENV_DIR" ]; then
-  echo "[setup] Creating virtual environment in $VENV_DIR..."
-  "$PYTHON_EXEC" -m venv "$VENV_DIR"
+  echo "[setup] Creating virtual environment in $VENV_DIR using uv..."
+  "$UV_CMD" venv "$VENV_DIR"
 fi
 
 # Create gen directory if it doesn't exist
@@ -46,19 +53,35 @@ fi
 
 # Activate the virtual environment
 echo "[setup] Activating virtual environment..."
-source "$VENV_ACTIVATE"
+if [[ "$PLATFORM" =~ MINGW.*|MSYS.*|CYGWIN.* ]]; then
+    # Windows Git Bash / MSYS
+    . "$VENV_ACTIVATE"
+else
+    # Linux / macOS
+    source "$VENV_ACTIVATE"
+fi
 
-# Install Python dependencies using pip from venv
-echo "[setup] Installing requirements using pip from venv..."
-"$PYTHON_EXEC" -m pip install --upgrade pip
-"$PYTHON_EXEC" -m pip install -r requirements.txt
+# Install dependencies using uv (much faster than pip)
+echo "[setup] Installing requirements using uv..."
+"$UV_CMD" sync --active
 
-# Generate Python gRPC code from the proto file
+# Generate Python gRPC code from proto
 echo "[setup] Generating gRPC Python code..."
 "$PYTHON_EXEC" -m grpc_tools.protoc \
   -I=proto \
   --python_out=gen \
   --grpc_python_out=gen \
   proto/uns-gateway.proto
+
+  # Patch the generated _pb2_grpc.py to use relative imports
+GRPC_FILE="gen/uns_gateway_pb2_grpc.py"
+if [[ -f "$GRPC_FILE" ]]; then
+    echo "[setup] Patching $GRPC_FILE to use relative imports..."
+    if [[ "$PLATFORM" == "Linux" || "$PLATFORM" == "Darwin" ]]; then
+        sed -i 's/^import \(.*_pb2\) as/from . import \1 as/' "$GRPC_FILE"
+    elif [[ "$PLATFORM" =~ MINGW.*|MSYS.*|CYGWIN.* ]]; then
+        sed -i'' 's/^import \(.*_pb2\) as/from . import \1 as/' "$GRPC_FILE"
+    fi
+fi
 
 echo "[setup] Setup complete!"
