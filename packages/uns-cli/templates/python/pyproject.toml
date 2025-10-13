@@ -1,0 +1,5 @@
+[project]
+name = "uns-example"
+version = "0.1.0"
+description = "A new gRPC project"
+dependencies = ["grpcio", "grpcio-tools", "httpx>=0.27.2"]
