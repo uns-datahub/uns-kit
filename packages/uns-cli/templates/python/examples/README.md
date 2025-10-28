@@ -29,46 +29,96 @@ Readiness: Examples call the gateway’s `Ready()` RPC to wait for the requested
 - `--auto`: Auto-start the gateway if not running
 
 ## Scripts
+### `data_transformer.py`
 
-- `data_transformer.py`
-  - Subscribes to input topics (default `raw/#`) and publishes UNS data packets (`example/` + `data-number`).
-  - Examples:
-    - Unix/macOS: `python python/examples/data_transformer.py --addr unix:/tmp/uns-gateway.sock --auto --in raw/# --out-topic example/ --attribute data-number --uom mV --group electricity`
-    - Windows: `python python/examples/data_transformer.py --addr 127.0.0.1:50051 --auto --in raw/# --out-topic example/ --attribute data-number --uom mV --group electricity`
+Transforms incoming sensor data and republishes it to a target topic.
 
-- `table_transformer.py`
-  - Subscribes to `integration/raw-table` JSON and publishes a UNS table packet (`example/factory-a/line-1/` + `table-sample`).
-  - Examples:
-    - Unix/macOS: `python python/examples/table_transformer.py --addr unix:/tmp/uns-gateway.sock --auto --in-topic integration/raw-table --out-topic example/factory-a/line-1/ --attribute table-sample`
-    - Windows: `python python/examples/table_transformer.py --addr 127.0.0.1:50051 --auto --in-topic integration/raw-table --out-topic example/factory-a/line-1/ --attribute table-sample`
+-   **Description:**  
+    Subscribes to `sensors/temperature`, applies a transformation (e.g., scales the value), and republishes it as processed data.
+    
+-   **Example:**
+    
+    ```bash
+    python python/examples/data_transformer.py
+    ```
+    
+    Transforms data from `sensors/temperature` and republishes to `sensors/temperature/room1` it with a modified value.
+    
 
-- `data_publisher_loop.py`
-  - Cron-like loop that publishes a data value periodically (default 1000 ms).
-  - Examples:
-    - Unix/macOS: `python python/examples/data_publisher_loop.py --addr unix:/tmp/uns-gateway.sock --auto --out-topic example/ --attribute data-number --uom mV --period-ms 1000`
-    - Windows: `python python/examples/data_publisher_loop.py --addr 127.0.0.1:50051 --auto --out-topic example/ --attribute data-number --uom mV --period-ms 1000`
+---
 
-- `data_publish_once.py`
-  - Sends a single UNS data packet.
-  - Examples:
-    - Unix/macOS: `python python/examples/data_publish_once.py --addr unix:/tmp/uns-gateway.sock --auto --out-topic example/ --attribute data-number --value 42 --uom mV --group electricity`
-    - Windows: `python python/examples/data_publish_once.py --addr 127.0.0.1:50051 --auto --out-topic example/ --attribute data-number --value 42 --uom mV --group electricity`
+### `data_subscribe.py`
 
-- `data_subscribe.py`
-  - Subscribes to topics via the gateway and prints messages.
-  - Examples:
-    - Unix/macOS: `python python/examples/data_subscribe.py --addr unix:/tmp/uns-gateway.sock --auto raw/# some/other/topic`
-    - Windows: `python python/examples/data_subscribe.py --addr 127.0.0.1:50051 --auto raw/# some/other/topic`
+Subscribes to topics via the gateway and prints received messages.
 
-- `api_register_and_serve.py`
-  - Registers `/api/example/summary-1` and `/api/example/summary-2` endpoints and serves requests over a bidirectional stream.
-  - Examples:
-    - Unix/macOS: `python python/examples/api_register_and_serve.py --addr unix:/tmp/uns-gateway.sock --auto`
-    - Windows: `python python/examples/api_register_and_serve.py --addr 127.0.0.1:50051 --auto`
-    - Then call: `http://<gateway-host>:<gateway-port>/api/example/summary-1?filter=foo&limit=10`
+-   **Description:**  
+    Useful for monitoring live data updates.
+    
+-   **Example:**
+    
+    ```bash
+    python python/examples/data_subscribe.py
+    ```
+    
+    Prints all messages received from `sensors/temperature`.
+    
 
-- `api_handler.py`
-  - Another API handler demo that returns structured JSON responses. Similar to `api_register_and_serve.py`.
+---
+
+### `data_publish.py`
+
+Publishes a single data point to a UNS topic.
+
+-   **Description:**  
+    Sends a single temperature measurement (e.g., 22.5 °C) to the gateway, waits 10 seconds, then exits.
+    
+-   **Example:**
+    
+    ```bash
+    python python/examples/data_publish.py
+    ```
+    
+    Publishes one temperature value to `sensors/temperature/room1`.
+    
+
+---
+
+### `table_transformer.py`
+
+Publishes a structured table-like JSON object as UNS table data.
+
+-   **Description:**  
+    Sends summarized or grouped sensor data (e.g., temperature, humidity, status) to a topic.
+    
+-   **Example:**
+    
+    ```bash
+    python python/examples/dtable_transformer.py
+    ```
+    
+    Publishes a table with room statistics (temperature, humidity, etc.) to `sensors/summary/room1`.
+    
+
+---
+
+### `api_handler.py`
+
+Registers and handles an example API endpoint for querying data.
+
+-   **Description:**  
+    Demonstrates registering an API endpoint (`example/summary-1`) with query parameters and returning JSON responses.
+    
+-   **Example:**
+    
+    ```bash
+    python python/examples/api_handler.py
+    ```
+    
+    Then test it with:
+    
+    ```bash
+    http://<gateway-host>:<gateway-port>/api/example/summary-1?filter=test&limit=10
+    ```
 
 ## Auth
 
