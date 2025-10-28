@@ -3,6 +3,7 @@
  */
 import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
 import { ITemporalTopic } from "@uns-kit/temporal";
+import "@uns-kit/temporal";
 import { type UnsProxyProcessWithTemporal } from "@uns-kit/temporal";
 import { UnsAttributeType } from "@uns-kit/core/graphql/schema.js";
 

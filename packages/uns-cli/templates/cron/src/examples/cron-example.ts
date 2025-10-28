@@ -3,6 +3,7 @@
  */
 import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
 import type { IUnsMessage, UnsEvents } from "@uns-kit/core";
+import "@uns-kit/cron";
 import { type UnsProxyProcessWithCron } from "@uns-kit/cron";
 import { UnsTags } from "../uns/uns-tags.js";
 import { UnsTopics } from "../uns/uns-topics.js";

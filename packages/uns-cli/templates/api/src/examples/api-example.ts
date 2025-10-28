@@ -4,6 +4,7 @@
 import { UnsProxyProcess, ConfigFile } from "@uns-kit/core";
 import { IApiProxyOptions } from "@uns-kit/core";
 import type { UnsEvents } from "@uns-kit/core";
+import "@uns-kit/api";
 import { type UnsProxyProcessWithApi } from "@uns-kit/api";
 
 /**
