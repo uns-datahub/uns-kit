@@ -28,6 +28,17 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "configure-config") {
+    const targetPath = args[1];
+    try {
+      await configureConfigFiles(targetPath);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   if (command === "configure") {
     const configureArgs = args.slice(1);
     try {
@@ -145,6 +156,7 @@ function printHelp(): void {
     "\nCommands:\n" +
     "  create <name>           Scaffold a new UNS application\n" +
     "  configure [dir] [features...] Configure multiple templates (--all for everything)\n" +
+    "  configure-config [dir]  Copy configuration example files\n" +
     "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n" +
     "  configure-vscode [dir]  Add VS Code workspace configuration files\n" +
     "  configure-codegen [dir] Copy GraphQL codegen template and dependencies\n" +
@@ -436,6 +448,58 @@ async function configureVscode(targetPath?: string): Promise<void> {
   }
 }
 
+async function configureConfigFiles(targetPath?: string): Promise<void> {
+  const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
+  const templateDir = path.resolve(__dirname, "../templates/config-files");
+
+  try {
+    await access(templateDir);
+  } catch (error) {
+    throw new Error("Configuration template directory is missing. Please ensure templates/config-files is available.");
+  }
+
+  const { copied, skipped } = await copyTemplateDirectory(templateDir, targetDir, targetDir);
+
+  const configFilesToAdjust = copied.filter((file) => {
+    const filename = path.basename(file);
+    return filename.toLowerCase().startsWith("config") && filename.toLowerCase().endsWith(".json");
+  });
+  if (configFilesToAdjust.length) {
+    await applyConfigTemplatePlaceholders(targetDir, configFilesToAdjust);
+  }
+
+  console.log("\nConfiguration example files processed.");
+  if (copied.length) {
+    console.log("  Added:");
+    for (const file of copied) {
+      console.log(`    ${file}`);
+    }
+  }
+  if (skipped.length) {
+    console.log("  Skipped (already exists):");
+    for (const file of skipped) {
+      console.log(`    ${file}`);
+    }
+  }
+  if (!copied.length && !skipped.length) {
+    console.log("  No configuration files were found in templates/config-files.");
+  }
+}
+
+async function applyConfigTemplatePlaceholders(targetDir: string, relativePaths: string[]): Promise<void> {
+  const packageName = await resolvePackageNameFromTarget(targetDir);
+  for (const relativePath of relativePaths) {
+    const absolutePath = path.join(targetDir, relativePath);
+    const replacements: Record<string, string> = {
+      __APP_CONFIG__: deriveConfigIdentifier(absolutePath),
+    };
+    if (packageName) {
+      replacements.__APP_NAME__ = packageName;
+    }
+    await replaceConfigTemplatePlaceholders(absolutePath, replacements, packageName);
+  }
+}
+
 async function configureCodegen(targetPath?: string): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
   const templateDir = path.resolve(__dirname, "../templates/codegen");
@@ -560,6 +624,7 @@ async function configurePython(targetPath?: string): Promise<void> {
 const configureFeatureHandlers = {
   devops: configureDevops,
   vscode: configureVscode,
+  config: configureConfigFiles,
   codegen: configureCodegen,
   api: configureApi,
   cron: configureCron,
@@ -574,6 +639,7 @@ const AVAILABLE_CONFIGURE_FEATURES = Object.keys(configureFeatureHandlers) as Co
 const configureFeatureLabels: Record<ConfigureFeatureName, string> = {
   devops: "Azure DevOps tooling",
   vscode: "VS Code workspace",
+  config: "Configuration example files",
   codegen: "GraphQL codegen tooling",
   api: "UNS API resources",
   cron: "UNS cron resources",
@@ -657,6 +723,8 @@ const configureFeatureAliases: Record<string, ConfigureFeatureName> = {
   "configure-devops": "devops",
   vscode: "vscode",
   "configure-vscode": "vscode",
+  config: "config",
+  "configure-config": "config",
   codegen: "codegen",
   "configure-codegen": "codegen",
   api: "api",
@@ -1171,30 +1239,159 @@ async function patchConfigJson(targetDir: string, packageName: string): Promise<
 }
 
 async function replacePlaceholders(targetDir: string, packageName: string): Promise<void> {
+  const configFilePath = path.join(targetDir, "config.json");
   const replacements: Record<string, string> = {
-    __APP_NAME__: packageName
+    __APP_NAME__: packageName,
+    __APP_CONFIG__: deriveConfigIdentifier(configFilePath),
   };
 
   const filesToUpdate = [
     path.join(targetDir, "README.md"),
     path.join(targetDir, "src/index.ts"),
-    path.join(targetDir, "config.json")
+    configFilePath,
   ];
 
   for (const file of filesToUpdate) {
     try {
       await access(file);
-      let content = await readFile(file, "utf8");
-      for (const [placeholder, value] of Object.entries(replacements)) {
-        content = content.replace(new RegExp(placeholder, "g"), value);
+      if (path.resolve(file) === path.resolve(configFilePath)) {
+        await replaceConfigTemplatePlaceholders(file, replacements, packageName);
+        continue;
       }
-      await writeFile(file, content, "utf8");
+
+      const original = await readFile(file, "utf8");
+      const updated = replaceInString(original, replacements);
+      if (updated !== original) {
+        await writeFile(file, updated, "utf8");
+      }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         throw error;
       }
     }
   }
+}
+
+async function resolvePackageNameFromTarget(targetDir: string): Promise<string | undefined> {
+  const packagePath = path.join(targetDir, "package.json");
+  try {
+    const raw = await readFile(packagePath, "utf8");
+    const pkg = JSON.parse(raw) as PackageJson;
+    const name = typeof pkg.name === "string" ? pkg.name.trim() : "";
+    return name || undefined;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
+function deriveConfigIdentifier(filePath: string): string {
+  const baseName = path.basename(filePath, path.extname(filePath));
+  if (baseName.startsWith("config-")) {
+    const suffix = baseName.slice("config-".length);
+    return suffix || "config";
+  }
+  return baseName || "config";
+}
+
+async function replaceConfigTemplatePlaceholders(
+  filePath: string,
+  replacements: Record<string, string>,
+  packageName?: string,
+): Promise<void> {
+  let raw: string;
+  try {
+    raw = await readFile(filePath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as Record<string, unknown>;
+  } catch (error) {
+    const updated = replaceInString(raw, replacements);
+    if (updated !== raw) {
+      await writeFile(filePath, updated, "utf8");
+    }
+    return;
+  }
+
+  let modified = applyJsonTemplateReplacements(parsed, replacements);
+
+  if (packageName && parsed && typeof parsed === "object") {
+    const root = parsed as Record<string, unknown>;
+    const unsSection = root["uns"];
+    if (unsSection && typeof unsSection === "object") {
+      const unsRecord = unsSection as Record<string, unknown>;
+      if (unsRecord["processName"] !== packageName) {
+        unsRecord["processName"] = packageName;
+        modified = true;
+      }
+    }
+  }
+
+  if (!modified) {
+    return;
+  }
+
+  const formatted = JSON.stringify(parsed, null, 2) + "\n";
+  await writeFile(filePath, formatted, "utf8");
+}
+
+function applyJsonTemplateReplacements(target: unknown, replacements: Record<string, string>): boolean {
+  let modified = false;
+
+  const visit = (value: unknown): unknown => {
+    if (typeof value === "string") {
+      const replaced = replaceInString(value, replacements);
+      if (replaced !== value) {
+        modified = true;
+      }
+      return replaced;
+    }
+
+    if (Array.isArray(value)) {
+      for (let index = 0; index < value.length; index += 1) {
+        const next = visit(value[index]);
+        if (next !== value[index]) {
+          value[index] = next;
+        }
+      }
+      return value;
+    }
+
+    if (value && typeof value === "object") {
+      const record = value as Record<string, unknown>;
+      for (const [key, child] of Object.entries(record)) {
+        const next = visit(child);
+        if (next !== child) {
+          record[key] = next;
+        }
+      }
+      return record;
+    }
+
+    return value;
+  };
+
+  visit(target);
+  return modified;
+}
+
+function replaceInString(input: string, replacements: Record<string, string>): string {
+  let result = input;
+  for (const [needle, replacement] of Object.entries(replacements)) {
+    if (needle && result.includes(needle)) {
+      result = result.split(needle).join(replacement);
+    }
+  }
+  return result;
 }
 
 function normalizePackageName(input: string): string {

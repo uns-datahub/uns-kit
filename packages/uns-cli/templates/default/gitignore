@@ -37,6 +37,9 @@ tmp-rtt
 !.env.example
 !.env.sample
 
+# UNS configuration overrides
+config*.json
+
 # Editor files & OS cruft
 .idea/
 .DS_Store

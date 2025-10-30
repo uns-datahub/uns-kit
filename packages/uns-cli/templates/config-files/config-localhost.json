@@ -1,0 +1,27 @@
+{
+  "uns": {
+    "graphql": "http://localhost:3200/graphql",
+    "rest": "http://localhost:3200/api",
+    "processName": "__APP_NAME__",
+    "instanceMode": "wait",
+    "handover": true,
+    "jwksWellKnownUrl": "http://localhost:3200/api/.well-known/jwks.json",
+    "kidWellKnownUrl": "http://localhost:3200/api/.well-known/kid",
+    "email": "user@example-org.com",
+    "password": "secret"
+  },
+  "infra": {
+    "host": "localhost:1883"
+  },
+  "output": {
+    "host": "localhost:1883"
+  },
+  "input": {
+    "host": "localhost:1883"
+  },
+  "devops": {
+    "provider": "azure-devops",
+    "organization": "example-org",
+    "project": "example-project"
+  }
+}
