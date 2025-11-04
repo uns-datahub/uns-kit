@@ -40,12 +40,8 @@ export class ConfigFile {
   ): Promise<ResolvedAppConfig> {
     const raw = this.loadRawConfig(configPath);
 
-    if (hasOptions(options)) {
-      return resolveConfigSecrets(raw, options);
-    }
-
     if (!this.resolvedCache) {
-      this.resolvedCache = await resolveConfigSecrets(raw);
+      this.resolvedCache = await resolveConfigSecrets(raw, options);
     }
 
     return this.resolvedCache;
