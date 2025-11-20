@@ -1,5 +1,5 @@
 import type { TaskOptions } from "node-cron";
-import UnsProxyProcess, { type UnsProxyProcessPlugin } from "@uns-kit/core/uns/uns-proxy-process";
+import UnsProxyProcess, { type UnsProxyProcessPlugin } from "@uns-kit/core/uns/uns-proxy-process.js";
 import UnsCronProxy from "./uns-cron-proxy.js";
 
 const cronProxyRegistry = new WeakMap<UnsProxyProcess, UnsCronProxy[]>();

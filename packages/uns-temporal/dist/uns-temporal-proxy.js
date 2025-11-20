@@ -1,11 +1,11 @@
-import UnsProxy from "@uns-kit/core/uns/uns-proxy";
-import logger from "@uns-kit/core/logger";
-import { MqttTopicBuilder } from "@uns-kit/core/uns-mqtt/mqtt-topic-builder";
+import UnsProxy from "@uns-kit/core/uns/uns-proxy.js";
+import logger from "@uns-kit/core/logger.js";
+import { MqttTopicBuilder } from "@uns-kit/core/uns-mqtt/mqtt-topic-builder.js";
 import * as path from "path";
-import { basePath } from "@uns-kit/core/base-path";
+import { basePath } from "@uns-kit/core/base-path.js";
 import { readFileSync } from "fs";
 import { Connection, Client } from '@temporalio/client';
-import { UnsPacket } from "@uns-kit/core/uns/uns-packet";
+import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 export default class UnsTemporalProxy extends UnsProxy {
@@ -86,7 +86,7 @@ export default class UnsTemporalProxy extends UnsProxy {
                 }
             };
             const workflowOptions = {
-                args: [workflowInput], // single JSON object
+                args: [workflowInput],
                 taskQueue,
                 workflowId: workflowId ?? `${this.instanceNameWithSuffix}-${Math.floor(Date.now() / 1000)}`
             };

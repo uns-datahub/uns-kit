@@ -4,17 +4,17 @@ import jwt from "jsonwebtoken";
 import * as path from "path";
 import { createPublicKey } from "crypto";
 
-import { basePath } from "@uns-kit/core/base-path";
-import { UnsAttributeType } from "@uns-kit/core/graphql/schema";
-import logger from "@uns-kit/core/logger";
-import { MqttTopicBuilder } from "@uns-kit/core/uns-mqtt/mqtt-topic-builder";
-import { UnsAttribute } from "@uns-kit/core/uns/uns-interfaces";
-import { UnsPacket } from "@uns-kit/core/uns/uns-packet";
-import UnsProxy from "@uns-kit/core/uns/uns-proxy";
-import { UnsTags } from "@uns-kit/core/uns/uns-tags";
-import { UnsTopicMatcher } from "@uns-kit/core/uns/uns-topic-matcher";
-import { UnsTopics } from "@uns-kit/core/uns/uns-topics";
-import { IApiProxyOptions, IGetEndpointOptions } from "@uns-kit/core/uns/uns-interfaces";
+import { basePath } from "@uns-kit/core/base-path.js";
+import { UnsAttributeType } from "@uns-kit/core/graphql/schema.js";
+import logger from "@uns-kit/core/logger.js";
+import { MqttTopicBuilder } from "@uns-kit/core/uns-mqtt/mqtt-topic-builder.js";
+import { UnsAttribute } from "@uns-kit/core/uns/uns-interfaces.js";
+import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
+import UnsProxy from "@uns-kit/core/uns/uns-proxy.js";
+import { UnsTags } from "@uns-kit/core/uns/uns-tags.js";
+import { UnsTopicMatcher } from "@uns-kit/core/uns/uns-topic-matcher.js";
+import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
+import { IApiProxyOptions, IGetEndpointOptions } from "@uns-kit/core/uns/uns-interfaces.js";
 import App from "./app.js";
 
 const packageJsonPath = path.join(basePath, "package.json");

@@ -1,12 +1,12 @@
 // tests/integration.test.ts
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawnSync, SpawnSyncReturns } from 'child_process';
-import UnsProxyProcess from '../src/uns/uns-proxy-process';
-import { UnsPacket } from '../src/uns/uns-packet';
-import { IUnsMessage, UnsEvents } from "../src/uns/uns-interfaces";
-import { UnsTags } from "../src/uns/uns-tags";
-import { UnsTopics } from "../src/uns/uns-topics";
-import UnsMqttProxy from "../src/uns-mqtt/uns-mqtt-proxy";
+import UnsProxyProcess from '../src/uns/uns-proxy-process.js';
+import { UnsPacket } from '../src/uns/uns-packet.js';
+import { IUnsMessage, UnsEvents } from "../src/uns/uns-interfaces.js";
+import { UnsTags } from "../src/uns/uns-tags.js";
+import { UnsTopics } from "../src/uns/uns-topics.js";
+import UnsMqttProxy from "../src/uns-mqtt/uns-mqtt-proxy.js";
 
 describe('Integration Tests for Message Transformation', () => {
   const mqttPort = 1883;

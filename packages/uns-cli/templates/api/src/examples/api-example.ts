@@ -1,11 +1,11 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import { UnsProxyProcess, ConfigFile } from "@uns-kit/core";
-import { IApiProxyOptions } from "@uns-kit/core";
-import type { UnsEvents } from "@uns-kit/core";
+import { UnsProxyProcess, ConfigFile } from "@uns-kit/core.js";
+import { IApiProxyOptions } from "@uns-kit/core.js";
+import type { UnsEvents } from "@uns-kit/core.js";
 import "@uns-kit/api";
-import { type UnsProxyProcessWithApi } from "@uns-kit/api";
+import { type UnsProxyProcessWithApi } from "@uns-kit/api.js";
 
 /**
  * Load the configuration from a file.

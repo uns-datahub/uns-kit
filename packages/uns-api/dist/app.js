@@ -5,8 +5,8 @@ import express from "express";
 import * as http from "http";
 import * as path from "path";
 import cookieParser from "cookie-parser";
-import { basePath } from "@uns-kit/core/base-path";
-import logger from "@uns-kit/core/logger";
+import { basePath } from "@uns-kit/core/base-path.js";
+import logger from "@uns-kit/core/logger.js";
 import os from 'os';
 export default class App {
     expressApplication;

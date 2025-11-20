@@ -1,4 +1,4 @@
-import { UnsAttributeType } from "@uns-kit/core/graphql/schema";
+import { UnsAttributeType } from "@uns-kit/core/graphql/schema.js";
 export interface ITemporalTopic {
     attribute: string;
     topic: string;
