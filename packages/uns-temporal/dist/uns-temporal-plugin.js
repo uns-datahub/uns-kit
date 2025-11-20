@@ -1,4 +1,4 @@
-import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process";
+import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process.js";
 import UnsTemporalProxy from "./uns-temporal-proxy.js";
 const temporalProxyRegistry = new WeakMap();
 const getTemporalProxies = (instance) => {

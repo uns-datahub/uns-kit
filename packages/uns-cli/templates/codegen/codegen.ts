@@ -1,5 +1,5 @@
 import type { CodegenConfig } from '@graphql-codegen/cli';
-import { ConfigFile } from '@uns-kit/core';
+import { ConfigFile } from '@uns-kit/core.js';
 
 const appConfig = await ConfigFile.loadConfig();
 

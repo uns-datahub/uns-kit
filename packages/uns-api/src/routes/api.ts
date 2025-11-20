@@ -1,6 +1,6 @@
 import express, { type NextFunction, type Request, type Response, type Router } from "express";
 import multer from "multer";
-import logger from "@uns-kit/core/logger";
+import logger from "@uns-kit/core/logger.js";
 
 
 export default class Api {

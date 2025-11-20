@@ -1,5 +1,5 @@
 import { TaskOptions } from "node-cron";
-import UnsProxy from "@uns-kit/core/uns/uns-proxy";
+import UnsProxy from "@uns-kit/core/uns/uns-proxy.js";
 export default class UnsCronProxy extends UnsProxy {
     private readonly cronExpression;
     private readonly task;

@@ -1,7 +1,7 @@
-import { UnsAttribute } from "@uns-kit/core/uns/uns-interfaces";
-import UnsProxy from "@uns-kit/core/uns/uns-proxy";
-import { UnsTopics } from "@uns-kit/core/uns/uns-topics";
-import { IApiProxyOptions, IGetEndpointOptions } from "@uns-kit/core/uns/uns-interfaces";
+import { UnsAttribute } from "@uns-kit/core/uns/uns-interfaces.js";
+import UnsProxy from "@uns-kit/core/uns/uns-proxy.js";
+import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
+import { IApiProxyOptions, IGetEndpointOptions } from "@uns-kit/core/uns/uns-interfaces.js";
 export default class UnsApiProxy extends UnsProxy {
     instanceName: string;
     private topicBuilder;

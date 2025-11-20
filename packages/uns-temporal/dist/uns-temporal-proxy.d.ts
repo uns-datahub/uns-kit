@@ -1,4 +1,4 @@
-import UnsProxy from "@uns-kit/core/uns/uns-proxy";
+import UnsProxy from "@uns-kit/core/uns/uns-proxy.js";
 import { ConnectionOptions, ClientOptions, Workflow } from '@temporalio/client';
 import { ITemporalTopic } from "./temporal-interfaces.js";
 export default class UnsTemporalProxy extends UnsProxy {

@@ -1,14 +1,14 @@
-import UnsProxy from "@uns-kit/core/uns/uns-proxy";
-import logger from "@uns-kit/core/logger";
-import { ITopicObject } from "@uns-kit/core/uns/uns-interfaces";
-import { MqttTopicBuilder } from "@uns-kit/core/uns-mqtt/mqtt-topic-builder";
+import UnsProxy from "@uns-kit/core/uns/uns-proxy.js";
+import logger from "@uns-kit/core/logger.js";
+import { ITopicObject } from "@uns-kit/core/uns/uns-interfaces.js";
+import { MqttTopicBuilder } from "@uns-kit/core/uns-mqtt/mqtt-topic-builder.js";
 import * as path from "path";
-import { basePath } from "@uns-kit/core/base-path";
+import { basePath } from "@uns-kit/core/base-path.js";
 import { readFileSync } from "fs";
 import { Connection, Client, ConnectionOptions, ClientOptions, Workflow, WorkflowStartOptions } from '@temporalio/client';
 import { ITemporalTopic } from "./temporal-interfaces.js";
-import { UnsPacket } from "@uns-kit/core/uns/uns-packet";
-import { UnsAttributeType } from "@uns-kit/core/graphql/schema";
+import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
+import { UnsAttributeType } from "@uns-kit/core/graphql/schema.js";
 
 
 const packageJsonPath = path.join(basePath, "package.json");

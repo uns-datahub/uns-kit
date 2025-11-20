@@ -1,4 +1,4 @@
-import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process";
+import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process.js";
 import UnsCronProxy from "./uns-cron-proxy.js";
 const cronProxyRegistry = new WeakMap();
 const getCronProxies = (instance) => {

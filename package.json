@@ -4,7 +4,7 @@
   "private": true,
   "description": "Monorepo for the UNS toolkit (core runtime and plugin packages)",
   "packageManager": "pnpm@9.12.1",
-  "scripts": {    
+  "scripts": {
     "core:version:patch": "cd packages/uns-core; pnpm version patch",
     "core:build": "pnpm --filter @uns-kit/core build",
     "core:publish": "pnpm publish --filter @uns-kit/core --access public",
@@ -60,5 +60,8 @@
       "sandbox-app>@uns-kit/cron": "workspace:^",
       "sandbox-app>@uns-kit/temporal": "workspace:^"
     }
+  },
+  "dependencies": {
+    "@uns-kit/api": "^0.0.1"
   }
 }

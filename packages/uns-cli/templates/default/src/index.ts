@@ -1,4 +1,4 @@
-import { UnsProxyProcess } from "@uns-kit/core";
+import { UnsProxyProcess } from "@uns-kit/core.js";
 
 async function main(): Promise<void> {
   const name = "__APP_NAME__";

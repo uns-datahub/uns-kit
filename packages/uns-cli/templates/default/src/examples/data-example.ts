@@ -1,7 +1,7 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/core";
+import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/core.js";
 import { DataSizeMeasurements, PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTags } from "@uns-kit/core/uns/uns-tags.js";
