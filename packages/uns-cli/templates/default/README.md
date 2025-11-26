@@ -2,6 +2,8 @@
 
 Generated with `@uns-kit/cli`.
 
+Requires Node.js 22+ and pnpm (see `packageManager` in package.json).
+
 ## Scripts
 
 ```bash

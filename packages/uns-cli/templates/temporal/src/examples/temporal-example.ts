@@ -1,7 +1,7 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core.js";
+import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
 import { ITemporalTopic } from "@uns-kit/temporal.js";
 import "@uns-kit/temporal";
 import { type UnsProxyProcessWithTemporal } from "@uns-kit/temporal.js";

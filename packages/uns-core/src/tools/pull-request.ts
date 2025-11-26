@@ -1,7 +1,7 @@
 import * as azdev from "azure-devops-node-api";
-import * as ga from "azure-devops-node-api/GitApi";
+import * as ga from "azure-devops-node-api/GitApi.js";
 import { GitPullRequest } from "azure-devops-node-api/interfaces/GitInterfaces.js";
-import { GitRepository } from "azure-devops-node-api/interfaces/TfvcInterfaces";
+import { GitRepository } from "azure-devops-node-api/interfaces/TfvcInterfaces.js";
 import chalk from "chalk";
 import { execSync } from "child_process";
 import fs from "fs";
