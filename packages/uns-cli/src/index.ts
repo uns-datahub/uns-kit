@@ -1416,7 +1416,7 @@ function resolveUnsPackageSpecifier(packageName: string, relativeLocalPath: stri
   }
 
   const version = resolveUnsPackageVersion(packageName, relativeLocalPath);
-  return `^${version}`;
+  return version === "latest" ? "latest" : `^${version}`;
 }
 
 function resolveUnsPackageVersion(packageName: string, relativeLocalPath: string): string {
@@ -1448,11 +1448,23 @@ function resolveUnsPackageVersion(packageName: string, relativeLocalPath: string
   const cliDependencyVersion = attempt(() => {
     const cliPkg = require("../package.json") as {
       dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      unsKitPackages?: Record<string, string>;
     };
-    const range = cliPkg.dependencies?.[packageName];
-    if (typeof range === "string") {
+    const pinned = cliPkg.unsKitPackages?.[packageName];
+    if (typeof pinned === "string" && pinned.trim()) {
+      return pinned.trim();
+    }
+
+    const ranges = [cliPkg.dependencies?.[packageName], cliPkg.devDependencies?.[packageName]].filter(
+      (range): range is string => typeof range === "string",
+    );
+
+    for (const range of ranges) {
       const match = range.match(/\d+\.\d+\.\d+/);
-      return match?.[0];
+      if (match?.[0]) {
+        return match[0];
+      }
     }
     return undefined;
   });
@@ -1460,7 +1472,7 @@ function resolveUnsPackageVersion(packageName: string, relativeLocalPath: string
     return cliDependencyVersion;
   }
 
-  return "0.0.1";
+  return "latest";
 }
 
 function resolveCliVersion(): string {
