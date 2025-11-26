@@ -86,7 +86,7 @@ export default class UnsTemporalProxy extends UnsProxy {
                 }
             };
             const workflowOptions = {
-                args: [workflowInput],
+                args: [workflowInput], // single JSON object
                 taskQueue,
                 workflowId: workflowId ?? `${this.instanceNameWithSuffix}-${Math.floor(Date.now() / 1000)}`
             };
