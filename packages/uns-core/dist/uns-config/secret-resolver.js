@@ -1,8 +1,50 @@
+import fs from "node:fs/promises";
 import os from "node:os";
 import { isSecretPlaceholder, } from "./secret-placeholders.js";
 import { isHostPlaceholder, } from "./host-placeholders.js";
+const INFISICAL_TOKEN_FILE = "/run/secrets/infisical_token";
+const INFISICAL_PROJECT_ID_FILE = "/run/secrets/infisical_project_id";
+const INFISICAL_SITE_URL_FILE = "/run/secrets/infisical_site_url";
+const INFISICAL_TOKEN_FILE_ALT = "/var/lib/uns/secrets/infisical_token";
+const INFISICAL_PROJECT_ID_FILE_ALT = "/var/lib/uns/secrets/infisical_project_id";
+const INFISICAL_SITE_URL_FILE_ALT = "/var/lib/uns/secrets/infisical_site_url";
 const envCache = new Map();
 const infisicalCache = new Map();
+async function readSecretFile(filePath) {
+    try {
+        const content = await fs.readFile(filePath, "utf8");
+        const trimmed = content.trim();
+        return trimmed.length > 0 ? trimmed : undefined;
+    }
+    catch (error) {
+        if (error.code === "ENOENT") {
+            return undefined;
+        }
+        throw new Error(`Failed to read Infisical secret file '${filePath}': ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+    }
+}
+async function resolveInfisicalToken(options) {
+    const candidate = options?.token ??
+        process.env["INFISICAL_TOKEN"] ??
+        process.env["INFISICAL_PERSONAL_TOKEN"] ??
+        (await readSecretFile(INFISICAL_TOKEN_FILE)) ??
+        (await readSecretFile(INFISICAL_TOKEN_FILE_ALT));
+    return candidate?.trim() || undefined;
+}
+async function resolveInfisicalSiteUrl(options) {
+    const candidate = options?.siteUrl ??
+        process.env["INFISICAL_SITE_URL"] ??
+        (await readSecretFile(INFISICAL_SITE_URL_FILE)) ??
+        (await readSecretFile(INFISICAL_SITE_URL_FILE_ALT));
+    return candidate?.trim() || undefined;
+}
+async function resolveInfisicalProjectId(options) {
+    const candidate = options?.projectId ??
+        process.env["INFISICAL_PROJECT_ID"] ??
+        (await readSecretFile(INFISICAL_PROJECT_ID_FILE)) ??
+        (await readSecretFile(INFISICAL_PROJECT_ID_FILE_ALT));
+    return candidate?.trim() || undefined;
+}
 const structuredCloneFallback = (value) => typeof structuredClone === "function"
     ? structuredClone(value)
     : JSON.parse(JSON.stringify(value));
@@ -126,7 +168,7 @@ function resolveSystemHost(placeholder, options) {
     const interfaceEntries = targetName
         ? [[targetName, interfaces[targetName]]]
         : Object.entries(interfaces);
-    for (const [name, ifaceList] of interfaceEntries) {
+    for (const [, ifaceList] of interfaceEntries) {
         if (!ifaceList) {
             continue;
         }
@@ -153,7 +195,7 @@ function resolveSystemHost(placeholder, options) {
     const targetDescription = targetName ? `interface '${targetName}'` : "available interfaces";
     throw new Error(`System host lookup failed for ${targetDescription} (family ${family}).`);
 }
-async function resolveEnvSecret(placeholder, options) {
+function resolveEnvSecret(placeholder, options) {
     const envMap = options.env ?? process.env;
     const cacheKey = placeholder.key;
     if (envCache.has(cacheKey)) {
@@ -180,10 +222,11 @@ async function resolveInfisicalSecret(placeholder, options) {
     const fetcher = await getInfisicalFetcher(infisicalOptions);
     if (!fetcher) {
         options.onMissingSecret?.(placeholder, "infisical");
-        throw new Error("Infisical secret requested but no resolver is configured. Provide SecretResolverOptions.infisical.");
+        throw new Error("Infisical secret requested but no resolver is configured. Provide SecretResolverOptions.infisical, " +
+            "set INFISICAL_TOKEN/INFISICAL_PERSONAL_TOKEN, or supply /run/secrets/infisical_token (/var/lib/uns/secrets/infisical_token also supported).");
     }
-    const environment = placeholder.environment ?? infisicalOptions?.environment ?? process.env.INFISICAL_ENVIRONMENT;
-    const projectId = placeholder.projectId ?? infisicalOptions?.projectId ?? process.env.INFISICAL_PROJECT_ID;
+    const environment = placeholder.environment ?? infisicalOptions?.environment ?? process.env["INFISICAL_ENVIRONMENT"];
+    const projectId = placeholder.projectId ?? (await resolveInfisicalProjectId(infisicalOptions));
     const type = infisicalOptions?.type ?? "shared";
     if (!environment) {
         throw new Error(`Infisical secret '${placeholder.path}:${placeholder.key}' is missing an environment. ` +
@@ -191,7 +234,8 @@ async function resolveInfisicalSecret(placeholder, options) {
     }
     if (!projectId) {
         throw new Error(`Infisical secret '${placeholder.path}:${placeholder.key}' is missing a project id. ` +
-            "Set it on the placeholder, pass SecretResolverOptions.infisical.projectId, or define INFISICAL_PROJECT_ID.");
+            "Set it on the placeholder, pass SecretResolverOptions.infisical.projectId, define INFISICAL_PROJECT_ID, " +
+            "or provide /run/secrets/infisical_project_id (also /var/lib/uns/secrets/infisical_project_id).");
     }
     const cacheKey = JSON.stringify({
         path: placeholder.path,
@@ -228,23 +272,18 @@ async function resolveInfisicalSecret(placeholder, options) {
     return fetchPromise;
 }
 async function getInfisicalFetcher(options) {
-    if (!options) {
-        return undefined;
+    const effectiveOptions = options ?? {};
+    if (effectiveOptions.fetchSecret) {
+        return effectiveOptions.fetchSecret;
     }
-    if (options.fetchSecret) {
-        return options.fetchSecret;
-    }
-    const token = options.token ??
-        process.env.INFISICAL_TOKEN ??
-        process.env.INFISICAL_PERSONAL_TOKEN ??
-        "";
+    const token = await resolveInfisicalToken(effectiveOptions);
     if (!token) {
         return undefined;
     }
-    const siteUrlKey = options.siteUrl ?? process.env.INFISICAL_SITE_URL ?? "";
-    const cacheKey = `${token}::${siteUrlKey}`;
+    const siteUrl = await resolveInfisicalSiteUrl(effectiveOptions);
+    const cacheKey = `${token}::${siteUrl ?? ""}`;
     if (!defaultInfisicalFetcherCache.has(cacheKey)) {
-        defaultInfisicalFetcherCache.set(cacheKey, createDefaultInfisicalFetcher(token, options.siteUrl));
+        defaultInfisicalFetcherCache.set(cacheKey, createDefaultInfisicalFetcher(token, siteUrl));
     }
     const baseFetcher = await defaultInfisicalFetcherCache.get(cacheKey);
     return baseFetcher;
@@ -257,7 +296,7 @@ async function createDefaultInfisicalFetcher(token, siteUrl) {
         if (!InfisicalSDK) {
             throw new Error("@infisical/sdk does not export InfisicalSDK");
         }
-        const sdkInstance = new InfisicalSDK({ siteUrl });
+        const sdkInstance = new InfisicalSDK({ siteUrl: siteUrl ?? "" });
         const authenticatedSdk = sdkInstance.auth().accessToken(token);
         return async ({ path, key, environment, projectId, type = "shared" }) => {
             if (!environment) {
