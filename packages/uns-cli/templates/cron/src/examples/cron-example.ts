@@ -1,8 +1,8 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core.js";
-import type { IUnsMessage, UnsEvents } from "@uns-kit/core.js";
+import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
+import type { IUnsMessage, UnsEvents } from "@uns-kit/core";
 import "@uns-kit/cron";
 import { type UnsProxyProcessWithCron } from "@uns-kit/cron.js";
 import { UnsTags } from "../uns/uns-tags.js";

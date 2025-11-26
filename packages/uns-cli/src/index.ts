@@ -9,7 +9,8 @@ import process from "node:process";
 import readline from "node:readline/promises";
 import { promisify } from "node:util";
 import * as azdev from "azure-devops-node-api";
-import type { IGitApi } from "azure-devops-node-api/GitApi";
+import type { IGitApi } from "azure-devops-node-api/GitApi.js";
+import type { GitRepository } from "azure-devops-node-api/interfaces/GitInterfaces.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -990,7 +991,7 @@ async function ensureAzureRepositoryExists(
   try {
     const repositories = await gitApi.getRepositories(params.project);
     const existing = repositories?.find(
-      (repo) => repo.name?.toLowerCase() === repositoryName.toLowerCase(),
+      (repo: GitRepository) => repo.name?.toLowerCase() === repositoryName.toLowerCase(),
     );
     if (existing) {
       existingRemoteUrl = existing.remoteUrl ?? undefined;
