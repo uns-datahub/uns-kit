@@ -5,11 +5,9 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { zodToTs, printNode, withGetType } from "zod-to-ts";
 import { z } from "zod";
 
-import { composeConfigSchema } from "../uns-config/schema-tools.js";
-import { unsCoreSchema } from "../uns-config/uns-core-schema.js";
-import { projectExtrasSchema as coreProjectExtrasSchema } from "../config/project.config.extension.js";
 import { hostValueSchema } from "../uns-config/host-placeholders.js";
 import { secretValueSchema } from "../uns-config/secret-placeholders.js";
+import { composeConfigSchema } from "../uns-config/schema-tools.js";
 
 function write(filePath: string, data: string) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -60,17 +58,10 @@ async function loadProjectExtrasSchema(): Promise<z.AnyZodObject> {
     }
   }
 
-  return coreProjectExtrasSchema as z.AnyZodObject;
+  const coreModule = await import("../config/project.config.extension.js");
+  return coreModule.projectExtrasSchema as z.AnyZodObject;
 }
 
-const projectExtrasSchema = await loadProjectExtrasSchema();
-const baseSchema = composeConfigSchema(unsCoreSchema, projectExtrasSchema).strict();
-
-// 1) JSON Schema for VS Code $schema
-const jsonSchema = zodToJsonSchema(baseSchema, "AppConfig");
-write(path.resolve("config.schema.json"), JSON.stringify(jsonSchema, null, 2));
-
-// 2) TypeScript `export type AppConfig = {...}`
 // Keep placeholder-backed values as plain strings in the generated TypeScript typings so
 // consuming code reflects the resolved shapes while the JSON schema still exposes full unions.
 const renderAsString = (typescript: any) =>
@@ -79,6 +70,16 @@ const renderAsString = (typescript: any) =>
 for (const schema of [hostValueSchema, secretValueSchema]) {
   withGetType(schema, renderAsString);
 }
+
+const { unsCoreSchema } = await import("../uns-config/uns-core-schema.js");
+const projectExtrasSchema = await loadProjectExtrasSchema();
+const baseSchema = composeConfigSchema(unsCoreSchema, projectExtrasSchema).strict();
+
+// 1) JSON Schema for VS Code $schema
+const jsonSchema = zodToJsonSchema(baseSchema, "AppConfig");
+write(path.resolve("config.schema.json"), JSON.stringify(jsonSchema, null, 2));
+
+// 2) TypeScript `export type AppConfig = {...}`
 const { node } = zodToTs(baseSchema, "AppConfig");
 const interfaceBody = printNode(node);
 
