@@ -182,6 +182,22 @@ export function clearSecretResolverCaches(): void {
   defaultInfisicalFetcherCache.clear();
 }
 
+export async function resolveInfisicalConfig(
+  options?: InfisicalResolverOptions
+): Promise<{
+  token: string | undefined;
+  projectId: string | undefined;
+  siteUrl: string | undefined;
+}> {
+  const [token, projectId, siteUrl] = await Promise.all([
+    resolveInfisicalToken(options),
+    resolveInfisicalProjectId(options),
+    resolveInfisicalSiteUrl(options),
+  ]);
+
+  return { token, projectId, siteUrl };
+}
+
 async function resolveNode(node: unknown, options: SecretResolverOptions): Promise<unknown> {
   if (isSecretPlaceholder(node)) {
     return resolveSecretValue(node, options);
