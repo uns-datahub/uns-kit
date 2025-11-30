@@ -58,6 +58,14 @@ export function clearSecretResolverCaches() {
     infisicalCache.clear();
     defaultInfisicalFetcherCache.clear();
 }
+export async function resolveInfisicalConfig(options) {
+    const [token, projectId, siteUrl] = await Promise.all([
+        resolveInfisicalToken(options),
+        resolveInfisicalProjectId(options),
+        resolveInfisicalSiteUrl(options),
+    ]);
+    return { token, projectId, siteUrl };
+}
 async function resolveNode(node, options) {
     if (isSecretPlaceholder(node)) {
         return resolveSecretValue(node, options);

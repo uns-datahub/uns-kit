@@ -3,4 +3,5 @@ export type { UnsProxyProcessPlugin, UnsProxyProcessPluginApi, UnsProxyProcessPl
 export * from "./uns/uns-interfaces.js";
 export { ConfigFile } from "./config-file.js";
 export { default as logger } from "./logger.js";
+export { resolveInfisicalConfig } from "./uns-config/secret-resolver.js";
 //# sourceMappingURL=index.d.ts.map
