@@ -220,14 +220,34 @@ function resolveEnvSecret(placeholder, options) {
 async function resolveInfisicalSecret(placeholder, options) {
     const infisicalOptions = options.infisical;
     const fetcher = await getInfisicalFetcher(infisicalOptions);
-    if (!fetcher) {
-        options.onMissingSecret?.(placeholder, "infisical");
-        throw new Error("Infisical secret requested but no resolver is configured. Provide SecretResolverOptions.infisical, " +
-            "set INFISICAL_TOKEN/INFISICAL_PERSONAL_TOKEN, or supply /run/secrets/infisical_token (/var/lib/uns/secrets/infisical_token also supported).");
-    }
     const environment = placeholder.environment ?? infisicalOptions?.environment ?? process.env["INFISICAL_ENVIRONMENT"];
     const projectId = placeholder.projectId ?? (await resolveInfisicalProjectId(infisicalOptions));
     const type = infisicalOptions?.type ?? "shared";
+    const cacheKey = JSON.stringify({
+        path: placeholder.path,
+        key: placeholder.key,
+        environment,
+        projectId,
+        type,
+    });
+    const useCache = infisicalOptions?.cache !== false;
+    const cached = useCache ? infisicalCache.get(cacheKey) : undefined;
+    if (!fetcher) {
+        if (cached) {
+            console.warn(`Infisical fetcher unavailable; using cached secret for ${placeholder.path}:${placeholder.key}.`);
+            return cached;
+        }
+        const fallback = placeholder.default !== undefined
+            ? placeholder.default
+            : placeholder.optional
+                ? undefined
+                : undefined;
+        console.warn(`Infisical fetcher unavailable; returning ${fallback === undefined ? "undefined" : "default"} for ${placeholder.path}:${placeholder.key}.`);
+        if (fallback === undefined && !placeholder.optional) {
+            options.onMissingSecret?.(placeholder, "infisical");
+        }
+        return fallback;
+    }
     if (!environment) {
         throw new Error(`Infisical secret '${placeholder.path}:${placeholder.key}' is missing an environment. ` +
             "Set it on the placeholder, pass SecretResolverOptions.infisical.environment, or define INFISICAL_ENVIRONMENT.");
@@ -237,15 +257,8 @@ async function resolveInfisicalSecret(placeholder, options) {
             "Set it on the placeholder, pass SecretResolverOptions.infisical.projectId, define INFISICAL_PROJECT_ID, " +
             "or provide /run/secrets/infisical_project_id (also /var/lib/uns/secrets/infisical_project_id).");
     }
-    const cacheKey = JSON.stringify({
-        path: placeholder.path,
-        key: placeholder.key,
-        environment,
-        projectId,
-        type,
-    });
-    if (infisicalOptions?.cache !== false && infisicalCache.has(cacheKey)) {
-        return infisicalCache.get(cacheKey) ?? undefined;
+    if (cached) {
+        return cached ?? undefined;
     }
     const fetchPromise = fetcher({
         path: placeholder.path,
