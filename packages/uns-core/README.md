@@ -40,6 +40,13 @@ pnpm run refresh-uns
 
 When configured via `uns-kit configure-codegen`, this script lives in your project `package.json` and writes into `src/uns/`.
 
+### Infisical secret resolution in development
+
+- The resolver looks for `SecretResolverOptions.infisical.fetchSecret`, then `INFISICAL_TOKEN`/`INFISICAL_PERSONAL_TOKEN`, then `/run/secrets/infisical_token` (or `/var/lib/uns/secrets/infisical_token`).
+- If no fetcher/token is available, the resolver now logs a warning and returns the placeholder `default`, or `undefined` when `optional: true`; required secrets still trigger `onMissingSecret` before throwing.
+- If Infisical is configured but the host is unreachable (e.g., DNS/network failure), the resolver warns and falls back to the same `default`/`optional` handling, reusing a cached value when present; required secrets throw with the original error message.
+- Use this to run locally without Infisical: mark dev-only secrets as `optional` or give `default` values, and provide real tokens only in production.
+
 ## Development
 
 ```bash

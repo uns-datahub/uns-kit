@@ -278,11 +278,33 @@ async function resolveInfisicalSecret(placeholder, options) {
             throw new Error(`Secret '${placeholder.path}:${placeholder.key}' not found in Infisical.`);
         }
         return secret;
+    }).catch(error => {
+        if (cached) {
+            console.warn(`Infisical fetch failed (${error instanceof Error ? error.message : String(error)}); using cached secret for ${placeholder.path}:${placeholder.key}.`);
+            return cached;
+        }
+        const fallback = placeholder.default !== undefined
+            ? placeholder.default
+            : placeholder.optional
+                ? undefined
+                : undefined;
+        console.warn(`Infisical fetch failed (${error instanceof Error ? error.message : String(error)}); returning ${fallback === undefined ? "undefined" : "default"} for ${placeholder.path}:${placeholder.key}.`);
+        if (fallback === undefined && !placeholder.optional) {
+            options.onMissingSecret?.(placeholder, "infisical");
+            throw new Error(`Failed to fetch Infisical secret ${placeholder.path}:${placeholder.key}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        return fallback;
     });
-    if (infisicalOptions?.cache !== false) {
-        infisicalCache.set(cacheKey, fetchPromise);
+    const guardedPromise = fetchPromise.then(value => value, error => {
+        if (useCache) {
+            infisicalCache.delete(cacheKey);
+        }
+        throw error;
+    });
+    if (useCache) {
+        infisicalCache.set(cacheKey, guardedPromise);
     }
-    return fetchPromise;
+    return guardedPromise;
 }
 async function getInfisicalFetcher(options) {
     const effectiveOptions = options ?? {};
