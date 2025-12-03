@@ -4,22 +4,21 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "index",
+      "name": "index (dist)",
       "runtimeArgs": [
-        "--enable-source-maps",
-        "--import",
-        "tsx",
+        "--enable-source-maps"
       ],
-      "program": "${workspaceFolder}/src/index.ts",
-      "console": "internalConsole",
+      "program": "${workspaceFolder}/dist/index.js",
+      "console": "integratedTerminal",
       "internalConsoleOptions": "openOnSessionStart",
-      "outputCapture": "std",
-      "cwd": "${workspaceFolder}",
       "sourceMaps": true,
+      "stopOnEntry": true,
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js",
+        "!**/node_modules/**"
+      ],
       "skipFiles": ["<node_internals>/**"],
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/**"
-      ]
+      "preLaunchTask": "tsc: watch"
     },    
     {
       "type": "node",
