@@ -9,10 +9,11 @@
         "--enable-source-maps"
       ],
       "program": "${workspaceFolder}/dist/index.js",
-      "console": "integratedTerminal",
+      "console": "internalConsole",
       "internalConsoleOptions": "openOnSessionStart",
+      "outputCapture": "std",
       "sourceMaps": true,
-      "stopOnEntry": true,
+      "stopOnEntry": false,
       "outFiles": [
         "${workspaceFolder}/dist/**/*.js",
         "!**/node_modules/**"
