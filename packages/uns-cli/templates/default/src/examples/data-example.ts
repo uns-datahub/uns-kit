@@ -33,6 +33,10 @@ mqttInput.event.on("input", async (event) => {
     if (event.topic === "raw/data") {
       const values = event.message.split(",");
       const [countRaw, timestampRaw, sensorRaw] = values;
+      if (!countRaw || !timestampRaw || !sensorRaw) {
+        logger.warn(`Skipping malformed raw/data payload: ${event.message}`);
+        return;
+      }
       const numberValue = Number.parseFloat(countRaw);
       const eventDate = new Date(Number.parseInt(timestampRaw, 10));
       const sensorValue = Number.parseFloat(sensorRaw);
