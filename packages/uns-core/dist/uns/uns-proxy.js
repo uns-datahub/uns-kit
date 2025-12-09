@@ -70,7 +70,9 @@ export default class UnsProxy {
                     description: topicObject.description,
                     tags: topicObject.tags,
                     attributeNeedsPersistence: topicObject.attributeNeedsPersistence ?? true,
-                    dataGroup: topicObject.dataGroup ?? ""
+                    dataGroup: topicObject.dataGroup ?? "",
+                    objectType: topicObject.objectType,
+                    objectId: topicObject.objectId
                 });
                 this.emitProducedTopics();
                 logger.info(`${this.instanceNameWithSuffix} - Registered new topic: ${fullTopic}`);

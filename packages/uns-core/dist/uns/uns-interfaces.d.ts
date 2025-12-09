@@ -1,10 +1,12 @@
 import { UnsAttributeType } from "../graphql/schema.js";
 import { MeasurementUnit } from "./uns-measurements.js";
 import { UnsTags } from "./uns-tags.js";
+import type { UnsObjectId, UnsObjectType } from "./uns-object.js";
 import { UnsTopics } from "./uns-topics.js";
+import { knownUnsAttributes } from "./uns-attributes.js";
 export type ISO8601 = `${number}-${string}-${string}T${string}:${string}:${string}.${string}Z`;
 export declare function isIOS8601Type(value: string): value is ISO8601;
-export type UnsAttribute = string;
+export type UnsAttribute = typeof knownUnsAttributes[number] | (string & {});
 export declare const valueTypes: string[];
 export type ValueTypeString = typeof valueTypes[number];
 export type ValueType = string | number;
@@ -87,6 +89,8 @@ export interface IUnsCommand {
 export interface IMqttMessage {
     topic: UnsTopics;
     attribute: UnsAttribute;
+    objectType?: UnsObjectType;
+    objectId?: UnsObjectId;
     description?: string;
     tags?: UnsTags[];
     packet: IUnsPacket;
@@ -121,6 +125,8 @@ export interface ITopicObject {
     dataGroup: string;
     tags: string[] | null;
     attributeNeedsPersistence: boolean | null;
+    objectType?: UnsObjectType;
+    objectId?: UnsObjectId;
 }
 export interface IApiObject {
     timestamp: string;

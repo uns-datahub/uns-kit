@@ -70,12 +70,14 @@ export default class UnsProxy {
           timestamp: topicObject.timestamp,
           topic: topicObject.topic,
           attribute: topicObject.attribute,
-          attributeType: topicObject.attributeType,
-          description: topicObject.description,
-          tags: topicObject.tags,
-          attributeNeedsPersistence: topicObject.attributeNeedsPersistence ?? true,
-          dataGroup: topicObject.dataGroup ?? ""
-        });
+        attributeType: topicObject.attributeType,
+        description: topicObject.description,
+        tags: topicObject.tags,
+        attributeNeedsPersistence: topicObject.attributeNeedsPersistence ?? true,
+        dataGroup: topicObject.dataGroup ?? "",
+        objectType: topicObject.objectType,
+        objectId: topicObject.objectId
+      });
         this.emitProducedTopics();
         logger.info(`${this.instanceNameWithSuffix} - Registered new topic: ${fullTopic}`);
       }

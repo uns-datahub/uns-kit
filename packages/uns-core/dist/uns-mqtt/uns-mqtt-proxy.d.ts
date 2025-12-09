@@ -16,6 +16,16 @@ export default class UnsMqttProxy extends UnsProxy {
     private topicBuilder;
     constructor(mqttHost: string, processName: string, instanceName: string, unsParameters?: IUnsParameters, publisherActive?: boolean, subscriberActive?: boolean);
     /**
+     * Resolve object identity from explicit fields or the tail of the topic path.
+     * Falls back to parsing when not provided for backward compatibility.
+     */
+    private resolveObjectIdentity;
+    /**
+     * Ensure the topic contains the objectType/objectId segments before the attribute.
+     * If already present, the topic is returned unchanged.
+     */
+    private normalizeTopicWithObject;
+    /**
      * Starts a worker thread to process the throttled publish queue.
      */
     private startQueueWorker;

@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import { basePath } from "../base-path.js";
 import logger from "../logger.js";
 import { IMqttMessage, IUnsPacket, IUnsParameters, UnsEvents, ValueType } from "../uns/uns-interfaces.js";
+import type { UnsObjectId, UnsObjectType } from "../uns/uns-object.js";
 import { MeasurementUnit } from "../uns/uns-measurements.js";
 import { UnsPacket } from "../uns/uns-packet.js";
 import { IMqttParameters, IMqttWorkerData } from "./mqtt-interfaces.js";
@@ -66,6 +67,67 @@ export default class UnsMqttProxy extends UnsProxy {
     };
     this.unsParameters = unsParameters ?? {};
     this.startQueueWorker(mqttHost, this.instanceNameWithSuffix, mqttParameters, publisherActive, subscriberActive);
+  }
+
+  /**
+   * Resolve object identity from explicit fields or the tail of the topic path.
+   * Falls back to parsing when not provided for backward compatibility.
+   */
+  private resolveObjectIdentity(msg: IMqttMessage): { objectType?: UnsObjectType; objectId?: UnsObjectId } {
+    const providedType = msg.objectType;
+    const providedId = msg.objectId;
+
+    const topicParts = msg.topic.split("/").filter((part) => part.length > 0);
+    const hasObjectTail = topicParts.length >= 2;
+    const parsedType = hasObjectTail ? topicParts[topicParts.length - 2] as UnsObjectType : undefined;
+    const parsedId = hasObjectTail ? topicParts[topicParts.length - 1] as UnsObjectId : undefined;
+
+    const objectType = providedType ?? parsedType;
+    const objectId = providedId ?? parsedId ?? "main";
+
+    if (!providedType || !providedId) {
+      if (parsedType && parsedId) {
+        logger.warn(`${this.instanceNameWithSuffix} - objectType/objectId missing; derived from topic tail ${parsedType}/${parsedId}`);
+      } else {
+        logger.warn(`${this.instanceNameWithSuffix} - objectType/objectId missing; defaulting objectId to 'main' for topic '${msg.topic}'. Expected topic to end with '<objectType>/<objectId>/'`);
+      }
+    }
+
+    if (providedType && parsedType && providedType !== parsedType) {
+      logger.warn(`${this.instanceNameWithSuffix} - Provided objectType '${providedType}' does not match topic tail '${parsedType}'`);
+    }
+
+    if (providedId && parsedId && providedId !== parsedId) {
+      logger.warn(`${this.instanceNameWithSuffix} - Provided objectId '${providedId}' does not match topic tail '${parsedId}'`);
+    }
+
+    msg.objectType = objectType;
+    msg.objectId = objectId;
+
+    return { objectType, objectId };
+  }
+
+  /**
+   * Ensure the topic contains the objectType/objectId segments before the attribute.
+   * If already present, the topic is returned unchanged.
+   */
+  private normalizeTopicWithObject(topic: string, objectType?: UnsObjectType, objectId?: UnsObjectId): string {
+    if (!objectType || !objectId) {
+      // Nothing to append; ensure trailing slash for attribute concatenation.
+      return topic.endsWith("/") ? topic : `${topic}/`;
+    }
+
+    const normalizedBase = topic.endsWith("/") ? topic : `${topic}/`;
+    const parts = normalizedBase.split("/").filter((p) => p.length > 0);
+    const last = parts[parts.length - 1];
+    const secondLast = parts[parts.length - 2];
+
+    const alreadyHasObject = secondLast === objectType && last === objectId;
+    if (alreadyHasObject) {
+      return `${parts.join("/")}/`;
+    }
+
+    return `${normalizedBase}${objectType}/${objectId}/`;
   }
 
   /**
@@ -308,6 +370,10 @@ export default class UnsMqttProxy extends UnsProxy {
       if (attributeType == UnsAttributeType.Event)
         dataGroup = msg.packet.message.event.dataGroup ?? "";
 
+      const { objectType, objectId } = this.resolveObjectIdentity(msg);
+      const normalizedTopic = this.normalizeTopicWithObject(msg.topic, objectType, objectId);
+      msg.topic = normalizedTopic;
+
       this.registerUniqueTopic({
         timestamp: time,
         topic: msg.topic,
@@ -316,7 +382,9 @@ export default class UnsMqttProxy extends UnsProxy {
         description: msg.description,
         tags: msg.tags,
         attributeNeedsPersistence: msg.attributeNeedsPersistence,
-        dataGroup
+        dataGroup,
+        objectType,
+        objectId
       });
 
       const fullTopic = `${msg.topic}${msg.attribute}`;

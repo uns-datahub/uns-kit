@@ -37,7 +37,15 @@ cronInput.event.on("cronEvent", async (event: UnsEvents["cronEvent"]) => {
     const topic: UnsTopics = "example/";
     const tags: UnsTags[] = [];
     const packet = await UnsPacket.unsPacketFromUnsMessage(message);
-    mqttOutput.publishMqttMessage({ topic, attribute: "data-number", packet, description: "Number value", tags });
+    mqttOutput.publishMqttMessage({
+      topic,
+      attribute: "data-number",
+      packet,
+      description: "Number value",
+      objectType: "equipment",
+      objectId: "main",
+      tags
+    });
   } catch (error) {
     const reason = error instanceof Error ? error : new Error(String(error));
     logger.error(`Error publishing message to MQTT: ${reason.message}`);

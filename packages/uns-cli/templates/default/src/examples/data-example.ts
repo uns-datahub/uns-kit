@@ -47,10 +47,20 @@ mqttInput.event.on("input", async (event) => {
       const message: IUnsMessage = {
         data: { dataGroup, time, value: numberValue, uom: PhysicalMeasurements.None },
       };
-      const topic: UnsTopics = "example/";
+      const topic: UnsTopics = "acme/plant-a/hot-end/line-1/furnace-1/";
+      const objectType = "equipment";
+      const objectId = "main";
       const tags: UnsTags[] = [];
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
-      mqttOutput.publishMqttMessage({ topic, attribute: "data-count", packet, description: "Counter", tags });
+      mqttOutput.publishMqttMessage({
+        topic,
+        attribute: "data-count",
+        packet,
+        description: "Counter",
+        objectType: "equipment",
+        objectId: "main",
+        tags
+      });
 
       const sensorMessage: IUnsMessage = {
         data: { dataGroup, time, value: sensorValue, uom: PhysicalMeasurements.Celsius },
@@ -61,6 +71,8 @@ mqttInput.event.on("input", async (event) => {
         attribute: "data-sensor",
         packet: sensorPacket,
         description: "Simulated sensor value",
+        objectType: "equipment",
+        objectId: "main",
         tags,
       });
     }

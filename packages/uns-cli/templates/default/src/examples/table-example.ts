@@ -53,10 +53,20 @@ mqttInput.event.on("input", async (event) => {
       const time = UnsPacket.formatToISO8601(new Date(timestamp));
       // const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, columnTypes, time}};
       const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, time}};
-      const topic: UnsTopics = "example/factory-a/line-1/";
+      const topic: UnsTopics = "acme/plant-a/hot-end/line-1/";
+      const objectType = "line";
+      const objectId = "line-1";
       const tags: UnsTags[] = [];
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
-      mqttOutput.publishMqttMessage({ topic, attribute: "table-sample", packet, description: "Table", tags });
+      mqttOutput.publishMqttMessage({
+        topic,
+        attribute: "table-sample",
+        packet,
+        description: "Table",
+        objectType: "line",
+        objectId: "line-1",
+        tags
+      });
     }
   } catch (error) {
     const reason = error instanceof Error ? error : new Error(String(error));
