@@ -108,26 +108,10 @@ export default class UnsMqttProxy extends UnsProxy {
   }
 
   /**
-   * Ensure the topic contains the objectType/objectId segments before the attribute.
-   * If already present, the topic is returned unchanged.
+   * Ensure the topic ends with a trailing slash for attribute concatenation.
    */
-  private normalizeTopicWithObject(topic: string, objectType?: UnsObjectType, objectId?: UnsObjectId): string {
-    if (!objectType || !objectId) {
-      // Nothing to append; ensure trailing slash for attribute concatenation.
-      return topic.endsWith("/") ? topic : `${topic}/`;
-    }
-
-    const normalizedBase = topic.endsWith("/") ? topic : `${topic}/`;
-    const parts = normalizedBase.split("/").filter((p) => p.length > 0);
-    const last = parts[parts.length - 1];
-    const secondLast = parts[parts.length - 2];
-
-    const alreadyHasObject = secondLast === objectType && last === objectId;
-    if (alreadyHasObject) {
-      return `${parts.join("/")}/`;
-    }
-
-    return `${normalizedBase}${objectType}/${objectId}/`;
+  private normalizeTopicWithObject(topic: string): string {
+    return topic.endsWith("/") ? topic : `${topic}/`;
   }
 
   /**
@@ -371,7 +355,7 @@ export default class UnsMqttProxy extends UnsProxy {
         dataGroup = msg.packet.message.event.dataGroup ?? "";
 
       const { objectType, objectId } = this.resolveObjectIdentity(msg);
-      const normalizedTopic = this.normalizeTopicWithObject(msg.topic, objectType, objectId);
+      const normalizedTopic = this.normalizeTopicWithObject(msg.topic);
       msg.topic = normalizedTopic;
 
       this.registerUniqueTopic({

@@ -21,8 +21,7 @@ export default class UnsMqttProxy extends UnsProxy {
      */
     private resolveObjectIdentity;
     /**
-     * Ensure the topic contains the objectType/objectId segments before the attribute.
-     * If already present, the topic is returned unchanged.
+     * Ensure the topic ends with a trailing slash for attribute concatenation.
      */
     private normalizeTopicWithObject;
     /**

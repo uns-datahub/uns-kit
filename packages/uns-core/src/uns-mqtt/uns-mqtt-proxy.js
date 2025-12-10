@@ -77,23 +77,10 @@ export default class UnsMqttProxy extends UnsProxy {
         return { objectType, objectId };
     }
     /**
-     * Ensure the topic contains the objectType/objectId segments before the attribute.
-     * If already present, the topic is returned unchanged.
+     * Ensure the topic ends with a trailing slash for attribute concatenation.
      */
-    normalizeTopicWithObject(topic, objectType, objectId) {
-        if (!objectType || !objectId) {
-            // Nothing to append; ensure trailing slash for attribute concatenation.
-            return topic.endsWith("/") ? topic : `${topic}/`;
-        }
-        const normalizedBase = topic.endsWith("/") ? topic : `${topic}/`;
-        const parts = normalizedBase.split("/").filter((p) => p.length > 0);
-        const last = parts[parts.length - 1];
-        const secondLast = parts[parts.length - 2];
-        const alreadyHasObject = secondLast === objectType && last === objectId;
-        if (alreadyHasObject) {
-            return `${parts.join("/")}/`;
-        }
-        return `${normalizedBase}${objectType}/${objectId}/`;
+    normalizeTopicWithObject(topic) {
+        return topic.endsWith("/") ? topic : `${topic}/`;
     }
     /**
      * Starts a worker thread to process the throttled publish queue.
@@ -316,7 +303,7 @@ export default class UnsMqttProxy extends UnsProxy {
             if (attributeType == UnsAttributeType.Event)
                 dataGroup = msg.packet.message.event.dataGroup ?? "";
             const { objectType, objectId } = this.resolveObjectIdentity(msg);
-            const normalizedTopic = this.normalizeTopicWithObject(msg.topic, objectType, objectId);
+            const normalizedTopic = this.normalizeTopicWithObject(msg.topic);
             msg.topic = normalizedTopic;
             this.registerUniqueTopic({
                 timestamp: time,
