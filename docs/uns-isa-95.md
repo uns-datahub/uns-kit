@@ -12,66 +12,66 @@
 
 #### Equipment temperature
 ```
-acme/plant-a/hot-end/line-1/furnace-1/equipment/main/measured-temperature
+enterprise-a/site-a/area-a/line-1/equipment-1/equipment/main/measured-temperature
 ```
 
 | Segment    | Value           | Description (ISA‑95)                |
 | ---------- | --------------- | ----------------------------------- |
-| Enterprise | `acme`          | Enterprise                          |
-| Site       | `plant-a`       | Site                                |
-| Area       | `hot-end`       | Area                                |
+| Enterprise | `enterprise-a`  | Enterprise                          |
+| Site       | `site-a`        | Site                                |
+| Area       | `area-a`        | Area                                |
 | Line       | `line-1`        | Production line                     |
-| Asset      | `furnace-1`     | Equipment                           |
+| Asset      | `equipment-1`   | Equipment                           |
 | ObjectType | `equipment`     | Object type                         |
 | ObjectId   | `main`          | Entity identifier (default)         |
 | Attribute  | `measured-temperature` | Current measured temperature  |
 
 #### Material lot
 ```
-acme/plant-a/hot-end/line-1/furnace-1/material/main/lot
+enterprise-a/site-a/area-a/line-1/equipment-1/material/main/lot
 ```
 
 | Segment    | Value       | Description (ISA‑95)     |
 | ---------- | ----------- | ------------------------ |
-| Enterprise | `acme`      | Enterprise               |
-| Site       | `plant-a`   | Site                     |
-| Area       | `hot-end`   | Area                     |
+| Enterprise | `enterprise-a` | Enterprise             |
+| Site       | `site-a`    | Site                     |
+| Area       | `area-a`    | Area                     |
 | Line       | `line-1`    | Production line          |
-| Asset      | `furnace-1` | Equipment                |
+| Asset      | `equipment-1` | Equipment              |
 | ObjectType | `material`  | Object type              |
 | ObjectId   | `main`      | Entity identifier        |
 | Attribute  | `lot`       | Active lot on equipment  |
 
 #### Personnel task
 ```
-acme/plant-a/hot-end/line-1/cabin-1/personnel/alex/assigned-task
+enterprise-a/site-a/area-a/line-1/workcell-1/personnel/operator-1/assigned-task
 ```
 
 | Segment    | Value         | Description (ISA‑95)   |
 | ---------- | ------------- | ---------------------- |
-| Enterprise | `acme`        | Enterprise             |
-| Site       | `plant-a`     | Site                   |
-| Area       | `hot-end`     | Area                   |
+| Enterprise | `enterprise-a`| Enterprise             |
+| Site       | `site-a`      | Site                   |
+| Area       | `area-a`      | Area                   |
 | Line       | `line-1`      | Production line        |
-| Asset      | `cabin-1`     | Work cell / equipment  |
+| Asset      | `workcell-1`  | Work cell / equipment  |
 | ObjectType | `personnel`   | Object type            |
-| ObjectId   | `alex`        | Person identifier      |
+| ObjectId   | `operator-1`  | Person identifier      |
 | Attribute  | `assigned-task` | Current assigned task |
 
 #### Specific sensor on equipment
 ```
-acme/plant-a/hot-end/line-1/furnace-1/equipment/sensor-23/measured-vibration
+enterprise-a/site-a/area-a/line-1/equipment-1/equipment/sensor-1/measured-vibration
 ```
 
 | Segment    | Value               | Description (ISA‑95)      |
 | ---------- | ------------------- | ------------------------- |
-| Enterprise | `acme`              | Enterprise                |
-| Site       | `plant-a`           | Site                      |
-| Area       | `hot-end`           | Area                      |
+| Enterprise | `enterprise-a`      | Enterprise                |
+| Site       | `site-a`            | Site                      |
+| Area       | `area-a`            | Area                      |
 | Line       | `line-1`            | Production line           |
-| Asset      | `furnace-1`         | Equipment                 |
+| Asset      | `equipment-1`       | Equipment                 |
 | ObjectType | `equipment`         | Object type               |
-| ObjectId   | `sensor-23`         | Sensor on equipment       |
+| ObjectId   | `sensor-1`          | Sensor on equipment       |
 | Attribute  | `measured-vibration` | Current measured vibration |
 
 ---
