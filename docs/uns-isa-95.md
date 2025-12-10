@@ -76,6 +76,64 @@ acme/plant-a/hot-end/line-1/furnace-1/equipment/sensor-23/measured-vibration
 
 ---
 
+### Energy meters (line/area/site)
+
+#### Summary
+- ObjectType: `energy-resource` (all meters)
+- ObjectId: `main` (default)
+- Attribute: `cumulative-active-energy-delivered` (kumulativna delovna oddana energija)
+- Asset: physical meter ID in kebab case (e.g., `mt880-tr1-h210`)
+
+#### Line-level energy meter
+```
+enterprise-a/site-a/area-a/line-1/mt880-tr1-h210/energy-resource/main/cumulative-active-energy-delivered
+```
+
+| Segment    | Value                        | Description (ISA-95)                            |
+| ---------- | ---------------------------- | ----------------------------------------------- |
+| Enterprise | `enterprise-a`               | Enterprise                                      |
+| Site       | `site-a`                     | Site                                            |
+| Area       | `area-a`                     | Area                                            |
+| Line       | `line-1`                     | Production line                                 |
+| Asset      | `mt880-tr1-h210`             | Physical energy meter on the line               |
+| ObjectType | `energy-resource`            | Metered energy resource                         |
+| ObjectId   | `main`                       | Meter channel (default)                         |
+| Attribute  | `cumulative-active-energy-delivered` | Cumulative delivered active energy (kWh) |
+
+#### Area-level energy meter
+```
+enterprise-a/site-a/area-a/area-utilities/mt880-tr1-h210/energy-resource/main/cumulative-active-energy-delivered
+```
+
+| Segment    | Value                        | Description (ISA-95)                            |
+| ---------- | ---------------------------- | ----------------------------------------------- |
+| Enterprise | `enterprise-a`               | Enterprise                                      |
+| Site       | `site-a`                     | Site                                            |
+| Area       | `area-a`                     | Area                                            |
+| Line       | `area-utilities`             | Virtual utility line for the area               |
+| Asset      | `mt880-tr1-h210`             | Physical or aggregated area energy meter        |
+| ObjectType | `energy-resource`            | Metered energy resource                         |
+| ObjectId   | `main`                       | Meter channel (default)                         |
+| Attribute  | `cumulative-active-energy-delivered` | Cumulative delivered active energy (kWh) |
+
+#### Site-level energy meter
+```
+enterprise-a/site-a/site-utilities/electricity-main/mt880-tr1-h210/energy-resource/main/cumulative-active-energy-delivered
+```
+
+| Segment    | Value                        | Description (ISA-95)                            |
+| ---------- | ---------------------------- | ----------------------------------------------- |
+| Enterprise | `enterprise-a`               | Enterprise                                      |
+| Site       | `site-a`                     | Site                                            |
+| Area       | `site-utilities`             | Virtual utility area for the site               |
+| Line       | `electricity-main`           | Virtual utility line for site-level metering    |
+| Asset      | `mt880-tr1-h210`             | Physical or aggregated site energy meter        |
+| ObjectType | `energy-resource`            | Metered energy resource                         |
+| ObjectId   | `main`                       | Meter channel (default)                         |
+| Attribute  | `cumulative-active-energy-delivered` | Cumulative delivered active energy (kWh) |
+
+---
+
 ### Recommended object types (ISA‑95 aligned)
 
 Use these values for the `ObjectType` segment:
