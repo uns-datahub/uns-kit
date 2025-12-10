@@ -7,6 +7,7 @@ import { basePath } from "../base-path.js";
 import logger from "../logger.js";
 import { IMqttMessage, IUnsPacket, IUnsParameters, UnsEvents, ValueType } from "../uns/uns-interfaces.js";
 import type { UnsObjectId, UnsObjectType } from "../uns/uns-object.js";
+import type { UnsAsset } from "../uns/uns-asset.js";
 import { MeasurementUnit } from "../uns/uns-measurements.js";
 import { UnsPacket } from "../uns/uns-packet.js";
 import { IMqttParameters, IMqttWorkerData } from "./mqtt-interfaces.js";
@@ -73,18 +74,24 @@ export default class UnsMqttProxy extends UnsProxy {
    * Resolve object identity from explicit fields or the tail of the topic path.
    * Falls back to parsing when not provided for backward compatibility.
    */
-  private resolveObjectIdentity(msg: IMqttMessage): { objectType?: UnsObjectType; objectId?: UnsObjectId } {
+  private resolveObjectIdentity(msg: IMqttMessage): { objectType?: UnsObjectType; objectId?: UnsObjectId; asset?: UnsAsset } {
     const providedType = msg.objectType;
     const providedId = msg.objectId;
+    const providedAsset = msg.asset;
 
     const topicParts = msg.topic.split("/").filter((part) => part.length > 0);
     const hasObjectTail = topicParts.length >= 2;
     const parsedType = hasObjectTail ? topicParts[topicParts.length - 2] as UnsObjectType : undefined;
     const parsedId = hasObjectTail ? topicParts[topicParts.length - 1] as UnsObjectId : undefined;
+    const parsedAsset = hasObjectTail
+      ? (topicParts.length >= 3 ? topicParts[topicParts.length - 3] as UnsAsset : undefined)
+      : (topicParts.length >= 1 ? topicParts[topicParts.length - 1] as UnsAsset : undefined);
 
     const objectType = providedType ?? parsedType;
     const objectId = providedId ?? parsedId ?? "main";
+    const asset = providedAsset ?? parsedAsset;
 
+    // If values are provided, trust them; otherwise derive from topic.
     if (!providedType || !providedId) {
       if (parsedType && parsedId) {
         logger.warn(`${this.instanceNameWithSuffix} - objectType/objectId missing; derived from topic tail ${parsedType}/${parsedId}`);
@@ -92,19 +99,13 @@ export default class UnsMqttProxy extends UnsProxy {
         logger.warn(`${this.instanceNameWithSuffix} - objectType/objectId missing; defaulting objectId to 'main' for topic '${msg.topic}'. Expected topic to end with '<objectType>/<objectId>/'`);
       }
     }
-
-    if (providedType && parsedType && providedType !== parsedType) {
-      logger.warn(`${this.instanceNameWithSuffix} - Provided objectType '${providedType}' does not match topic tail '${parsedType}'`);
-    }
-
-    if (providedId && parsedId && providedId !== parsedId) {
-      logger.warn(`${this.instanceNameWithSuffix} - Provided objectId '${providedId}' does not match topic tail '${parsedId}'`);
-    }
+    // Asset is optional; no warning on mismatch to avoid noisy logs when base topics don't carry it.
 
     msg.objectType = objectType;
     msg.objectId = objectId;
+    msg.asset = asset;
 
-    return { objectType, objectId };
+    return { objectType, objectId, asset };
   }
 
   /**
@@ -354,7 +355,7 @@ export default class UnsMqttProxy extends UnsProxy {
       if (attributeType == UnsAttributeType.Event)
         dataGroup = msg.packet.message.event.dataGroup ?? "";
 
-      const { objectType, objectId } = this.resolveObjectIdentity(msg);
+      const { objectType, objectId, asset } = this.resolveObjectIdentity(msg);
       const normalizedTopic = this.normalizeTopicWithObject(msg.topic);
       msg.topic = normalizedTopic;
 
@@ -367,11 +368,12 @@ export default class UnsMqttProxy extends UnsProxy {
         tags: msg.tags,
         attributeNeedsPersistence: msg.attributeNeedsPersistence,
         dataGroup,
+        asset,
         objectType,
         objectId
       });
 
-      const fullTopic = `${msg.topic}${msg.attribute}`;
+      const publishTopic = `${msg.topic}${objectType ? `${objectType}/` : ""}${objectId ? `${objectId}/` : ""}${msg.attribute}`;
       const sequenceId = this.currentSequenceId.get(msg.topic) ?? 0;
       this.currentSequenceId.set(msg.topic, sequenceId + 1);
       msg.packet.sequenceId = sequenceId;
@@ -379,13 +381,13 @@ export default class UnsMqttProxy extends UnsProxy {
       if (msg.packet.message.data) {
         const newValue = msg.packet.message.data.value;
         const newUom: MeasurementUnit = msg.packet.message.data.uom;
-        const lastValueEntry = this.lastValues.get(fullTopic);
+        const lastValueEntry = this.lastValues.get(publishTopic);
         const currentTime = new Date(msg.packet.message.data.time);
 
         if (lastValueEntry) {
           const intervalBetweenMessages = currentTime.getTime() - lastValueEntry.timestamp.getTime();
           const lastValue = lastValueEntry.value;
-          this.lastValues.set(fullTopic, { value: newValue, uom: newUom, timestamp: currentTime });
+          this.lastValues.set(publishTopic, { value: newValue, uom: newUom, timestamp: currentTime });
           // Compute the delta and manage cumulative resets
           if (valueIsCumulative == true && typeof newValue === "number" && typeof lastValue === "number") {
             // Skip if newValue is 0 (likely a glitch)
@@ -396,22 +398,22 @@ export default class UnsMqttProxy extends UnsProxy {
             msg.packet.message.data.value = delta < 0 ? newValue : delta;
           }
           msg.packet.interval = intervalBetweenMessages;
-          await this.enqueueMessageToWorkerQueue(fullTopic, JSON.stringify(msg.packet));
+          await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
         } else {
-          this.lastValues.set(fullTopic, { value: newValue, uom: newUom, timestamp: currentTime });
-          logger.debug(`${this.instanceNameWithSuffix} - Need one more packet to calculate interval on topic ${fullTopic}`);
+          this.lastValues.set(publishTopic, { value: newValue, uom: newUom, timestamp: currentTime });
+          logger.debug(`${this.instanceNameWithSuffix} - Need one more packet to calculate interval on topic ${publishTopic}`);
           if (valueIsCumulative === false) {
-            await this.enqueueMessageToWorkerQueue(fullTopic, JSON.stringify(msg.packet));
+            await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
           } else {
-            logger.debug(`${this.instanceNameWithSuffix} - Need one more packet to calculate difference on value in data for topic ${fullTopic}`);
+            logger.debug(`${this.instanceNameWithSuffix} - Need one more packet to calculate difference on value in data for topic ${publishTopic}`);
           }
         }
       } else if (msg.packet.message.command) {
-        await this.enqueueMessageToWorkerQueue(fullTopic, JSON.stringify(msg.packet));
+        await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
       } else if (msg.packet.message.event) {
-        await this.enqueueMessageToWorkerQueue(fullTopic, JSON.stringify(msg.packet));
+        await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
       } else if (msg.packet.message.table) {
-        await this.enqueueMessageToWorkerQueue(fullTopic, JSON.stringify(msg.packet));
+        await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
       }
     } catch (error: any) {
       logger.error(`${this.instanceNameWithSuffix} - Error publishing message to topic ${msg.topic}${msg.attribute}: ${error.message}`);

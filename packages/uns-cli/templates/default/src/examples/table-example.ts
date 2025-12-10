@@ -6,6 +6,8 @@ import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTags } from "@uns-kit/core/uns/uns-tags.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
+import { ObjectTypes } from "@uns-kit/core/uns/uns-object.js";
+import { LineAttributes } from "@uns-kit/core/uns/uns-attributes.js";
 
 /**
  * Load the configuration from a file.
@@ -54,17 +56,17 @@ mqttInput.event.on("input", async (event) => {
       // const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, columnTypes, time}};
       const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, time}};
       const topic: UnsTopics = "acme/plant-a/hot-end/line-1/";
-      const objectType = "line";
+      const objectType = ObjectTypes.Line;
       const objectId = "line-1";
       const tags: UnsTags[] = [];
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
       mqttOutput.publishMqttMessage({
         topic,
-        attribute: "table-sample",
+        attribute: LineAttributes.Status,
         packet,
         description: "Table",
-        objectType: "line",
-        objectId: "line-1",
+        objectType,
+        objectId,
         tags
       });
     }

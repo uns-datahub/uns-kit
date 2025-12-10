@@ -6,6 +6,8 @@ import { DataSizeMeasurements, PhysicalMeasurements } from "@uns-kit/core/uns/un
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTags } from "@uns-kit/core/uns/uns-tags.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
+import { ObjectTypes } from "@uns-kit/core/uns/uns-object.js";
+import { EnergyResourceAttributes } from "@uns-kit/core/uns/uns-attributes.js";
 
 /**
  * Load the configuration from a file.
@@ -48,17 +50,17 @@ mqttInput.event.on("input", async (event) => {
         data: { dataGroup, time, value: numberValue, uom: PhysicalMeasurements.None },
       };
       const topic: UnsTopics = "acme/plant-a/hot-end/line-1/furnace-1/";
-      const objectType = "equipment";
+      const objectType = ObjectTypes.EnergyResource;
       const objectId = "main";
       const tags: UnsTags[] = [];
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
       mqttOutput.publishMqttMessage({
         topic,
-        attribute: "data-count",
+        attribute: EnergyResourceAttributes.Current,
         packet,
         description: "Counter",
-        objectType: "equipment",
-        objectId: "main",
+        objectType,
+        objectId,
         tags
       });
 
@@ -68,11 +70,11 @@ mqttInput.event.on("input", async (event) => {
       const sensorPacket = await UnsPacket.unsPacketFromUnsMessage(sensorMessage);
       mqttOutput.publishMqttMessage({
         topic,
-        attribute: "data-sensor",
+        attribute: EnergyResourceAttributes.Voltage,
         packet: sensorPacket,
         description: "Simulated sensor value",
-        objectType: "equipment",
-        objectId: "main",
+        objectType,
+        objectId,
         tags,
       });
     }

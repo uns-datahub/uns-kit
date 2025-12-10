@@ -2,15 +2,17 @@ import { UnsAttributeType } from "../graphql/schema.js";
 import { MeasurementUnit } from "./uns-measurements.js";
 import { UnsTags } from "./uns-tags.js";
 import type { UnsObjectId, UnsObjectType } from "./uns-object.js";
+import type { UnsAsset } from "./uns-asset.js";
 import { UnsTopics } from "./uns-topics.js";
-import { knownUnsAttributes, KnownAttributesByObjectType } from "./uns-attributes.js";
+import { knownUnsAttributes, type KnownUnsAttributeName } from "./uns-attributes.js";
 
 export type ISO8601 = `${number}-${string}-${string}T${string}:${string}:${string}.${string}Z`;
 export function isIOS8601Type(value: string): value is ISO8601 {
   const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
   return iso8601Regex.test(value);
 }
-export type UnsAttribute = typeof knownUnsAttributes[number] | (string & {});
+// Known attribute names (with IntelliSense) while still allowing arbitrary strings.
+export type UnsAttribute = KnownUnsAttributeName | (string & {});
 
 export const valueTypes = ["string", "number"];
 export type ValueTypeString = typeof valueTypes[number];
@@ -90,6 +92,7 @@ export interface IUnsCommand {
 export interface IMqttMessage {
   topic: UnsTopics;
   attribute: UnsAttribute;
+  asset?: UnsAsset;
   objectType?: UnsObjectType;
   objectId?: UnsObjectId;
   description?: string;
@@ -142,6 +145,7 @@ export interface ITopicObject {
   dataGroup:string;
   tags:string[] | null;
   attributeNeedsPersistence: boolean | null;
+  asset?: UnsAsset;
   objectType?: UnsObjectType;
   objectId?: UnsObjectId;
 }

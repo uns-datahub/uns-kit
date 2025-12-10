@@ -75,6 +75,7 @@ export default class UnsProxy {
         tags: topicObject.tags,
         attributeNeedsPersistence: topicObject.attributeNeedsPersistence ?? true,
         dataGroup: topicObject.dataGroup ?? "",
+        asset: topicObject.asset,
         objectType: topicObject.objectType,
         objectId: topicObject.objectId
       });

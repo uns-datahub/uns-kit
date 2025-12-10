@@ -1,7 +1,5 @@
-// Extend this list to add curated IntelliSense hints for object types.
-// Based on ISA-95-aligned categories plus commonly used UNS structural nodes.
+// ISA-95-aligned object types (add your own as needed).
 export const knownUnsObjectTypes = [
-  // ISA-95-aligned types
   "equipment",
   "material",
   "personnel",
@@ -14,7 +12,7 @@ export const knownUnsObjectTypes = [
   "utility-resource",
   "fluid-resource",
   "consumable-resource",
-  // Common structural or legacy types used in templates/examples
+  // Common structural/legacy types used in templates/examples
   "line",
   "area",
   "site",
@@ -23,7 +21,49 @@ export const knownUnsObjectTypes = [
   "sensor",
 ] as const;
 
-export type UnsObjectType = "" | typeof knownUnsObjectTypes[number] | (string & {});
+// Convenient constants for IntelliSense and to avoid string literals.
+export const ObjectTypes = {
+  /** Physical equipment (machines, furnaces, sensors) */
+  Equipment: "equipment",
+  /** Material lots/batches/raw materials */
+  Material: "material",
+  /** Operators/supervisors/technologists */
+  Personnel: "personnel",
+  /** Process step or activity (e.g., rolling, cooling) */
+  ProcessSegment: "process-segment",
+  /** Product specs/recipes/definitions */
+  ProductDefinition: "product-definition",
+  /** Quality indicators/results for a product */
+  ProductQuality: "product-quality",
+  /** Work/task definitions or workflows */
+  WorkDefinition: "work-definition",
+  /** Status of any resource (material/personnel/equipment) */
+  ResourceStatus: "resource-status",
+  /** Energy carriers (electricity/steam/gas) */
+  EnergyResource: "energy-resource",
+  /** Utilities (water/air/nitrogen/etc.) */
+  UtilityResource: "utility-resource",
+  /** Fluids/gases (non-energy) used in process */
+  FluidResource: "fluid-resource",
+  /** Consumables (lubricants/cleaners) */
+  ConsumableResource: "consumable-resource",
+  /** Production line/work unit */
+  Line: "line",
+  /** Area/department within a site */
+  Area: "area",
+  /** Plant/site identifier */
+  Site: "site",
+  /** Enterprise/company identifier */
+  Enterprise: "enterprise",
+  /** Generic asset placeholder */
+  Asset: "asset",
+  /** Sensor as a distinct object */
+  Sensor: "sensor",
+} as const;
+
+export type KnownUnsObjectTypeName = typeof knownUnsObjectTypes[number];
+
+export type UnsObjectType = "" | KnownUnsObjectTypeName | (string & {});
 
 // Default object id is "main" when none is provided.
 export type UnsObjectId = "main" | "" | (string & {});

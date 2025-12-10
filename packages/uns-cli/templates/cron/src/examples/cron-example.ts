@@ -9,6 +9,8 @@ import { UnsTags } from "../uns/uns-tags.js";
 import { UnsTopics } from "../uns/uns-topics.js";
 import { PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
+import { ObjectTypes } from "@uns-kit/core/uns/uns-object.js";
+import { EquipmentAttributes } from "@uns-kit/core/uns/uns-attributes.js";
 
 
 /**
@@ -35,15 +37,17 @@ cronInput.event.on("cronEvent", async (event: UnsEvents["cronEvent"]) => {
     const numberValue: number = 42;
     const message: IUnsMessage = { data: { time, value: numberValue, uom: PhysicalMeasurements.MiliVolt } };
     const topic: UnsTopics = "example/";
+    const objectType = ObjectTypes.Equipment;
+    const objectId = "main";
     const tags: UnsTags[] = [];
     const packet = await UnsPacket.unsPacketFromUnsMessage(message);
     mqttOutput.publishMqttMessage({
       topic,
-      attribute: "data-number",
+      attribute: EquipmentAttributes.MeasuredTemperature,
       packet,
       description: "Number value",
-      objectType: "equipment",
-      objectId: "main",
+      objectType,
+      objectId,
       tags
     });
   } catch (error) {

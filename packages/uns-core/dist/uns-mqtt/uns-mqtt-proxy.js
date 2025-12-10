@@ -56,12 +56,18 @@ export default class UnsMqttProxy extends UnsProxy {
     resolveObjectIdentity(msg) {
         const providedType = msg.objectType;
         const providedId = msg.objectId;
+        const providedAsset = msg.asset;
         const topicParts = msg.topic.split("/").filter((part) => part.length > 0);
         const hasObjectTail = topicParts.length >= 2;
         const parsedType = hasObjectTail ? topicParts[topicParts.length - 2] : undefined;
         const parsedId = hasObjectTail ? topicParts[topicParts.length - 1] : undefined;
+        const parsedAsset = hasObjectTail
+            ? (topicParts.length >= 3 ? topicParts[topicParts.length - 3] : undefined)
+            : (topicParts.length >= 1 ? topicParts[topicParts.length - 1] : undefined);
         const objectType = providedType ?? parsedType;
         const objectId = providedId ?? parsedId ?? "main";
+        const asset = providedAsset ?? parsedAsset;
+        // If values are provided, trust them; otherwise derive from topic.
         if (!providedType || !providedId) {
             if (parsedType && parsedId) {
                 logger.warn(`${this.instanceNameWithSuffix} - objectType/objectId missing; derived from topic tail ${parsedType}/${parsedId}`);
@@ -70,15 +76,11 @@ export default class UnsMqttProxy extends UnsProxy {
                 logger.warn(`${this.instanceNameWithSuffix} - objectType/objectId missing; defaulting objectId to 'main' for topic '${msg.topic}'. Expected topic to end with '<objectType>/<objectId>/'`);
             }
         }
-        if (providedType && parsedType && providedType !== parsedType) {
-            logger.warn(`${this.instanceNameWithSuffix} - Provided objectType '${providedType}' does not match topic tail '${parsedType}'`);
-        }
-        if (providedId && parsedId && providedId !== parsedId) {
-            logger.warn(`${this.instanceNameWithSuffix} - Provided objectId '${providedId}' does not match topic tail '${parsedId}'`);
-        }
+        // Asset is optional; no warning on mismatch to avoid noisy logs when base topics don't carry it.
         msg.objectType = objectType;
         msg.objectId = objectId;
-        return { objectType, objectId };
+        msg.asset = asset;
+        return { objectType, objectId, asset };
     }
     /**
      * Ensure the topic ends with a trailing slash for attribute concatenation.
@@ -306,7 +308,7 @@ export default class UnsMqttProxy extends UnsProxy {
                 dataGroup = msg.packet.message.table.dataGroup ?? "";
             if (attributeType == UnsAttributeType.Event)
                 dataGroup = msg.packet.message.event.dataGroup ?? "";
-            const { objectType, objectId } = this.resolveObjectIdentity(msg);
+            const { objectType, objectId, asset } = this.resolveObjectIdentity(msg);
             const normalizedTopic = this.normalizeTopicWithObject(msg.topic);
             msg.topic = normalizedTopic;
             this.registerUniqueTopic({
@@ -318,22 +320,23 @@ export default class UnsMqttProxy extends UnsProxy {
                 tags: msg.tags,
                 attributeNeedsPersistence: msg.attributeNeedsPersistence,
                 dataGroup,
+                asset,
                 objectType,
                 objectId
             });
-            const fullTopic = `${msg.topic}${msg.attribute}`;
+            const publishTopic = `${msg.topic}${objectType ? `${objectType}/` : ""}${objectId ? `${objectId}/` : ""}${msg.attribute}`;
             const sequenceId = this.currentSequenceId.get(msg.topic) ?? 0;
             this.currentSequenceId.set(msg.topic, sequenceId + 1);
             msg.packet.sequenceId = sequenceId;
             if (msg.packet.message.data) {
                 const newValue = msg.packet.message.data.value;
                 const newUom = msg.packet.message.data.uom;
-                const lastValueEntry = this.lastValues.get(fullTopic);
+                const lastValueEntry = this.lastValues.get(publishTopic);
                 const currentTime = new Date(msg.packet.message.data.time);
                 if (lastValueEntry) {
                     const intervalBetweenMessages = currentTime.getTime() - lastValueEntry.timestamp.getTime();
                     const lastValue = lastValueEntry.value;
-                    this.lastValues.set(fullTopic, { value: newValue, uom: newUom, timestamp: currentTime });
+                    this.lastValues.set(publishTopic, { value: newValue, uom: newUom, timestamp: currentTime });
                     // Compute the delta and manage cumulative resets
                     if (valueIsCumulative == true && typeof newValue === "number" && typeof lastValue === "number") {
                         // Skip if newValue is 0 (likely a glitch)
@@ -344,27 +347,27 @@ export default class UnsMqttProxy extends UnsProxy {
                         msg.packet.message.data.value = delta < 0 ? newValue : delta;
                     }
                     msg.packet.interval = intervalBetweenMessages;
-                    await this.enqueueMessageToWorkerQueue(fullTopic, JSON.stringify(msg.packet));
+                    await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
                 }
                 else {
-                    this.lastValues.set(fullTopic, { value: newValue, uom: newUom, timestamp: currentTime });
-                    logger.debug(`${this.instanceNameWithSuffix} - Need one more packet to calculate interval on topic ${fullTopic}`);
+                    this.lastValues.set(publishTopic, { value: newValue, uom: newUom, timestamp: currentTime });
+                    logger.debug(`${this.instanceNameWithSuffix} - Need one more packet to calculate interval on topic ${publishTopic}`);
                     if (valueIsCumulative === false) {
-                        await this.enqueueMessageToWorkerQueue(fullTopic, JSON.stringify(msg.packet));
+                        await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
                     }
                     else {
-                        logger.debug(`${this.instanceNameWithSuffix} - Need one more packet to calculate difference on value in data for topic ${fullTopic}`);
+                        logger.debug(`${this.instanceNameWithSuffix} - Need one more packet to calculate difference on value in data for topic ${publishTopic}`);
                     }
                 }
             }
             else if (msg.packet.message.command) {
-                await this.enqueueMessageToWorkerQueue(fullTopic, JSON.stringify(msg.packet));
+                await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
             }
             else if (msg.packet.message.event) {
-                await this.enqueueMessageToWorkerQueue(fullTopic, JSON.stringify(msg.packet));
+                await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
             }
             else if (msg.packet.message.table) {
-                await this.enqueueMessageToWorkerQueue(fullTopic, JSON.stringify(msg.packet));
+                await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
             }
         }
         catch (error) {
