@@ -42,7 +42,7 @@ export default class UnsApiProxy extends UnsProxy {
      * @param attribute - The attribute for the topic.
      * @param method - The HTTP method (e.g., "GET", "POST", "PUT", "DELETE").
      */
-    async unregister(topic, attribute, method) {
+    async unregister(topic, asset, objectType, objectId, attribute, method) {
         const fullPath = `/${topic}${attribute}`;
         const apiPath = `/api${fullPath}`;
         const methodKey = method.toLowerCase(); // Express stores method keys in lowercase
@@ -63,7 +63,7 @@ export default class UnsApiProxy extends UnsProxy {
             }
         }
         // Unregister from internal endpoint tracking
-        this.unregisterApiEndpoint(topic, attribute);
+        this.unregisterApiEndpoint(topic, asset, objectType, objectId, attribute);
     }
     /**
      * Register a GET endpoint with optional JWT path filter.
@@ -72,7 +72,7 @@ export default class UnsApiProxy extends UnsProxy {
      * @param options.description - Optional description.
      * @param options.tags - Optional tags.
      */
-    async get(topic, attribute, options) {
+    async get(topic, asset, objectType, objectId, attribute, options) {
         // Wait until the API server is started
         while (this.app.server.listening === false) {
             await new Promise((resolve) => setTimeout(resolve, 100));
@@ -102,6 +102,9 @@ export default class UnsApiProxy extends UnsProxy {
                 apiDescription: options?.apiDescription,
                 attributeType: UnsAttributeType.Api,
                 apiSwaggerEndpoint: `/${this.processName}/${this.instanceName}/swagger.json`,
+                asset,
+                objectType,
+                objectId
             });
             const fullPath = `/${topic}${attribute}`;
             const handler = (req, res) => {

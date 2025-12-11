@@ -127,9 +127,9 @@ export interface ITopicObject {
     dataGroup: string;
     tags: string[] | null;
     attributeNeedsPersistence: boolean | null;
-    asset?: UnsAsset;
-    objectType?: UnsObjectType;
-    objectId?: UnsObjectId;
+    asset: UnsAsset;
+    objectType: UnsObjectType;
+    objectId: UnsObjectId;
 }
 export interface IApiObject {
     timestamp: string;
@@ -142,6 +142,9 @@ export interface IApiObject {
     apiSwaggerEndpoint: string;
     apiMethod: "GET" | "POST" | "PUT" | "DELETE";
     apiQueryParams: QueryParamDef[];
+    asset: UnsAsset;
+    objectType: UnsObjectType;
+    objectId: UnsObjectId;
 }
 export interface QueryParamDef {
     name: string;

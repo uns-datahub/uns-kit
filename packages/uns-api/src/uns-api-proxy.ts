@@ -16,6 +16,8 @@ import { UnsTopicMatcher } from "@uns-kit/core/uns/uns-topic-matcher.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import { IApiProxyOptions, IGetEndpointOptions } from "@uns-kit/core/uns/uns-interfaces.js";
 import App from "./app.js";
+import { UnsAsset } from "@uns-kit/core/uns/uns-asset.js";
+import { UnsObjectType, UnsObjectId } from "@uns-kit/core/uns/uns-object.js";
 
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
@@ -58,6 +60,9 @@ export default class UnsApiProxy extends UnsProxy {
    */
   public async unregister(
     topic: UnsTopics,
+    asset: UnsAsset,
+    objectType: UnsObjectType,
+    objectId: UnsObjectId,
     attribute: UnsAttribute,
     method:  "GET" | "POST" | "PUT" | "DELETE" 
   ): Promise<void> {
@@ -86,7 +91,7 @@ export default class UnsApiProxy extends UnsProxy {
     }
 
     // Unregister from internal endpoint tracking
-    this.unregisterApiEndpoint(topic, attribute);
+    this.unregisterApiEndpoint(topic, asset, objectType, objectId, attribute);
   }
   
   /**
@@ -96,7 +101,7 @@ export default class UnsApiProxy extends UnsProxy {
    * @param options.description - Optional description.
    * @param options.tags - Optional tags.
    */
-  public async get(topic: UnsTopics, attribute: UnsAttribute, options?: IGetEndpointOptions): Promise<void> {
+  public async get(topic: UnsTopics, asset:UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: UnsAttribute, options?: IGetEndpointOptions): Promise<void> {
     // Wait until the API server is started
     while (this.app.server.listening === false) {
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -127,6 +132,9 @@ export default class UnsApiProxy extends UnsProxy {
         apiDescription: options?.apiDescription,
         attributeType: UnsAttributeType.Api,
         apiSwaggerEndpoint: `/${this.processName}/${this.instanceName}/swagger.json`,
+        asset,
+        objectType,
+        objectId
       });
 
       const fullPath = `/${topic}${attribute}`;

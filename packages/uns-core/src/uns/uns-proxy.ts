@@ -2,6 +2,8 @@ import { IApiObject, ITopicObject, UnsEvents } from "./uns-interfaces.js";
 import logger from "../logger.js";
 import { UnsEventEmitter } from "./uns-event-emitter.js";
 import { UnsPacket } from "./uns-packet.js";
+import { UnsAsset } from "./uns-asset.js";
+import { UnsObjectId, UnsObjectType } from "./uns-object.js";
 
 export default class UnsProxy {
   private publishInterval: NodeJS.Timeout | null = null;
@@ -64,7 +66,7 @@ export default class UnsProxy {
    */
   protected registerUniqueTopic(topicObject: ITopicObject): void {
     if (this.instanceStatusTopic !== "") {
-      const fullTopic = `${topicObject.topic}${topicObject.attribute}`;
+      const fullTopic = `${topicObject.topic}${topicObject.asset}/${topicObject.objectType}/${topicObject.objectId}/${topicObject.attribute}`;
       if (!this.producedTopics.has(fullTopic)) {
         this.producedTopics.set(fullTopic, {
           timestamp: topicObject.timestamp,
@@ -90,7 +92,7 @@ export default class UnsProxy {
    */
   protected registerApiEndpoint(apiObject: IApiObject): void {
     if (this.instanceStatusTopic !== "") {
-      const fullTopic = `${apiObject.topic}${apiObject.attribute}`;
+      const fullTopic = `${apiObject.topic}${apiObject.asset}/${apiObject.objectType}/${apiObject.objectId}/${apiObject.attribute}`;
       if (!this.producedApiEndpoints.has(fullTopic)) {
         const time = UnsPacket.formatToISO8601(new Date());
         this.producedApiEndpoints.set(fullTopic, {
@@ -103,7 +105,10 @@ export default class UnsProxy {
           apiQueryParams: apiObject.apiQueryParams,
           apiDescription: apiObject.apiDescription,
           attributeType: apiObject.attributeType,
-          apiSwaggerEndpoint: apiObject.apiSwaggerEndpoint
+          apiSwaggerEndpoint: apiObject.apiSwaggerEndpoint,
+          asset: apiObject.asset,
+          objectType: apiObject.objectType,
+          objectId: apiObject.objectId
         });
         this.emitProducedApiEndpoints();
         logger.info(`${this.instanceNameWithSuffix} - Registered new api endpoint: /${fullTopic}`);
@@ -111,8 +116,8 @@ export default class UnsProxy {
     }
   }
 
-  protected unregisterApiEndpoint(topic: string, attribute: string): void {
-    const fullTopic = `${topic}${attribute}`;
+  protected unregisterApiEndpoint(topic: string, asset:UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: string): void {
+    const fullTopic = `${topic}/${asset}/${objectType}/${objectId}/${attribute}`;
     if (this.producedApiEndpoints.has(fullTopic)) {
       this.producedApiEndpoints.delete(fullTopic);
       this.emitProducedApiEndpoints();

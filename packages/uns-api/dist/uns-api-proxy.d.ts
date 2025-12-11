@@ -2,6 +2,8 @@ import { UnsAttribute } from "@uns-kit/core/uns/uns-interfaces.js";
 import UnsProxy from "@uns-kit/core/uns/uns-proxy.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import { IApiProxyOptions, IGetEndpointOptions } from "@uns-kit/core/uns/uns-interfaces.js";
+import { UnsAsset } from "@uns-kit/core/uns/uns-asset.js";
+import { UnsObjectType, UnsObjectId } from "@uns-kit/core/uns/uns-object.js";
 export default class UnsApiProxy extends UnsProxy {
     instanceName: string;
     private topicBuilder;
@@ -17,7 +19,7 @@ export default class UnsApiProxy extends UnsProxy {
      * @param attribute - The attribute for the topic.
      * @param method - The HTTP method (e.g., "GET", "POST", "PUT", "DELETE").
      */
-    unregister(topic: UnsTopics, attribute: UnsAttribute, method: "GET" | "POST" | "PUT" | "DELETE"): Promise<void>;
+    unregister(topic: UnsTopics, asset: UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: UnsAttribute, method: "GET" | "POST" | "PUT" | "DELETE"): Promise<void>;
     /**
      * Register a GET endpoint with optional JWT path filter.
      * @param topic - The API topic
@@ -25,7 +27,7 @@ export default class UnsApiProxy extends UnsProxy {
      * @param options.description - Optional description.
      * @param options.tags - Optional tags.
      */
-    get(topic: UnsTopics, attribute: UnsAttribute, options?: IGetEndpointOptions): Promise<void>;
+    get(topic: UnsTopics, asset: UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: UnsAttribute, options?: IGetEndpointOptions): Promise<void>;
     post(..._args: any[]): any;
     private extractBearerToken;
     private getPublicKeyFromJwks;

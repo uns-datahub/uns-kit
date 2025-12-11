@@ -1,5 +1,7 @@
 import { IApiObject, ITopicObject, UnsEvents } from "./uns-interfaces.js";
 import { UnsEventEmitter } from "./uns-event-emitter.js";
+import { UnsAsset } from "./uns-asset.js";
+import { UnsObjectId, UnsObjectType } from "./uns-object.js";
 export default class UnsProxy {
     private publishInterval;
     event: UnsEventEmitter<UnsEvents>;
@@ -26,7 +28,7 @@ export default class UnsProxy {
      * Registers an API endpoint to handle requests for a specific topic and attribute.
      */
     protected registerApiEndpoint(apiObject: IApiObject): void;
-    protected unregisterApiEndpoint(topic: string, attribute: string): void;
+    protected unregisterApiEndpoint(topic: string, asset: UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: string): void;
     stop(): Promise<void>;
 }
 //# sourceMappingURL=uns-proxy.d.ts.map

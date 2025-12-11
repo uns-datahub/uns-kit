@@ -145,9 +145,9 @@ export interface ITopicObject {
   dataGroup:string;
   tags:string[] | null;
   attributeNeedsPersistence: boolean | null;
-  asset?: UnsAsset;
-  objectType?: UnsObjectType;
-  objectId?: UnsObjectId;
+  asset: UnsAsset;
+  objectType: UnsObjectType;
+  objectId: UnsObjectId;
 }
 
 // API Interfaces below
@@ -162,6 +162,9 @@ export interface IApiObject {
   apiSwaggerEndpoint: string; // Swagger endpoint for API documentation
   apiMethod: "GET" | "POST" | "PUT" | "DELETE"; // HTTP method for API endpoint
   apiQueryParams: QueryParamDef[]; // query parameters for the API endpoint
+  asset: UnsAsset;
+  objectType: UnsObjectType;
+  objectId: UnsObjectId;
 }
 
 export interface QueryParamDef {

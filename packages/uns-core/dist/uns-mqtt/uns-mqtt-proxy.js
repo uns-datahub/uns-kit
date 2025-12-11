@@ -324,7 +324,7 @@ export default class UnsMqttProxy extends UnsProxy {
                 objectType,
                 objectId
             });
-            const publishTopic = `${msg.topic}${objectType ? `${objectType}/` : ""}${objectId ? `${objectId}/` : ""}${msg.attribute}`;
+            const publishTopic = `${msg.topic}${asset ? `${asset}/` : ""}${objectType ? `${objectType}/` : ""}${objectId ? `${objectId}/` : ""}${msg.attribute}`;
             const sequenceId = this.currentSequenceId.get(msg.topic) ?? 0;
             this.currentSequenceId.set(msg.topic, sequenceId + 1);
             msg.packet.sequenceId = sequenceId;

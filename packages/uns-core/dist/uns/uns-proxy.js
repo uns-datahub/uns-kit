@@ -60,7 +60,7 @@ export default class UnsProxy {
      */
     registerUniqueTopic(topicObject) {
         if (this.instanceStatusTopic !== "") {
-            const fullTopic = `${topicObject.topic}${topicObject.attribute}`;
+            const fullTopic = `${topicObject.topic}${topicObject.asset}/${topicObject.objectType}/${topicObject.objectId}/${topicObject.attribute}`;
             if (!this.producedTopics.has(fullTopic)) {
                 this.producedTopics.set(fullTopic, {
                     timestamp: topicObject.timestamp,
@@ -85,7 +85,7 @@ export default class UnsProxy {
      */
     registerApiEndpoint(apiObject) {
         if (this.instanceStatusTopic !== "") {
-            const fullTopic = `${apiObject.topic}${apiObject.attribute}`;
+            const fullTopic = `${apiObject.topic}${apiObject.asset}/${apiObject.objectType}/${apiObject.objectId}/${apiObject.attribute}`;
             if (!this.producedApiEndpoints.has(fullTopic)) {
                 const time = UnsPacket.formatToISO8601(new Date());
                 this.producedApiEndpoints.set(fullTopic, {
@@ -98,15 +98,18 @@ export default class UnsProxy {
                     apiQueryParams: apiObject.apiQueryParams,
                     apiDescription: apiObject.apiDescription,
                     attributeType: apiObject.attributeType,
-                    apiSwaggerEndpoint: apiObject.apiSwaggerEndpoint
+                    apiSwaggerEndpoint: apiObject.apiSwaggerEndpoint,
+                    asset: apiObject.asset,
+                    objectType: apiObject.objectType,
+                    objectId: apiObject.objectId
                 });
                 this.emitProducedApiEndpoints();
                 logger.info(`${this.instanceNameWithSuffix} - Registered new api endpoint: /${fullTopic}`);
             }
         }
     }
-    unregisterApiEndpoint(topic, attribute) {
-        const fullTopic = `${topic}${attribute}`;
+    unregisterApiEndpoint(topic, asset, objectType, objectId, attribute) {
+        const fullTopic = `${topic}/${asset}/${objectType}/${objectId}/${attribute}`;
         if (this.producedApiEndpoints.has(fullTopic)) {
             this.producedApiEndpoints.delete(fullTopic);
             this.emitProducedApiEndpoints();
