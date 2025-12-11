@@ -12,6 +12,7 @@ import { MessageMode } from "../uns-mqtt/uns-mqtt-proxy.js";
 import { UnsPacket } from "../uns/uns-packet.js";
 import { randomUUID } from "crypto";
 import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
+import { ObjectTypes } from "../uns/uns-object.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const defaultGatewayProto = path.resolve(__dirname, "uns-gateway.proto");
@@ -176,6 +177,9 @@ export class UnsGatewayServer {
                 description,
                 tags,
                 packet,
+                asset: "meter",
+                objectType: ObjectTypes.EnergyResource,
+                objectId: "main",
                 attributeNeedsPersistence,
             };
             // delta mode if cumulative

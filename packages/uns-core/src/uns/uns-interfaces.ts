@@ -92,9 +92,9 @@ export interface IUnsCommand {
 export interface IMqttMessage {
   topic: UnsTopics;
   attribute: UnsAttribute;
-  asset?: UnsAsset;
-  objectType?: UnsObjectType;
-  objectId?: UnsObjectId;
+  asset: UnsAsset;
+  objectType: UnsObjectType;
+  objectId: UnsObjectId;
   description?: string;
   tags?: UnsTags[];
   packet: IUnsPacket;

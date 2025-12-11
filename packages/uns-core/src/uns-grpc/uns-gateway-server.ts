@@ -15,6 +15,7 @@ import { UnsPacket } from "../uns/uns-packet.js";
 import { IApiProxyOptions, IGetEndpointOptions } from "../uns/uns-interfaces.js";
 import { randomUUID } from "crypto";
 import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
+import { ObjectTypes } from "../uns/uns-object.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -218,6 +219,9 @@ export class UnsGatewayServer {
         description,
         tags,
         packet,
+        asset:"meter",
+        objectType: ObjectTypes.EnergyResource,
+        objectId: "main",
         attributeNeedsPersistence,
       };
 
