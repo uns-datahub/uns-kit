@@ -9,6 +9,8 @@ import { Connection, Client, ConnectionOptions, ClientOptions, Workflow, Workflo
 import { ITemporalTopic } from "./temporal-interfaces.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsAttributeType } from "@uns-kit/core/graphql/schema.js";
+import { ObjectTypes } from "@uns-kit/core/uns/uns-object.js";
+import { LineAttributes } from "@uns-kit/core/uns/uns-attributes.js";
 
 
 const packageJsonPath = path.join(basePath, "package.json");
@@ -57,6 +59,9 @@ export default class UnsTemporalProxy extends UnsProxy {
       const unsTopic: ITopicObject = {
         timestamp: UnsPacket.formatToISO8601(new Date()),
         topic: temporalTopic.topic,
+        asset: temporalTopic.asset,
+        objectType: temporalTopic.objectType,
+        objectId: temporalTopic.objectId,
         attribute: temporalTopic.attribute,
         attributeType: temporalTopic.attributeType,
         description: temporalTopic.description ?? "",

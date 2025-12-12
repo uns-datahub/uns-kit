@@ -43,6 +43,9 @@ export default class UnsTemporalProxy extends UnsProxy {
             const unsTopic = {
                 timestamp: UnsPacket.formatToISO8601(new Date()),
                 topic: temporalTopic.topic,
+                asset: temporalTopic.asset,
+                objectType: temporalTopic.objectType,
+                objectId: temporalTopic.objectId,
                 attribute: temporalTopic.attribute,
                 attributeType: temporalTopic.attributeType,
                 description: temporalTopic.description ?? "",
