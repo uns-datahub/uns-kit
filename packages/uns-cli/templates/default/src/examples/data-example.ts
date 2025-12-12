@@ -1,10 +1,9 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/core";
-import { DataSizeMeasurements, PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
+import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage, UnsAttribute } from "@uns-kit/core";
+import { PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
-import { UnsTags } from "@uns-kit/core/uns/uns-tags.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import { ObjectTypes } from "@uns-kit/core/uns/uns-object.js";
 import { EnergyResourceAttributes } from "@uns-kit/core/uns/uns-attributes.js";
@@ -49,19 +48,17 @@ mqttInput.event.on("input", async (event) => {
       const message: IUnsMessage = {
         data: { dataGroup, time, value: numberValue, uom: PhysicalMeasurements.None },
       };
-      const topic: UnsTopics = "acme/plant-a/hot-end/line-1/furnace-1/";
-      const objectType = ObjectTypes.EnergyResource;
-      const objectId = "main";
-      const tags: UnsTags[] = [];
-      const packet = await UnsPacket.unsPacketFromUnsMessage(message);
+      const topic: UnsTopics = "enterprise/site/area/line/";
+      const currentPacket = await UnsPacket.unsPacketFromUnsMessage(message);
       mqttOutput.publishMqttMessage({
         topic,
+        asset:"asset",
+        objectType: ObjectTypes.EnergyResource,
+        objectId: "main",
         attribute: EnergyResourceAttributes.Current,
-        packet,
-        description: "Counter",
-        objectType,
-        objectId,
-        tags
+        description: "Simulated current sensor value",
+        tags: [],
+        packet: currentPacket
       });
 
       const sensorMessage: IUnsMessage = {
@@ -70,12 +67,13 @@ mqttInput.event.on("input", async (event) => {
       const sensorPacket = await UnsPacket.unsPacketFromUnsMessage(sensorMessage);
       mqttOutput.publishMqttMessage({
         topic,
+        asset:"asset",
+        objectType: ObjectTypes.EnergyResource,
+        objectId: "main",
         attribute: EnergyResourceAttributes.Voltage,
-        packet: sensorPacket,
-        description: "Simulated sensor value",
-        objectType,
-        objectId,
-        tags,
+        description: "Simulated voltage sensor value",
+        tags: [],
+        packet: sensorPacket
       });
     }
   } catch (error) {
