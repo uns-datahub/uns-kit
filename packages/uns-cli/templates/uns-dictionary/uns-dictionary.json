@@ -1,0 +1,24 @@
+{
+  "objectTypes": {
+    "energy-resource": {
+      "description": "Energy carriers (electricity/steam/gas)"
+    },
+    "equipment": {
+      "description": "Physical equipment (machines, furnaces, sensors)"
+    },
+    "custom-object-type": {
+      "description": "Tenant-specific example"
+    }
+  },
+  "attributes": {
+    "cumulative-active-energy-delivered": {
+      "description": "Cumulative delivered active energy (kWh)"
+    },
+    "status": {
+      "description": "Generic status"
+    },
+    "custom-attribute": {
+      "description": "Tenant-specific example"
+    }
+  }
+}

@@ -40,6 +40,23 @@ pnpm run refresh-uns
 
 When configured via `uns-kit configure-codegen`, this script lives in your project `package.json` and writes into `src/uns/`.
 
+### Generate UNS dictionary (object types & attributes with descriptions)
+
+Use `packages/uns-core/src/tools/generate-uns-dictionary.ts` to turn a JSON dictionary into a TypeScript helper (with optional GraphQL overlay). Defaults:
+
+```bash
+pnpm tsx packages/uns-core/src/tools/generate-uns-dictionary.ts \ 
+  --input uns-dictionary.json \            # base JSON (optional; skipped if missing)
+  --output src/uns/uns-dictionary.generated.ts \ 
+  --from-graphql \                         # optional: fetch overlay from GraphQL
+  --priority overlay \                     # overlay wins when it has a description
+  --write-merged-json --json-out uns-dictionary.merged.json  # optional: persist merged view
+```
+
+- Reads base JSON if present; overlays GraphQL results on top (additive, per-key override).
+- Logs any additions/overrides; JSON stays untouched unless `--write-merged-json` is passed.
+- The generated TS file exports constants, description maps, and helper getters for IntelliSense and metadata emission.
+
 ### Infisical secret resolution in development
 
 - The resolver looks for `SecretResolverOptions.infisical.fetchSecret`, then `INFISICAL_TOKEN`/`INFISICAL_PERSONAL_TOKEN`, then `/run/secrets/infisical_token` (or `/var/lib/uns/secrets/infisical_token`).
