@@ -9,8 +9,11 @@ import { Connection, Client, ConnectionOptions, ClientOptions, Workflow, Workflo
 import { ITemporalTopic } from "./temporal-interfaces.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsAttributeType } from "@uns-kit/core/graphql/schema.js";
-import { ObjectTypes } from "@uns-kit/core/uns/uns-object.js";
-import { LineAttributes } from "@uns-kit/core/uns/uns-attributes.js";
+import {
+  GeneratedObjectTypes,
+  GeneratedAttributes,
+  GeneratedAttributeDescriptions,
+} from "@uns-kit/core/uns/uns-dictionary.generated.js";
 
 
 const packageJsonPath = path.join(basePath, "package.json");
