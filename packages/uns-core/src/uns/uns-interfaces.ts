@@ -93,7 +93,9 @@ export interface IMqttMessage {
   topic: UnsTopics;
   attribute: UnsAttribute;
   asset: UnsAsset;
+  assetDescription?: string;
   objectType: UnsObjectType;
+  objectTypeDescription?: string;
   objectId: UnsObjectId;
   description?: string;
   tags?: UnsTags[];
@@ -146,7 +148,9 @@ export interface ITopicObject {
   tags:string[] | null;
   attributeNeedsPersistence: boolean | null;
   asset: UnsAsset;
+  assetDescription?: string;
   objectType: UnsObjectType;
+  objectTypeDescription?: string;
   objectId: UnsObjectId;
 }
 
