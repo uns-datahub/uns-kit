@@ -23,7 +23,9 @@
     "build": "pnpm run clean && tsc -p tsconfig.json",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "generate-config-schema": "node ./node_modules/@uns-kit/core/dist/tools/generate-config-schema.js"
+    "generate-config-schema": "node ./node_modules/@uns-kit/core/dist/tools/generate-config-schema.js",
+    "refresh-uns": "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js",
+    "generate-uns-dictionary": "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-dictionary.js --input uns-dictionary.json --output src/uns/uns-dictionary.generated.ts"
   },
   "dependencies": {
     "@uns-kit/core": "__UNS_KIT_CORE_VERSION__",

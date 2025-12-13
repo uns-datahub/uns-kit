@@ -13,6 +13,7 @@ pnpm run start  # run the compiled entrypoint
 pnpm run generate-config-schema  # regenerate config.schema.json and AppConfig augmentations
 pnpm run codegen            # regenerate typed GraphQL operations (after configure-codegen)
 pnpm run refresh-uns        # rebuild UNS topics/tags from the live schema
+pnpm run generate-uns-dictionary  # generate typed object/attribute dictionary from uns-dictionary.json
 ```
 
 ## Configuration
@@ -27,6 +28,7 @@ Update `config.json` with your broker, UNS URLs, and credentials. The generated 
 - Run `uns-kit configure-devops` to add the Azure DevOps pull-request tooling.
 - Run `uns-kit configure-vscode` to copy workspace/launch configuration for VS Code.
 - Run `uns-kit configure-codegen` to scaffold GraphQL code generation and UNS refresh scripts.
+- Edit `uns-dictionary.json` (object types/attributes + descriptions) and run `pnpm run generate-uns-dictionary` to emit `src/uns/uns-dictionary.generated.ts` for IDE hints/metadata.
 - Run `uns-kit configure-api` / `configure-cron` / `configure-temporal` to pull in example stubs and install the matching UNS plugins.
 - Run `uns-kit configure-python` to copy the Python gateway client template (examples, scripts, proto).
 - Commit your new project and start building!

@@ -220,7 +220,7 @@ export class UnsGatewayServer {
         tags,
         packet,
         asset:"meter",
-        objectType: ObjectTypes.EnergyResource,
+        objectType: ObjectTypes["energy-resource"],
         objectId: "main",
         attributeNeedsPersistence,
       };
