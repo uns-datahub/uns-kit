@@ -69,9 +69,9 @@ export default class UnsProxy {
       const fullTopic = `${topicObject.topic}${topicObject.asset}/${topicObject.objectType}/${topicObject.objectId}/${topicObject.attribute}`;
       if (!this.producedTopics.has(fullTopic)) {
         this.producedTopics.set(fullTopic, {
-          timestamp: topicObject.timestamp,
-          topic: topicObject.topic,
-          attribute: topicObject.attribute,
+        timestamp: topicObject.timestamp,
+        topic: topicObject.topic,
+        attribute: topicObject.attribute,
         attributeType: topicObject.attributeType,
         description: topicObject.description,
         tags: topicObject.tags,

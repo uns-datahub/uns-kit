@@ -297,7 +297,11 @@ async function writeDictionaryTs(dictionary: UnsDictionary, filePath: string, la
 
   const renderRecord = (entries: [string, DictionaryEntry][]) =>
     entries
-      .map(([name]) => `  "${name}": "${name}",`)
+      .map(([name, entry]) => {
+        const desc = resolveDescription(entry, lang);
+        const doc = desc ? `  /** ${desc} */\n` : "";
+        return `${doc}  "${name}": "${name}",`;
+      })
       .join("\n");
 
   const renderDescriptions = (entries: [string, DictionaryEntry][]) =>

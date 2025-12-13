@@ -1,16 +1,28 @@
 /* Stub dictionary. Regenerate via generate-uns-dictionary.ts if you want to override. */
 export const GeneratedObjectTypes = {
+  /** Fizična oprema (stroji, peči, senzorji). Uporablja se za spremljanje stanja, meritev in dogodkov. */
   "equipment": "equipment",
+  /** Materialne enote (loti, serije, surovine, polizdelki). Za sledljivost, količine in premike. */
   "material": "material",
+  /** Osebje (operaterji, nadzorniki, tehnologi). Za prisotnost, naloge in status. */
   "personnel": "personnel",
+  /** Posamezen korak v procesu (npr. valjanje, hlajenje, analiza). Za faze ali aktivnosti procesa. */
   "process-segment": "process-segment",
+  /** Definicija izdelka, recepture, tehnični opisi. Za metapodatke izdelka in revizije. */
   "product-definition": "product-definition",
+  /** Kazalniki kakovosti izdelka (odstopanja, ocene, rezultati meritev). */
   "product-quality": "product-quality",
+  /** Definicija nalog ali delovnih tokov. Za planirane operacije in navodila. */
   "work-definition": "work-definition",
+  /** Status kateregakoli vira (material, osebje, oprema). Za razpoložljivost, okvare, izrabo. */
   "resource-status": "resource-status",
+  /** Energija (elektrika, para, plin). */
   "energy-resource": "energy-resource",
+  /** Utility viri (voda, zrak, dušik, stisnjeni plini). */
   "utility-resource": "utility-resource",
+  /** Tekočine in plini, ki niso energenti. */
   "fluid-resource": "fluid-resource",
+  /** Maziva, olja, čistila, ki se porabijo in niso del izdelka. */
   "consumable-resource": "consumable-resource",
 } as const;
 
@@ -30,65 +42,125 @@ export const GeneratedObjectTypeDescriptions: Record<keyof typeof GeneratedObjec
 };
 
 export const GeneratedAttributes = {
+  /** Trenutno stanje vira ali opreme. */
   "status": "status",
+  /** Temperatura vira/opreme. */
   "temperature": "temperature",
+  /** Merjena vibracija. */
   "vibration": "vibration",
+  /** Število obratovalnih ur. */
   "operating-hours": "operating-hours",
+  /** Koda napake. */
   "fault-code": "fault-code",
+  /** Hitrost delovanja. */
   "speed": "speed",
+  /** Poraba energije. */
   "energy-consumption": "energy-consumption",
+  /** Identifikator lota. */
   "lot-id": "lot-id",
+  /** Številka serije (batch). */
   "batch-number": "batch-number",
+  /** Tip materiala. */
   "material-type": "material-type",
+  /** Količina materiala. */
   "quantity": "quantity",
+  /** Lokacija materiala ali opreme. */
   "location": "location",
+  /** Prisotnost osebja. */
   "presence": "presence",
+  /** Identifikator naloge. */
   "task-id": "task-id",
+  /** Vloga osebja. */
   "role": "role",
+  /** Nivo pooblastil. */
   "authorization-level": "authorization-level",
+  /** Čas začetka. */
   "start-time": "start-time",
+  /** Čas zaključka. */
   "end-time": "end-time",
+  /** Trajanje faze ali naloge. */
   "duration": "duration",
+  /** Izhodna količina. */
   "output-quantity": "output-quantity",
+  /** Identifikator operaterja. */
   "operator-id": "operator-id",
+  /** Koda izdelka. */
   "product-code": "product-code",
+  /** Revizija izdelka. */
   "revision": "revision",
+  /** Tehnične specifikacije. */
   "specification": "specification",
+  /** Ciljni parametri izdelka ali procesa. */
   "target-parameters": "target-parameters",
+  /** Sestava materiala. */
   "material-composition": "material-composition",
+  /** Zgodovina verzij. */
   "version-history": "version-history",
+  /** Rezultat pregleda. */
   "inspection-result": "inspection-result",
+  /** Odstopanje od specifikacije. */
   "deviation": "deviation",
+  /** Uspešno/neuspešno (pass/fail). */
   "pass-fail": "pass-fail",
+  /** Površinska napaka. */
   "surface-defect": "surface-defect",
+  /** Trdota materiala. */
   "hardness": "hardness",
+  /** Natezna trdnost. */
   "tensile-strength": "tensile-strength",
+  /** Identifikator delovnega naloga. */
   "work-order-id": "work-order-id",
+  /** Seznam nalog. */
   "task-list": "task-list",
+  /** Planirani začetek. */
   "planned-start": "planned-start",
+  /** Planirani zaključek. */
   "planned-end": "planned-end",
+  /** Dodeljeno osebi ali ekipi. */
   "assigned-to": "assigned-to",
+  /** Povezava do navodil. */
   "instruction-url": "instruction-url",
+  /** Razpoložljivost vira. */
   "availability": "availability",
+  /** Izraba vira. */
   "utilization": "utilization",
+  /** Zastoj/izpad. */
   "downtime": "downtime",
+  /** Stanje vzdrževanja. */
   "maintenance-status": "maintenance-status",
+  /** Moč. */
   "power": "power",
+  /** Energija. */
   "energy": "energy",
+  /** Napetost. */
   "voltage": "voltage",
+  /** Tok. */
   "current": "current",
+  /** Frekvenca. */
   "frequency": "frequency",
+  /** Strošek. */
   "cost": "cost",
+  /** Tlak. */
   "pressure": "pressure",
+  /** Pretok. */
   "flow": "flow",
+  /** Poraba. */
   "consumption": "consumption",
+  /** Alarmni signal. */
   "alarm": "alarm",
+  /** Skupni pretok. */
   "total-flow": "total-flow",
+  /** Prevodnost. */
   "conductivity": "conductivity",
+  /** pH vrednost. */
   "ph": "ph",
+  /** Nivo zaloge ali rezervoarja. */
   "level": "level",
+  /** Hitrost porabe. */
   "consumption-rate": "consumption-rate",
+  /** Potrebno dolivanje/dopolnitev. */
   "refill-required": "refill-required",
+  /** Zadnje polnjenje. */
   "last-refill": "last-refill",
 } as const;
 

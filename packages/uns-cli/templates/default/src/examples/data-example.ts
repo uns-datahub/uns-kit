@@ -53,11 +53,15 @@ mqttInput.event.on("input", async (event) => {
         data: { dataGroup, time, value: numberValue, uom: PhysicalMeasurements.None },
       };
       const topic: UnsTopics = "enterprise/site/area/line/";
+      const asset = "asset";
+      const assetDescription = "Sample asset";
       const currentPacket = await UnsPacket.unsPacketFromUnsMessage(message);
       mqttOutput.publishMqttMessage({
         topic,
-        asset:"asset",
+        asset,
+        assetDescription,
         objectType: GeneratedObjectTypes["energy-resource"],
+        objectTypeDescription: GeneratedObjectTypes["energy-resource"],
         objectId: "main",
         attribute: GeneratedAttributes["current"] ?? "current",
         description: GeneratedAttributeDescriptions["current"] ?? "Simulated current sensor value",
@@ -71,8 +75,10 @@ mqttInput.event.on("input", async (event) => {
       const sensorPacket = await UnsPacket.unsPacketFromUnsMessage(sensorMessage);
       mqttOutput.publishMqttMessage({
         topic,
-        asset:"asset",
+        asset,
+        assetDescription,
         objectType: GeneratedObjectTypes["energy-resource"],
+        objectTypeDescription: GeneratedObjectTypeDescriptions["energy-resource"],
         objectId: "main",
         attribute: GeneratedAttributes["voltage"] ?? "voltage",
         description: GeneratedAttributeDescriptions["voltage"] ?? "Simulated voltage sensor value",
