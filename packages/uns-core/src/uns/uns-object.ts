@@ -67,3 +67,29 @@ export type UnsObjectType = "" | KnownUnsObjectTypeName | (string & {});
 
 // Default object id is "main" when none is provided.
 export type UnsObjectId = "main" | "" | (string & {});
+
+// Runtime descriptions mirrored from the JSDoc above for easy lookup and metadata emission.
+export const ObjectTypeDescriptions: Record<KnownUnsObjectTypeName, string> = {
+  equipment: "Physical equipment (machines, furnaces, sensors)",
+  material: "Material lots/batches/raw materials",
+  personnel: "Operators/supervisors/technologists",
+  "process-segment": "Process step or activity (e.g., rolling, cooling)",
+  "product-definition": "Product specs/recipes/definitions",
+  "product-quality": "Quality indicators/results for a product",
+  "work-definition": "Work/task definitions or workflows",
+  "resource-status": "Status of any resource (material/personnel/equipment)",
+  "energy-resource": "Energy carriers (electricity/steam/gas)",
+  "utility-resource": "Utilities (water/air/nitrogen/etc.)",
+  "fluid-resource": "Fluids/gases (non-energy) used in process",
+  "consumable-resource": "Consumables (lubricants/cleaners)",
+  line: "Production line/work unit",
+  area: "Area/department within a site",
+  site: "Plant/site identifier",
+  enterprise: "Enterprise/company identifier",
+  asset: "Generic asset placeholder",
+  sensor: "Sensor as a distinct object",
+};
+
+export function getObjectTypeDescription(objectType: UnsObjectType): string | undefined {
+  return ObjectTypeDescriptions[objectType as KnownUnsObjectTypeName];
+}
