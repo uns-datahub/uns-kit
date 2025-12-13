@@ -311,17 +311,20 @@ export default class UnsMqttProxy extends UnsProxy {
             const { objectType, objectId, asset } = this.resolveObjectIdentity(msg);
             const normalizedTopic = this.normalizeTopicWithObject(msg.topic);
             msg.topic = normalizedTopic;
+            const description = msg.description ?? "";
             this.registerUniqueTopic({
                 timestamp: time,
                 topic: msg.topic,
                 attribute: msg.attribute,
                 attributeType: attributeType,
-                description: msg.description,
+                description,
                 tags: msg.tags,
                 attributeNeedsPersistence: msg.attributeNeedsPersistence,
                 dataGroup,
                 asset,
+                assetDescription: msg.assetDescription,
                 objectType,
+                objectTypeDescription: msg.objectTypeDescription,
                 objectId
             });
             const publishTopic = `${msg.topic}${asset ? `${asset}/` : ""}${objectType ? `${objectType}/` : ""}${objectId ? `${objectId}/` : ""}${msg.attribute}`;

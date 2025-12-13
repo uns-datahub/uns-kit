@@ -72,7 +72,9 @@ export default class UnsProxy {
                     attributeNeedsPersistence: topicObject.attributeNeedsPersistence ?? true,
                     dataGroup: topicObject.dataGroup ?? "",
                     asset: topicObject.asset,
+                    assetDescription: topicObject.assetDescription,
                     objectType: topicObject.objectType,
+                    objectTypeDescription: topicObject.objectTypeDescription,
                     objectId: topicObject.objectId
                 });
                 this.emitProducedTopics();

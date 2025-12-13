@@ -49,6 +49,7 @@ pnpm tsx packages/uns-core/src/tools/generate-uns-dictionary.ts \
   --input uns-dictionary.json \            # base JSON (optional; skipped if missing)
   --output src/uns/uns-dictionary.generated.ts \ 
   --from-graphql \                         # optional: fetch overlay from GraphQL
+  --lang sl \                              # pick language code from descriptions
   --priority overlay \                     # overlay wins when it has a description
   --write-merged-json --json-out uns-dictionary.merged.json  # optional: persist merged view
 ```

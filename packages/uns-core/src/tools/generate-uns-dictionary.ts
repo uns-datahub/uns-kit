@@ -22,7 +22,10 @@ import { GraphQLClient, ClientError, gql } from "graphql-request";
 import { ConfigFile } from "../config-file.js";
 import { AuthClient } from "./auth/index.js";
 
-type DictionaryEntry = { description?: string | null };
+type DictionaryEntry = {
+  description?: string | null;
+  descriptions?: Record<string, string | null | undefined>;
+};
 type UnsDictionary = {
   objectTypes?: Record<string, DictionaryEntry>;
   attributes?: Record<string, DictionaryEntry>;
@@ -36,6 +39,7 @@ type CliArgs = {
   queryFile?: string;
   writeMergedJson: boolean;
   priority: "overlay" | "base";
+  lang: string;
 };
 
 const DEFAULT_INPUT = "uns-dictionary.json";
@@ -50,7 +54,7 @@ async function main(): Promise<void> {
     ? await fetchDictionaryFromGraphql(args.queryFile)
     : {};
 
-  const { merged, differences } = mergeDictionaries(baseDictionary, overlayDictionary, args.priority);
+  const { merged, differences } = mergeDictionaries(baseDictionary, overlayDictionary, args.priority, args.lang);
 
   if (differences.length) {
     console.log("Overlay changes applied:");
@@ -66,7 +70,7 @@ async function main(): Promise<void> {
     await writeJson(merged, args.jsonOut);
   }
 
-  await writeDictionaryTs(merged, args.output);
+  await writeDictionaryTs(merged, args.output, args.lang);
   console.log(`Generated dictionary -> ${args.output}`);
 }
 
@@ -78,6 +82,7 @@ function parseArgs(argv: string[]): CliArgs {
   let queryFile: string | undefined;
   let writeMergedJson = false;
   let priority: "overlay" | "base" = "overlay";
+  let lang = "sl";
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -113,6 +118,10 @@ function parseArgs(argv: string[]): CliArgs {
       priority = val;
       continue;
     }
+    if (arg === "--lang" && argv[i + 1]) {
+      lang = argv[++i];
+      continue;
+    }
     if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
@@ -120,7 +129,7 @@ function parseArgs(argv: string[]): CliArgs {
     throw new Error(`Unknown argument: ${arg}`);
   }
 
-  return { input, output, jsonOut, fromGraphql, queryFile, writeMergedJson, priority };
+  return { input, output, jsonOut, fromGraphql, queryFile, writeMergedJson, priority, lang };
 }
 
 function printHelp(): void {
@@ -134,6 +143,7 @@ Options:
   --from-graphql        Fetch dictionary from GraphQL instead of reading local JSON
   --query-file <file>   Optional .graphql/.gql file to override the default query
   --priority <p>        Merge priority: "overlay" (default) or "base" (keep base descriptions)
+  --lang <code>         Preferred description language code (default: "sl")
   --help, -h            Show this help
 `);
 }
@@ -224,7 +234,15 @@ async function writeJson(dictionary: UnsDictionary, filePath: string): Promise<v
 
 type Diff = { section: "objectTypes" | "attributes"; key: string; from?: string; to?: string };
 
-function mergeDictionaries(base: UnsDictionary, overlay: UnsDictionary, priority: "overlay" | "base"): { merged: UnsDictionary; differences: Diff[] } {
+const resolveDescription = (entry: DictionaryEntry | undefined, lang: string): string | undefined => {
+  if (!entry) return undefined;
+  const byLang = entry.descriptions?.[lang];
+  if (byLang && byLang.length > 0) return byLang;
+  if (entry.description && entry.description.length > 0) return entry.description;
+  return undefined;
+};
+
+function mergeDictionaries(base: UnsDictionary, overlay: UnsDictionary, priority: "overlay" | "base", lang: string): { merged: UnsDictionary; differences: Diff[] } {
   const differences: Diff[] = [];
 
   const mergeSection = (
@@ -234,21 +252,33 @@ function mergeDictionaries(base: UnsDictionary, overlay: UnsDictionary, priority
   ) => {
     const result: Record<string, DictionaryEntry> = { ...baseSection };
     for (const [key, value] of Object.entries(overlaySection)) {
-      if (!result[key]) {
-        result[key] = { description: value.description ?? undefined };
-        differences.push({ section, key, from: undefined, to: value.description ?? "" });
+      const baseEntry = result[key];
+      const mergedEntry: DictionaryEntry = {
+        ...(baseEntry ?? {}),
+        descriptions: { ...(baseEntry?.descriptions ?? {}), ...(value.descriptions ?? {}) },
+      };
+
+      if (value.description !== undefined) {
+        mergedEntry.description = value.description ?? undefined;
+      }
+
+      if (!baseEntry) {
+        result[key] = mergedEntry;
+        const toDesc = resolveDescription(mergedEntry, lang) ?? "";
+        differences.push({ section, key, from: undefined, to: toDesc });
         continue;
       }
-      // If overlay has a non-empty description, override; otherwise keep base description.
-      const overlayDesc = value.description;
-      const baseDesc = result[key].description;
+
+      const baseDesc = resolveDescription(baseEntry, lang);
+      const overlayDesc = resolveDescription(value, lang);
       const shouldOverride = priority === "overlay" && overlayDesc && overlayDesc.length > 0;
+
       if (shouldOverride && overlayDesc !== baseDesc) {
         differences.push({ section, key, from: baseDesc ?? "", to: overlayDesc });
-        result[key] = { description: overlayDesc };
-      } else {
-        result[key] = { description: baseDesc };
+        // mergedEntry already contains overlay descriptions; resolved value will pick it up.
       }
+
+      result[key] = mergedEntry;
     }
     return result;
   };
@@ -261,7 +291,7 @@ function mergeDictionaries(base: UnsDictionary, overlay: UnsDictionary, priority
   return { merged, differences };
 }
 
-async function writeDictionaryTs(dictionary: UnsDictionary, filePath: string): Promise<void> {
+async function writeDictionaryTs(dictionary: UnsDictionary, filePath: string, lang: string): Promise<void> {
   const objectTypeEntries = Object.entries(dictionary.objectTypes ?? {});
   const attributeEntries = Object.entries(dictionary.attributes ?? {});
 
@@ -272,7 +302,7 @@ async function writeDictionaryTs(dictionary: UnsDictionary, filePath: string): P
 
   const renderDescriptions = (entries: [string, DictionaryEntry][]) =>
     entries
-      .map(([name, value]) => `  "${name}": ${JSON.stringify(value.description ?? "")},`)
+      .map(([name, value]) => `  "${name}": ${JSON.stringify(resolveDescription(value, lang) ?? "")},`)
       .join("\n");
 
   const objectTypeConst = `export const GeneratedObjectTypes = {\n${renderRecord(objectTypeEntries)}\n} as const;`;
