@@ -5,8 +5,11 @@
 import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/core";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
-import { ObjectTypes } from "@uns-kit/core/uns/uns-object.js";
-import { LineAttributes } from "@uns-kit/core/uns/uns-attributes.js";
+import {
+  GeneratedObjectTypes,
+  GeneratedAttributes,
+  GeneratedAttributeDescriptions,
+} from "../uns/uns-dictionary.generated.js";
 
 /**
  * Load the configuration from a file.
@@ -59,10 +62,10 @@ mqttInput.event.on("input", async (event) => {
       mqttOutput.publishMqttMessage({
         topic,
         asset:"asset",
-        objectType: ObjectTypes.Line,
+        objectType: GeneratedObjectTypes["line"] ?? "line",
         objectId: "main",
-        attribute: LineAttributes.Status,
-        description: "Table",
+        attribute: GeneratedAttributes["status"] ?? "status",
+        description: GeneratedAttributeDescriptions["status"] ?? "Table",
         tags: [],
         packet,
       });
