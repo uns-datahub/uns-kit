@@ -62,7 +62,7 @@ mqttInput.event.on("input", async (event) => {
       mqttOutput.publishMqttMessage({
         topic,
         asset:"asset",
-        objectType: GeneratedObjectTypes["line"] ?? "line",
+        objectType: "line",
         objectId: "main",
         attribute: GeneratedAttributes["status"] ?? "status",
         description: GeneratedAttributeDescriptions["status"] ?? "Table",
