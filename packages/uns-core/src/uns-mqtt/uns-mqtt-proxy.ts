@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import { basePath } from "../base-path.js";
 import logger from "../logger.js";
 import { IMqttMessage, IUnsPacket, IUnsParameters, UnsEvents, ValueType } from "../uns/uns-interfaces.js";
-import type { UnsObjectId, UnsObjectType } from "../uns/uns-object.js";
+import { getObjectTypeDescription, type UnsObjectId, type UnsObjectType } from "../uns/uns-object.js";
 import type { UnsAsset } from "../uns/uns-asset.js";
 import { MeasurementUnit } from "../uns/uns-measurements.js";
 import { UnsPacket } from "../uns/uns-packet.js";
@@ -14,6 +14,7 @@ import { IMqttParameters, IMqttWorkerData } from "./mqtt-interfaces.js";
 import { MqttTopicBuilder } from "./mqtt-topic-builder.js";
 import UnsProxy from "../uns/uns-proxy.js";
 import { UnsAttributeType } from "../graphql/schema.js";
+import { getAttributeDescription } from "../uns/uns-attributes.js";
 
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
@@ -358,7 +359,8 @@ export default class UnsMqttProxy extends UnsProxy {
       const { objectType, objectId, asset } = this.resolveObjectIdentity(msg);
       const normalizedTopic = this.normalizeTopicWithObject(msg.topic);
       msg.topic = normalizedTopic;
-      const description = msg.description ?? "";
+      const description = msg.description ?? getAttributeDescription(msg.attribute as string) ?? "";
+      const objectTypeDescription = msg.objectTypeDescription ?? (objectType ? getObjectTypeDescription(objectType) : undefined);
 
       this.registerUniqueTopic({
         timestamp: time,
@@ -372,7 +374,7 @@ export default class UnsMqttProxy extends UnsProxy {
         asset,
         assetDescription: msg.assetDescription,
         objectType,
-        objectTypeDescription: msg.objectTypeDescription,
+        objectTypeDescription,
         objectId
       });
 

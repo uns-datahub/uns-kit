@@ -4,10 +4,12 @@ import { Worker } from "worker_threads";
 import { fileURLToPath } from "url";
 import { basePath } from "../base-path.js";
 import logger from "../logger.js";
+import { getObjectTypeDescription } from "../uns/uns-object.js";
 import { UnsPacket } from "../uns/uns-packet.js";
 import { MqttTopicBuilder } from "./mqtt-topic-builder.js";
 import UnsProxy from "../uns/uns-proxy.js";
 import { UnsAttributeType } from "../graphql/schema.js";
+import { getAttributeDescription } from "../uns/uns-attributes.js";
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -311,7 +313,8 @@ export default class UnsMqttProxy extends UnsProxy {
             const { objectType, objectId, asset } = this.resolveObjectIdentity(msg);
             const normalizedTopic = this.normalizeTopicWithObject(msg.topic);
             msg.topic = normalizedTopic;
-            const description = msg.description ?? "";
+            const description = msg.description ?? getAttributeDescription(msg.attribute) ?? "";
+            const objectTypeDescription = msg.objectTypeDescription ?? (objectType ? getObjectTypeDescription(objectType) : undefined);
             this.registerUniqueTopic({
                 timestamp: time,
                 topic: msg.topic,
@@ -324,7 +327,7 @@ export default class UnsMqttProxy extends UnsProxy {
                 asset,
                 assetDescription: msg.assetDescription,
                 objectType,
-                objectTypeDescription: msg.objectTypeDescription,
+                objectTypeDescription,
                 objectId
             });
             const publishTopic = `${msg.topic}${asset ? `${asset}/` : ""}${objectType ? `${objectType}/` : ""}${objectId ? `${objectId}/` : ""}${msg.attribute}`;

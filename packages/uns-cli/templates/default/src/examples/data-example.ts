@@ -5,12 +5,7 @@ import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/
 import { PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
-import {
-  GeneratedObjectTypes,
-  GeneratedObjectTypeDescriptions,
-  GeneratedAttributeDescriptions,
-  GeneratedAttributes,
-} from "../uns/uns-dictionary.generated.js";
+import { GeneratedObjectTypes, GeneratedAttributes } from "../uns/uns-dictionary.generated.js";
 
 /**
  * Load the configuration from a file.
@@ -61,10 +56,8 @@ mqttInput.event.on("input", async (event) => {
         asset,
         assetDescription,
         objectType: GeneratedObjectTypes["energy-resource"],
-        objectTypeDescription: GeneratedObjectTypes["energy-resource"],
         objectId: "main",
         attribute: GeneratedAttributes["current"] ?? "current",
-        description: GeneratedAttributeDescriptions["current"] ?? "Simulated current sensor value",
         tags: [],
         packet: currentPacket
       });
@@ -78,10 +71,8 @@ mqttInput.event.on("input", async (event) => {
         asset,
         assetDescription,
         objectType: GeneratedObjectTypes["energy-resource"],
-        objectTypeDescription: GeneratedObjectTypeDescriptions["energy-resource"],
         objectId: "main",
         attribute: GeneratedAttributes["voltage"] ?? "voltage",
-        description: GeneratedAttributeDescriptions["voltage"] ?? "Simulated voltage sensor value",
         tags: [],
         packet: sensorPacket
       });
