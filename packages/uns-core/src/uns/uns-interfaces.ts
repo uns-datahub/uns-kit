@@ -103,6 +103,32 @@ export interface IMqttMessage {
   attributeNeedsPersistence?: boolean | null;
 }
 
+export interface IMqttAttributeMessage {
+  attribute: UnsAttribute;
+  description?: string;
+  tags?: UnsTags[];
+  attributeNeedsPersistence?: boolean | null;
+}
+
+type AttributePayload =
+  | { message: IUnsMessage; data?: never; event?: never; table?: never; command?: never; createdAt?: never; expiresAt?: never }
+  | { message?: never; data: IUnsData; event?: never; table?: never; command?: never; createdAt?: ISO8601; expiresAt?: ISO8601 }
+  | { message?: never; data?: never; event: IUnsEvent; table?: never; command?: never; createdAt?: ISO8601; expiresAt?: ISO8601 }
+  | { message?: never; data?: never; event?: never; table: IUnsTable; command?: never; createdAt?: ISO8601; expiresAt?: ISO8601 }
+  | { message?: never; data?: never; event?: never; table?: never; command: IUnsCommand; createdAt?: ISO8601; expiresAt?: ISO8601 };
+
+export type IMqttAttributeEntry = IMqttAttributeMessage & AttributePayload;
+
+export interface IMqttMultiMessage {
+  topic: UnsTopics;
+  asset: UnsAsset;
+  assetDescription?: string;
+  objectType: UnsObjectType;
+  objectTypeDescription?: string;
+  objectId: UnsObjectId;
+  attributes: IMqttAttributeEntry[];
+}
+
 // This interface represents a packet for a UNS system
 export interface IUnsPacket {
   // The message object of the packet

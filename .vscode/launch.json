@@ -198,14 +198,14 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "sandbox-app: cli configure-uns-dictionary",
+      "name": "sandbox-app: cli configure-uns-reference",
       "runtimeArgs": [
         "--enable-source-maps",
         "--import",
         "tsx",
       ],
       "program": "${workspaceFolder}/packages/uns-cli/src/index.ts",
-      "args": ["configure-uns-dictionary", "sandbox-app"],
+      "args": ["configure-uns-reference", "sandbox-app"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
@@ -246,7 +246,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "sandbox-app: core refresh-uns",
+      "name": "sandbox-app: core generate-uns-topics-tags",
       "runtimeArgs": [
         "--enable-source-maps",
         "--import",

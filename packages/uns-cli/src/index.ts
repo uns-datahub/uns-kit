@@ -128,10 +128,10 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (command === "configure-uns-dictionary") {
+  if (command === "configure-uns-reference") {
     const targetPath = args[1];
     try {
-      await configureUnsDictionary(targetPath);
+      await configureUnsReference(targetPath);
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -176,7 +176,7 @@ function printHelp(): void {
     "  configure-cron [dir]    Copy UNS cron examples and add @uns-kit/cron\n" +
     "  configure-temporal [dir] Copy UNS Temporal examples and add @uns-kit/temporal\n" +
     "  configure-python [dir]   Copy Python gateway client scaffolding\n" +
-    "  configure-uns-dictionary [dir]  Copy UNS dictionary example (object/attribute metadata)\n" +
+    "  configure-uns-reference [dir]  Copy UNS dictionaries (objects/attributes/measurements)\n" +
     "  help                    Show this message\n",
   );
 }
@@ -634,11 +634,16 @@ async function configurePython(targetPath?: string): Promise<void> {
   });
 }
 
-async function configureUnsDictionary(targetPath?: string): Promise<void> {
+async function configureUnsReference(targetPath?: string): Promise<void> {
   await configurePlugin({
     targetPath,
     templateName: "uns-dictionary",
     label: "UNS dictionary (object/attribute metadata)",
+  });
+  await configurePlugin({
+    targetPath,
+    templateName: "uns-measurements",
+    label: "UNS measurements (units)",
   });
 }
 
@@ -651,7 +656,7 @@ const configureFeatureHandlers = {
   cron: configureCron,
   temporal: configureTemporal,
   python: configurePython,
-  "uns-dictionary": configureUnsDictionary,
+  "uns-reference": configureUnsReference,
 } as const;
 
 type ConfigureFeatureName = keyof typeof configureFeatureHandlers;
@@ -667,7 +672,7 @@ const configureFeatureLabels: Record<ConfigureFeatureName, string> = {
   cron: "UNS cron resources",
   temporal: "UNS Temporal resources",
   python: "Python client scaffolding",
-  "uns-dictionary": "UNS dictionary (object/attribute metadata)",
+  "uns-reference": "UNS dictionaries (objects/attributes/measurements)",
 };
 
 type ConfigureCommandOptions = {
@@ -758,8 +763,8 @@ const configureFeatureAliases: Record<string, ConfigureFeatureName> = {
   "configure-temporal": "temporal",
   python: "python",
   "configure-python": "python",
-  "uns-dictionary": "uns-dictionary",
-  "configure-uns-dictionary": "uns-dictionary",
+  "uns-reference": "uns-reference",
+  "configure-uns-reference": "uns-reference",
 };
 
 function resolveConfigureFeatureName(input: unknown): ConfigureFeatureName {

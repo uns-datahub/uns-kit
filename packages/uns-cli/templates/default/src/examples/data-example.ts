@@ -1,8 +1,8 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/core";
-import { PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
+import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
+import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import { GeneratedObjectTypes, GeneratedAttributes } from "../uns/uns-dictionary.generated.js";
@@ -44,37 +44,26 @@ mqttInput.event.on("input", async (event) => {
 
       const dataGroup = "sensor";
 
-      const message: IUnsMessage = {
-        data: { dataGroup, time, value: numberValue, uom: PhysicalMeasurements.None },
-      };
       const topic: UnsTopics = "enterprise/site/area/line/";
       const asset = "asset";
       const assetDescription = "Sample asset";
-      const currentPacket = await UnsPacket.unsPacketFromUnsMessage(message);
-      mqttOutput.publishMqttMessage({
-        topic,
-        asset,
-        assetDescription,
-        objectType: GeneratedObjectTypes["energy-resource"],
-        objectId: "main",
-        attribute: GeneratedAttributes["current"] ?? "current",
-        tags: [],
-        packet: currentPacket
-      });
 
-      const sensorMessage: IUnsMessage = {
-        data: { dataGroup, time, value: sensorValue, uom: PhysicalMeasurements.Celsius },
-      };
-      const sensorPacket = await UnsPacket.unsPacketFromUnsMessage(sensorMessage);
       mqttOutput.publishMqttMessage({
         topic,
         asset,
         assetDescription,
         objectType: GeneratedObjectTypes["energy-resource"],
         objectId: "main",
-        attribute: GeneratedAttributes["voltage"] ?? "voltage",
-        tags: [],
-        packet: sensorPacket
+        attributes: [
+          {
+            attribute: GeneratedAttributes["current"] ?? "current",
+            data: { dataGroup, time, value: numberValue, uom: GeneratedPhysicalMeasurements.Ampere },
+          },
+          {
+            attribute: GeneratedAttributes["voltage"] ?? "voltage",
+            data: { dataGroup, time, value: sensorValue, uom: GeneratedPhysicalMeasurements.Volt },
+          },
+        ],
       });
     }
   } catch (error) {

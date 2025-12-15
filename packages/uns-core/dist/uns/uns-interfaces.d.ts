@@ -100,6 +100,63 @@ export interface IMqttMessage {
     packet: IUnsPacket;
     attributeNeedsPersistence?: boolean | null;
 }
+export interface IMqttAttributeMessage {
+    attribute: UnsAttribute;
+    description?: string;
+    tags?: UnsTags[];
+    attributeNeedsPersistence?: boolean | null;
+}
+type AttributePayload = {
+    message: IUnsMessage;
+    data?: never;
+    event?: never;
+    table?: never;
+    command?: never;
+    createdAt?: never;
+    expiresAt?: never;
+} | {
+    message?: never;
+    data: IUnsData;
+    event?: never;
+    table?: never;
+    command?: never;
+    createdAt?: ISO8601;
+    expiresAt?: ISO8601;
+} | {
+    message?: never;
+    data?: never;
+    event: IUnsEvent;
+    table?: never;
+    command?: never;
+    createdAt?: ISO8601;
+    expiresAt?: ISO8601;
+} | {
+    message?: never;
+    data?: never;
+    event?: never;
+    table: IUnsTable;
+    command?: never;
+    createdAt?: ISO8601;
+    expiresAt?: ISO8601;
+} | {
+    message?: never;
+    data?: never;
+    event?: never;
+    table?: never;
+    command: IUnsCommand;
+    createdAt?: ISO8601;
+    expiresAt?: ISO8601;
+};
+export type IMqttAttributeEntry = IMqttAttributeMessage & AttributePayload;
+export interface IMqttMultiMessage {
+    topic: UnsTopics;
+    asset: UnsAsset;
+    assetDescription?: string;
+    objectType: UnsObjectType;
+    objectTypeDescription?: string;
+    objectId: UnsObjectId;
+    attributes: IMqttAttributeEntry[];
+}
 export interface IUnsPacket {
     message: IUnsExtendedMessage;
     messageSignature?: string;
@@ -170,4 +227,5 @@ export interface IGetEndpointOptions {
     tags?: string[];
     queryParams?: QueryParamDef[];
 }
+export {};
 //# sourceMappingURL=uns-interfaces.d.ts.map

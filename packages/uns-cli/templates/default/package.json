@@ -24,8 +24,10 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "generate-config-schema": "node ./node_modules/@uns-kit/core/dist/tools/generate-config-schema.js",
-    "refresh-uns": "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js",
-    "generate-uns-dictionary": "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-dictionary.js --input uns-dictionary.json --output src/uns/uns-dictionary.generated.ts"
+    "generate-uns-topics-tags": "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js",
+    "generate-uns-dictionary": "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-dictionary.js --input uns-dictionary.json --output src/uns/uns-dictionary.generated.ts",
+    "generate-uns-measurements": "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-measurements.js --input uns-measurements.json --output src/uns/uns-measurements.generated.ts",
+    "generate-uns-reference": "pnpm generate-uns-dictionary && pnpm generate-uns-measurements"
   },
   "dependencies": {
     "@uns-kit/core": "__UNS_KIT_CORE_VERSION__",

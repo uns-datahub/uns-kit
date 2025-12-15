@@ -1,96 +1,100 @@
-export type MeasurementUnit = PhysicalMeasurements | DataSizeMeasurements | (string & {});
-export declare enum DataSizeMeasurements {
-    Bit = "bit",
-    Byte = "B",
-    KiloByte = "kB",
-    MegaByte = "MB",
-    GigaByte = "GB",
-    TeraByte = "TB",
-    PetaByte = "PB",
-    ExaByte = "EB",
-    ZettaByte = "ZB",
-    YottaByte = "YB"
-}
-export declare enum CounterMeasurements {
-    Kilo = "k",
-    Mega = "M",
-    Giga = "G"
-}
-export declare enum PhysicalMeasurements {
-    None = "",
-    MiliMeter = "mm",
-    Meter = "m",
-    KiloMeter = "km",
-    Feet = "ft",
-    Second = "s",
-    Minute = "min",
-    Hour = "h",
-    Day = "day",
-    Hertz = "Hz",
-    CubicMeter = "m^3",
-    Liter = "l",
-    Gallon = "gal",
-    Psi = "psi",
-    Pascal = "Pa",
-    Bar = "bar",
-    Celsius = "\u00B0C",
-    Fahrenheit = "\u00B0F",
-    Kelvin = "K",
-    Milijoule = "mJ",
-    Joule = "J",
-    Kilojoule = "kJ",
-    Megajoule = "MJ",
-    Gigajoule = "GJ",
-    Terajoule = "TJ",
-    Newton = "N",
-    Bit = "bit",
-    Byte = "byte",
-    B = "B",
-    MilimeterPerSecond = "mm/s",
-    MeterPerSecond = "m/s",
-    MeterPerMinute = "m/min",
-    CentiMeterPerSecond = "cm/s",
-    MeterPerHour = "m/h",
-    KilometerPerHour = "km/h",
-    RevolutionsPerMinute = "rpm",
-    Percent = "percent",
-    PartsPerMillion = "ppm",
-    PartsPerBillion = "ppb",
-    PartsPerTrillion = "ppt",
-    Decibel = "dB",
-    Degree = "\u00B0",
-    Radian = "rad",
-    Miligram = "mg",
-    Gram = "g",
-    Kilogram = "kg",
-    MetricTon = "t",
-    MiliVolt = "mV",
-    Volt = "V",
-    KiloVolt = "kV",
-    MegaVolt = "MV",
-    MiliAmpere = "mA",
-    Ampere = "A",
-    KiloAmpere = "kA",
-    MegaAmpere = "MA",
-    MiliWatt = "mW",
-    Watt = "W",
-    KiloWatt = "kW",
-    MegaWatt = "MW",
-    MiliWattHour = "mWh",
-    WattHour = "Wh",
-    KiloWattHour = "kWh",
-    MegaWattHour = "MWh",
-    MiliVoltAmpere = "mVA",
-    VoltAmpere = "VA",
-    KiloVoltAmpere = "kVA",
-    MegaVoltAmpere = "MVA",
-    MiliVoltAmpereReactive = "mVAR",
-    VoltAmpereReactive = "VAR",
-    KiloVoltAmpereReactive = "kVAR",
-    MegaVoltAmpereReactive = "MVAR",
-    CubicMeterPerHour = "m^3/h",
-    CubicMeterPerSecond = "m^3/s",
-    MegaGramPerHour = "Mg/h",
-    MetricTonPerHour = "t/h"
-}
+import { GeneratedCounterMeasurement, GeneratedDataSizeMeasurement, GeneratedMeasurementUnit, GeneratedPhysicalMeasurement } from "./uns-measurements.generated.js";
+export declare const PhysicalMeasurements: {
+    readonly None: "";
+    readonly MiliMeter: "mm";
+    readonly Meter: "m";
+    readonly KiloMeter: "km";
+    readonly Feet: "ft";
+    readonly Second: "s";
+    readonly Minute: "min";
+    readonly Hour: "h";
+    readonly Day: "day";
+    readonly Hertz: "Hz";
+    readonly CubicMeter: "m^3";
+    readonly Liter: "l";
+    readonly Gallon: "gal";
+    readonly Psi: "psi";
+    readonly Pascal: "Pa";
+    readonly Bar: "bar";
+    readonly Celsius: "°C";
+    readonly Fahrenheit: "°F";
+    readonly Kelvin: "K";
+    readonly Milijoule: "mJ";
+    readonly Joule: "J";
+    readonly Kilojoule: "kJ";
+    readonly Megajoule: "MJ";
+    readonly Gigajoule: "GJ";
+    readonly Terajoule: "TJ";
+    readonly Newton: "N";
+    readonly Bit: "bit";
+    readonly Byte: "byte";
+    readonly B: "B";
+    readonly MilimeterPerSecond: "mm/s";
+    readonly MeterPerSecond: "m/s";
+    readonly MeterPerMinute: "m/min";
+    readonly CentiMeterPerSecond: "cm/s";
+    readonly MeterPerHour: "m/h";
+    readonly KilometerPerHour: "km/h";
+    readonly RevolutionsPerMinute: "rpm";
+    readonly Percent: "percent";
+    readonly PartsPerMillion: "ppm";
+    readonly PartsPerBillion: "ppb";
+    readonly PartsPerTrillion: "ppt";
+    readonly Decibel: "dB";
+    readonly Degree: "°";
+    readonly Radian: "rad";
+    readonly Miligram: "mg";
+    readonly Gram: "g";
+    readonly Kilogram: "kg";
+    readonly MetricTon: "t";
+    readonly MiliVolt: "mV";
+    readonly Volt: "V";
+    readonly KiloVolt: "kV";
+    readonly MegaVolt: "MV";
+    readonly MiliAmpere: "mA";
+    readonly Ampere: "A";
+    readonly KiloAmpere: "kA";
+    readonly MegaAmpere: "MA";
+    readonly MiliWatt: "mW";
+    readonly Watt: "W";
+    readonly KiloWatt: "kW";
+    readonly MegaWatt: "MW";
+    readonly MiliWattHour: "mWh";
+    readonly WattHour: "Wh";
+    readonly KiloWattHour: "kWh";
+    readonly MegaWattHour: "MWh";
+    readonly MiliVoltAmpere: "mVA";
+    readonly VoltAmpere: "VA";
+    readonly KiloVoltAmpere: "kVA";
+    readonly MegaVoltAmpere: "MVA";
+    readonly MiliVoltAmpereReactive: "mVAR";
+    readonly VoltAmpereReactive: "VAR";
+    readonly KiloVoltAmpereReactive: "kVAR";
+    readonly MegaVoltAmpereReactive: "MVAR";
+    readonly CubicMeterPerHour: "m^3/h";
+    readonly CubicMeterPerSecond: "m^3/s";
+    readonly MegaGramPerHour: "Mg/h";
+    readonly MetricTonPerHour: "t/h";
+};
+export type PhysicalMeasurements = GeneratedPhysicalMeasurement;
+export declare const DataSizeMeasurements: {
+    readonly Bit: "bit";
+    readonly Byte: "B";
+    readonly KiloByte: "kB";
+    readonly MegaByte: "MB";
+    readonly GigaByte: "GB";
+    readonly TeraByte: "TB";
+    readonly PetaByte: "PB";
+    readonly ExaByte: "EB";
+    readonly ZettaByte: "ZB";
+    readonly YottaByte: "YB";
+};
+export type DataSizeMeasurements = GeneratedDataSizeMeasurement;
+export declare const CounterMeasurements: {
+    readonly Kilo: "k";
+    readonly Mega: "M";
+    readonly Giga: "G";
+};
+export type CounterMeasurements = GeneratedCounterMeasurement;
+export type MeasurementUnit = GeneratedMeasurementUnit;
 //# sourceMappingURL=uns-measurements.d.ts.map
