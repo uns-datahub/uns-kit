@@ -47,7 +47,99 @@ export function getGeneratedObjectTypeDescription(name: string): string | undefi
   return (GeneratedObjectTypeDescriptions as Record<string, string | undefined>)[name];
 }
 
-export const GeneratedAttributesByType = {} as const;
+export const GeneratedAttributesByType = {
+  "equipment": {
+    "status": "status",
+    "temperature": "temperature",
+    "vibration": "vibration",
+    "operating-hours": "operating-hours",
+    "fault-code": "fault-code",
+    "speed": "speed",
+    "energy-consumption": "energy-consumption",
+  },
+  "material": {
+    "lot-id": "lot-id",
+    "batch-number": "batch-number",
+    "material-type": "material-type",
+    "quantity": "quantity",
+    "location": "location",
+    "status": "status",
+  },
+  "personnel": {
+    "presence": "presence",
+    "task-id": "task-id",
+    "role": "role",
+    "status": "status",
+  },
+  "process-segment": {
+    "start-time": "start-time",
+    "end-time": "end-time",
+    "duration": "duration",
+    "status": "status",
+    "output-quantity": "output-quantity",
+  },
+  "product-definition": {
+    "product-code": "product-code",
+    "revision": "revision",
+    "specification": "specification",
+    "target-parameters": "target-parameters",
+    "material-composition": "material-composition",
+    "version-history": "version-history",
+  },
+  "product-quality": {
+    "inspection-result": "inspection-result",
+    "deviation": "deviation",
+    "pass-fail": "pass-fail",
+    "surface-defect": "surface-defect",
+    "hardness": "hardness",
+    "tensile-strength": "tensile-strength",
+  },
+  "work-definition": {
+    "work-order-id": "work-order-id",
+    "task-list": "task-list",
+    "planned-start": "planned-start",
+    "planned-end": "planned-end",
+    "assigned-to": "assigned-to",
+    "instruction-url": "instruction-url",
+  },
+  "resource-status": {
+    "availability": "availability",
+    "utilization": "utilization",
+    "downtime": "downtime",
+    "status": "status",
+    "maintenance-status": "maintenance-status",
+  },
+  "energy-resource": {
+    "power": "power",
+    "energy": "energy",
+    "voltage": "voltage",
+    "current": "current",
+    "frequency": "frequency",
+    "cost": "cost",
+  },
+  "utility-resource": {
+    "pressure": "pressure",
+    "flow": "flow",
+    "consumption": "consumption",
+    "status": "status",
+    "alarm": "alarm",
+  },
+  "fluid-resource": {
+    "flow": "flow",
+    "pressure": "pressure",
+    "temperature": "temperature",
+    "total-flow": "total-flow",
+    "conductivity": "conductivity",
+    "ph": "ph",
+  },
+  "consumable-resource": {
+    "level": "level",
+    "consumption-rate": "consumption-rate",
+    "refill-required": "refill-required",
+    "last-refill": "last-refill",
+    "status": "status",
+  }
+} as const;
 
 export const GeneratedAttributes = {
   /** Trenutno stanje vira ali opreme. */
