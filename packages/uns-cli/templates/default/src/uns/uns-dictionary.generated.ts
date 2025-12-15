@@ -47,6 +47,8 @@ export function getGeneratedObjectTypeDescription(name: string): string | undefi
   return (GeneratedObjectTypeDescriptions as Record<string, string | undefined>)[name];
 }
 
+export const GeneratedAttributesByType = {} as const;
+
 export const GeneratedAttributes = {
   /** Trenutno stanje vira ali opreme. */
   "status": "status",
@@ -238,3 +240,5 @@ export type GeneratedAttributeName = keyof typeof GeneratedAttributes;
 export function getGeneratedAttributeDescription(name: string): string | undefined {
   return (GeneratedAttributeDescriptions as Record<string, string | undefined>)[name];
 }
+
+export type GeneratedAttributesFor<T extends keyof typeof GeneratedAttributesByType> = keyof typeof GeneratedAttributesByType[T];

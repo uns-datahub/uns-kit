@@ -5,84 +5,175 @@
       "descriptions": {
         "sl": "Fizična oprema (stroji, peči, senzorji). Uporablja se za spremljanje stanja, meritev in dogodkov.",
         "en": "Physical equipment (machines, furnaces, sensors). Used to monitor status, measurements, and events."
-      }
+      },
+      "attributes": [
+        "status",
+        "temperature",
+        "vibration",
+        "operating-hours",
+        "fault-code",
+        "speed",
+        "energy-consumption"
+      ]
     },
     "material": {
       "description": "Materialne enote (loti, serije, surovine, polizdelki). Za sledljivost, količine in premike.",
       "descriptions": {
         "sl": "Materialne enote (loti, serije, surovine, polizdelki). Za sledljivost, količine in premike.",
         "en": "Material lots/batches/raw materials for traceability, quantities, and movements."
-      }
+      },
+      "attributes": [
+        "lot-id",
+        "batch-number",
+        "material-type",
+        "quantity",
+        "location",
+        "status"
+      ]
     },
     "personnel": {
       "description": "Osebje (operaterji, nadzorniki, tehnologi). Za prisotnost, naloge in status.",
       "descriptions": {
         "sl": "Osebje (operaterji, nadzorniki, tehnologi). Za prisotnost, naloge in status.",
         "en": "Personnel (operators/supervisors/technologists). Track presence, tasks, and status."
-      }
+      },
+      "attributes": [
+        "presence",
+        "task-id",
+        "role",
+        "status"
+      ]
     },
     "process-segment": {
       "description": "Posamezen korak v procesu (npr. valjanje, hlajenje, analiza). Za faze ali aktivnosti procesa.",
       "descriptions": {
         "sl": "Posamezen korak v procesu (npr. valjanje, hlajenje, analiza). Za faze ali aktivnosti procesa.",
         "en": "Process step or activity (e.g., rolling, cooling, analysis)."
-      }
+      },
+      "attributes": [
+        "start-time",
+        "end-time",
+        "duration",
+        "status",
+        "output-quantity"
+      ]
     },
     "product-definition": {
       "description": "Definicija izdelka, recepture, tehnični opisi. Za metapodatke izdelka in revizije.",
       "descriptions": {
         "sl": "Definicija izdelka, recepture, tehnični opisi. Za metapodatke izdelka in revizije.",
         "en": "Product definitions/recipes/specifications and revisions."
-      }
+      },
+      "attributes": [
+        "product-code",
+        "revision",
+        "specification",
+        "target-parameters",
+        "material-composition",
+        "version-history"
+      ]
     },
     "product-quality": {
       "description": "Kazalniki kakovosti izdelka (odstopanja, ocene, rezultati meritev).",
       "descriptions": {
         "sl": "Kazalniki kakovosti izdelka (odstopanja, ocene, rezultati meritev).",
         "en": "Product quality indicators/results and deviations."
-      }
+      },
+      "attributes": [
+        "inspection-result",
+        "deviation",
+        "pass-fail",
+        "surface-defect",
+        "hardness",
+        "tensile-strength"
+      ]
     },
     "work-definition": {
       "description": "Definicija nalog ali delovnih tokov. Za planirane operacije in navodila.",
       "descriptions": {
         "sl": "Definicija nalog ali delovnih tokov. Za planirane operacije in navodila.",
         "en": "Work/task definitions or workflows with plans and instructions."
-      }
+      },
+      "attributes": [
+        "work-order-id",
+        "task-list",
+        "planned-start",
+        "planned-end",
+        "assigned-to",
+        "instruction-url"
+      ]
     },
     "resource-status": {
       "description": "Status kateregakoli vira (material, osebje, oprema). Za razpoložljivost, okvare, izrabo.",
       "descriptions": {
         "sl": "Status kateregakoli vira (material, osebje, oprema). Za razpoložljivost, okvare, izrabo.",
         "en": "Status of any resource (material/personnel/equipment)."
-      }
+      },
+      "attributes": [
+        "availability",
+        "utilization",
+        "downtime",
+        "status",
+        "maintenance-status"
+      ]
     },
     "energy-resource": {
       "description": "Energija (elektrika, para, plin).",
       "descriptions": {
         "sl": "Energija (elektrika, para, plin).",
         "en": "Energy carriers (electricity/steam/gas)."
-      }
+      },
+      "attributes": [
+        "power",
+        "energy",
+        "voltage",
+        "current",
+        "frequency",
+        "cost"
+      ]
     },
     "utility-resource": {
       "description": "Utility viri (voda, zrak, dušik, stisnjeni plini).",
       "descriptions": {
         "sl": "Utility viri (voda, zrak, dušik, stisnjeni plini).",
         "en": "Utilities (water/air/nitrogen/etc.)."
-      }
+      },
+      "attributes": [
+        "pressure",
+        "flow",
+        "consumption",
+        "status",
+        "alarm"
+      ]
     },
     "fluid-resource": {
       "description": "Tekočine in plini, ki niso energenti.",
       "descriptions": {
         "sl": "Tekočine in plini, ki niso energenti.",
         "en": "Fluids/gases (non-energy) used in process."
-      }
+      },
+      "attributes": [
+        "flow",
+        "pressure",
+        "temperature",
+        "total-flow",
+        "conductivity",
+        "ph"
+      ]
     },
     "consumable-resource": {
       "description": "Maziva, olja, čistila, ki se porabijo in niso del izdelka.",
       "descriptions": {
         "sl": "Maziva, olja, čistila, ki se porabijo in niso del izdelka.",
         "en": "Consumables (lubricants/cleaners)."
-      }
+      },
+      "attributes": [
+        "level",
+        "consumption-rate",
+        "refill-required",
+        "last-refill",
+        "status"
+      ]
     }
   },
   "attributes": {
