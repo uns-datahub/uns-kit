@@ -11,7 +11,7 @@ pnpm run dev    # start the local development loop
 pnpm run build  # emit dist/ output
 pnpm run start  # run the compiled entrypoint
 pnpm run generate-config-schema  # regenerate config.schema.json and AppConfig augmentations
-pnpm run codegen            # regenerate typed GraphQL operations (after configure-codegen)
+pnpm run generate-codegen            # regenerate typed GraphQL operations (after configure-codegen)
 pnpm run generate-uns-topics-tags  # rebuild UNS topics/tags from the live schema
 pnpm run generate-uns-dictionary  # generate typed object/attribute dictionary from uns-dictionary.json
 pnpm run generate-uns-measurements  # generate typed measurement units from uns-measurements.json

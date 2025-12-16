@@ -559,8 +559,8 @@ async function configureCodegen(targetPath?: string): Promise<void> {
   }
 
   const scripts = (pkg.scripts ??= {});
-  if (!scripts.codegen) {
-    scripts.codegen = "graphql-code-generator --config codegen.ts";
+  if (!scripts["generate-codegen"]) {
+    scripts["generate-codegen"] = "graphql-code-generator --config codegen.ts";
     pkgChanged = true;
   }
   if (!scripts["generate-uns-topics-tags"]) {
