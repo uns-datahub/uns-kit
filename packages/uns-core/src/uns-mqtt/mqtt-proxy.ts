@@ -24,9 +24,11 @@ export default class MqttProxy {
   private subscribedMessageBytes = 0;
   private mqttWorker: MqttWorker;
   public isConnected = false;
+  private rejectUnauthorized: boolean;
 
   constructor(mqttHost: string, instanceName: string, mqttParameters: IMqttParameters, mqttWorker?: MqttWorker) {
     this.mqttSSL = mqttParameters?.mqttSSL ?? false;
+    this.rejectUnauthorized = mqttParameters.rejectUnauthorized ?? false;
     this.mqttSubToTopics = mqttParameters?.mqttSubToTopics ?? [];
     this.mqttHost = mqttHost;
     this.startDate = new Date();
@@ -48,7 +50,8 @@ export default class MqttProxy {
           username,
           password,
           protocolVersion: 5,
-          rejectUnauthorized: this.mqttSSL,
+          rejectUnauthorized: this.rejectUnauthorized,
+          
           will: {
             topic: `${this.statusTopic}alive`,
             payload: Buffer.from(""),

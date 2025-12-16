@@ -4,6 +4,7 @@ export interface IMqttParameters {
   password?: string;
   mqttSSL?: boolean;
   statusTopic?: string;
+  rejectUnauthorized?: boolean;
 }
 
 export interface HandoverManagerEvents {

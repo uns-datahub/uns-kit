@@ -21,6 +21,7 @@ export default class MqttProxy {
     private subscribedMessageBytes;
     private mqttWorker;
     isConnected: boolean;
+    private rejectUnauthorized;
     constructor(mqttHost: string, instanceName: string, mqttParameters: IMqttParameters, mqttWorker?: MqttWorker);
     start(): Promise<void>;
     publish(topic: string, message: string | Buffer, options?: mqtt.IClientPublishOptions): Promise<void>;

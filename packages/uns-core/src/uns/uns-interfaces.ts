@@ -25,6 +25,7 @@ export interface IUnsParameters {
   mqttSSL?: boolean;
   publishThrottlingDelay?: number; // Delay in milliseconds; default is 1ms
   subscribeThrottlingDelay?: number; // Delay in milliseconds; default is 1ms
+  rejectUnauthorized?: boolean;
 }
 
 export interface IUnsProcessParameters {

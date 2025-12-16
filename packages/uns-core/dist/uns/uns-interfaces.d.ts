@@ -18,6 +18,7 @@ export interface IUnsParameters {
     mqttSSL?: boolean;
     publishThrottlingDelay?: number;
     subscribeThrottlingDelay?: number;
+    rejectUnauthorized?: boolean;
 }
 export interface IUnsProcessParameters {
     processName?: string | undefined;
