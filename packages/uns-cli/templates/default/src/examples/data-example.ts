@@ -2,10 +2,17 @@
  * Change this file according to your specifications and rename it to index.ts
  */
 import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
+import { registerAttributeDescriptions, registerObjectTypeDescriptions } from "@uns-kit/core/uns/uns-dictionary-registry.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
-import { GeneratedObjectTypes, GeneratedAttributes, GeneratedAttributesByType } from "../uns/uns-dictionary.generated.js";
+import {
+  GeneratedObjectTypes,
+  GeneratedAttributes,
+  GeneratedAttributesByType,
+  GeneratedAttributeDescriptions,
+  GeneratedObjectTypeDescriptions,
+} from "../uns/uns-dictionary.generated.js";
 
 /**
  * Load the configuration from a file.
@@ -13,6 +20,8 @@ import { GeneratedObjectTypes, GeneratedAttributes, GeneratedAttributesByType } 
  * In the development environment, you are responsible for creating and maintaining this file and its contents.
  */
 const config = await ConfigFile.loadConfig();
+registerObjectTypeDescriptions(GeneratedObjectTypeDescriptions);
+registerAttributeDescriptions(GeneratedAttributeDescriptions);
 
 /**
  * Connect to input and output brokers
