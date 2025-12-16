@@ -563,7 +563,12 @@ async function configureCodegen(targetPath?: string): Promise<void> {
     scripts.codegen = "graphql-code-generator --config codegen.ts";
     pkgChanged = true;
   }
-  if (!scripts["refresh-uns"]) {
+  if (!scripts["generate-uns-topics-tags"]) {
+    scripts["generate-uns-topics-tags"] = "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js";
+    pkgChanged = true;
+  }
+  // Preserve legacy name if it already exists; otherwise, prefer the new name.
+  if (!scripts["refresh-uns"] && !scripts["generate-uns-topics-tags"]) {
     scripts["refresh-uns"] = "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js";
     pkgChanged = true;
   }
