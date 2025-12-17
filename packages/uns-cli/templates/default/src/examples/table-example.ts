@@ -12,6 +12,7 @@ import {
   GeneratedAttributeDescriptions,
   GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
+import type { IUnsTableColumn } from "@uns-kit/core/uns/uns-interfaces.js";
 
 /**
  * Load the configuration from a file.
@@ -45,12 +46,12 @@ mqttInput.event.on("input", async (event) => {
   try {
     if (event.topic === "integration/raw-table") {
       const time = UnsPacket.formatToISO8601(new Date());
-      const columns = [
+      const columns: IUnsTableColumn[] = [
         { name: "kolona_a", type: "int", value: 10 },
         { name: "kolona_b", type: "symbol", value: "1" },
         { name: "kolona_c", type: "varchar", value: "10" },
         { name: "kolona_d", type: "double", value: 3 },
-      ] as const;
+      ];
 
       const message: IUnsMessage = { table: { dataGroup: "demo_table", columns, time } };
       const topic: UnsTopics = "enterprise/site/area/line/";
