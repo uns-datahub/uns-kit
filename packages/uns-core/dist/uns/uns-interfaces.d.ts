@@ -11,6 +11,7 @@ export type UnsAttribute = KnownUnsAttributeName | (string & {});
 export declare const valueTypes: string[];
 export type ValueTypeString = typeof valueTypes[number];
 export type ValueType = string | number;
+export type QuestDbType = "boolean" | "ipv4" | "byte" | "short" | "char" | "int" | "float" | "symbol" | "varchar" | "string" | "long" | "date" | "timestamp" | "timestamp_ns" | "double" | "uuid" | "binary" | "long256" | `geohash(${number}${"b" | "c"})` | `decimal(${number},${number})` | `array<${string}>`;
 export interface IUnsParameters {
     mqttSubToTopics?: string | string[];
     username?: string;
@@ -73,20 +74,16 @@ export interface IUnsData {
     uom?: MeasurementUnit;
     foreignEventKey?: string;
 }
-export interface IUnsEvent {
-    time: ISO8601;
-    dataGroup?: string;
-    details?: string;
-    uniqueEventId?: string;
+export interface IUnsTableColumn {
+    name: string;
+    type: QuestDbType;
+    value: string | number | null;
+    uom?: MeasurementUnit;
 }
 export interface IUnsTable {
     time: ISO8601;
-    values: Record<string, string | number | undefined | null>;
     dataGroup?: string;
-}
-export interface IUnsCommand {
-    time: ISO8601;
-    details?: string;
+    columns: IUnsTableColumn[];
 }
 export interface IMqttMessage {
     topic: UnsTopics;
@@ -110,41 +107,19 @@ export interface IMqttAttributeMessage {
 type AttributePayload = {
     message: IUnsMessage;
     data?: never;
-    event?: never;
     table?: never;
-    command?: never;
     createdAt?: never;
     expiresAt?: never;
 } | {
     message?: never;
     data: IUnsData;
-    event?: never;
     table?: never;
-    command?: never;
     createdAt?: ISO8601;
     expiresAt?: ISO8601;
 } | {
     message?: never;
     data?: never;
-    event: IUnsEvent;
-    table?: never;
-    command?: never;
-    createdAt?: ISO8601;
-    expiresAt?: ISO8601;
-} | {
-    message?: never;
-    data?: never;
-    event?: never;
     table: IUnsTable;
-    command?: never;
-    createdAt?: ISO8601;
-    expiresAt?: ISO8601;
-} | {
-    message?: never;
-    data?: never;
-    event?: never;
-    table?: never;
-    command: IUnsCommand;
     createdAt?: ISO8601;
     expiresAt?: ISO8601;
 };
@@ -168,9 +143,7 @@ export interface IUnsPacket {
 export interface IUnsPackatParameters {
 }
 export interface IUnsMessage {
-    command?: IUnsCommand;
     data?: IUnsData;
-    event?: IUnsEvent;
     table?: IUnsTable;
     expiresAt?: ISO8601;
     createdAt?: ISO8601;

@@ -12,11 +12,11 @@ export declare class UnsPacket {
      */
     static parseMqttPacket(mqttPacket: string, instanceName?: string): IUnsPacket | null;
     /**
-     * Validates the data and event objects to ensure they have the required properties
+     * Validates the data and table objects to ensure they have the required properties
      * and that those properties have the correct types.
      *
      * @param data - The data object to validate
-     * @param event - The event object to validate
+     * @param table - The table object to validate
      * @returns boolean | null
      */
     private static validateMessageComponents;

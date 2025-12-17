@@ -152,20 +152,22 @@ export class UnsGatewayServer {
                 const t = req.table;
                 const time = t.time;
                 const dataGroup = t.data_group || undefined;
-                const values = {};
-                (t.values ?? []).forEach((kv) => {
-                    const key = kv.key;
-                    if (typeof kv.value_number === "number" && !Number.isNaN(kv.value_number)) {
-                        values[key] = kv.value_number;
+                const columns = (t.columns ?? []).map((col) => {
+                    let value = null;
+                    if (typeof col.value_number === "number" && !Number.isNaN(col.value_number)) {
+                        value = col.value_number;
                     }
-                    else if (typeof kv.value_string === "string") {
-                        values[key] = kv.value_string;
+                    else if (typeof col.value_string === "string") {
+                        value = col.value_string;
                     }
-                    else {
-                        values[key] = null;
-                    }
+                    return {
+                        name: col.name,
+                        type: col.type,
+                        uom: col.uom || undefined,
+                        value,
+                    };
                 });
-                message = { table: { time, values, dataGroup } };
+                message = { table: { time, columns, dataGroup } };
             }
             else {
                 throw new Error("PublishRequest.content must be data or table");

@@ -111,27 +111,28 @@ export class UnsPacket {
         throw new Error(`Time is not ISO8601`);
       }
 
-      const oldTable: any = table;
-      if (oldTable.tableName) {
-        logger.debug(
-          `The 'tableName' property is deprecated. Use 'dataGroup' instead.`
-        );
-      } else if (table.values) {
-        Object.entries(table.values).forEach(([key, value]) => {
-          if (
-            typeof value !== "number" &&
-            typeof value !== "string" &&
-            value !== null &&
-            value !== undefined
-          ) {
-            throw new Error(
-              `Value for key '${key}' in table.values must be of type number, string, null, or undefined`
-            );
-          }
-        });
-      } else {
-        throw new Error(`No values for table`);
+      if (!Array.isArray(table.columns) || table.columns.length === 0) {
+        throw new Error(`Table.columns must be a non-empty array`);
       }
+
+      table.columns.forEach((column, index) => {
+        if (!column.name) {
+          throw new Error(`Column at index ${index} is missing a name`);
+        }
+        if (!column.type) {
+          throw new Error(`Column '${column.name}' is missing a QuestDB type`);
+        }
+        const value = column.value;
+        if (
+          typeof value !== "number" &&
+          typeof value !== "string" &&
+          value !== null
+        ) {
+          throw new Error(
+            `Value for column '${column.name}' must be number, string, or null`
+          );
+        }
+      });
     }
 
     return true;
