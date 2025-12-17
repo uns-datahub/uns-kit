@@ -176,7 +176,6 @@ export type TreeStructure = {
 export declare enum UnsAttributeType {
     Api = "Api",
     Data = "Data",
-    Event = "Event",
     Table = "Table"
 }
 export type UnsNode = {

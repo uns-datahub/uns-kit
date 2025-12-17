@@ -18,6 +18,30 @@ export const valueTypes = ["string", "number"];
 export type ValueTypeString = typeof valueTypes[number];
 export type ValueType = string | number;
 
+// Supported QuestDB column types for UNS tables.
+export type QuestDbType =
+  | "boolean"
+  | "ipv4"
+  | "byte"
+  | "short"
+  | "char"
+  | "int"
+  | "float"
+  | "symbol"
+  | "varchar"
+  | "string"
+  | "long"
+  | "date"
+  | "timestamp"
+  | "timestamp_ns"
+  | "double"
+  | "uuid"
+  | "binary"
+  | "long256"
+  | `geohash(${number}${"b" | "c"})`
+  | `decimal(${number},${number})`
+  | `array<${string}>`;
+
 export interface IUnsParameters {
   mqttSubToTopics?: string | string[];
   username?: string;
@@ -72,10 +96,17 @@ export interface IUnsData {
   foreignEventKey?: string;
 }
 
+export interface IUnsTableColumn {
+  name: string;
+  type: QuestDbType;
+  value: string | number | null;
+  uom?: MeasurementUnit;
+}
+
 export interface IUnsTable {
   time: ISO8601;
-  values: Record<string, string | number | undefined | null>
   dataGroup?: string;
+  columns: IUnsTableColumn[];
 }
 
 export interface IMqttMessage {

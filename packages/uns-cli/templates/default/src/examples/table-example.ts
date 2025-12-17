@@ -3,12 +3,14 @@
  */
 
 import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/core";
+import { registerAttributeDescriptions, registerObjectTypeDescriptions } from "@uns-kit/core/uns/uns-dictionary-registry.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import {
   GeneratedObjectTypes,
   GeneratedAttributes,
   GeneratedAttributeDescriptions,
+  GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
 
 /**
@@ -17,6 +19,8 @@ import {
  * In the development environment, you are responsible for creating and maintaining this file and its contents.
  */
 const config = await ConfigFile.loadConfig();
+registerObjectTypeDescriptions(GeneratedObjectTypeDescriptions);
+registerAttributeDescriptions(GeneratedAttributeDescriptions);
 
 /**
  * Load and configure input and output brokers from config.json
@@ -40,29 +44,21 @@ const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host
 mqttInput.event.on("input", async (event) => {
   try {
     if (event.topic === "integration/raw-table") {
-      const x = 10;
-      const a = `{
-        "kolona_a": "${x}",
-        "kolona_b": "1",
-        "kolona_c"; "${x}",
-        "kolona_d": 3
-      }`;
-      type questDbCoulmnTypes = "number" | "float" | "string";
-      const columnTypes:questDbCoulmnTypes[]  = ['number', 'float', 'string', 'number', 'number'];
+      const time = UnsPacket.formatToISO8601(new Date());
+      const columns = [
+        { name: "kolona_a", type: "int", value: 10 },
+        { name: "kolona_b", type: "symbol", value: "1" },
+        { name: "kolona_c", type: "varchar", value: "10" },
+        { name: "kolona_d", type: "double", value: 3 },
+      ] as const;
 
-      const jsonObject = JSON.parse(a);
-      const timestamp = jsonObject.Timestamp;
-      // delete(jsonObject.Timestamp);
-
-      const time = UnsPacket.formatToISO8601(new Date(timestamp));
-      // const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, columnTypes, time}};
-      const message: IUnsMessage = { table: {dataGroup:"demo_table", values:jsonObject, time}};
+      const message: IUnsMessage = { table: { dataGroup: "demo_table", columns, time } };
       const topic: UnsTopics = "enterprise/site/area/line/";
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
       mqttOutput.publishMqttMessage({
         topic,
         asset:"asset",
-        objectType: "line",
+        objectType: GeneratedObjectTypes["resource-status"],
         objectId: "main",
         attribute: GeneratedAttributes["status"] ?? "status",
         description: GeneratedAttributeDescriptions["status"] ?? "Table",

@@ -34,14 +34,16 @@ message Data {
 }
 
 message TableValue {
-  string key = 1;
-  double value_number = 2;
-  string value_string = 3;
+  string name = 1;
+  string type = 2;          // QuestDB column type (e.g., int, double, geohash(5c))
+  string uom = 3;           // Optional unit of measure
+  double value_number = 4;
+  string value_string = 5;
 }
 
 message Table {
   string time = 1;
-  repeated TableValue values = 2;
+  repeated TableValue columns = 2;
   string data_group = 3;
 }
 

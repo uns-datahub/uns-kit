@@ -196,18 +196,22 @@ export class UnsGatewayServer {
         const t = req.table;
         const time: string = t.time;
         const dataGroup: string | undefined = t.data_group || undefined;
-        const values: Record<string, string | number | null | undefined> = {};
-        (t.values ?? []).forEach((kv: any) => {
-          const key = kv.key as string;
-          if (typeof kv.value_number === "number" && !Number.isNaN(kv.value_number)) {
-            values[key] = kv.value_number;
-          } else if (typeof kv.value_string === "string") {
-            values[key] = kv.value_string;
-          } else {
-            values[key] = null;
+        const columns = (t.columns ?? []).map((col: any) => {
+          let value: string | number | null = null;
+          if (typeof col.value_number === "number" && !Number.isNaN(col.value_number)) {
+            value = col.value_number;
+          } else if (typeof col.value_string === "string") {
+            value = col.value_string;
           }
+          return {
+            name: col.name as string,
+            type: col.type as any,
+            uom: col.uom || undefined,
+            value,
+          };
         });
-        message = { table: { time, values, dataGroup } } as IUnsMessage;
+
+        message = { table: { time, columns, dataGroup } } as IUnsMessage;
       } else {
         throw new Error("PublishRequest.content must be data or table");
       }
