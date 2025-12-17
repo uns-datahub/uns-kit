@@ -277,13 +277,9 @@ export default class UnsMqttProxy extends UnsProxy {
             ? attrEntry.message
             : "data" in attrEntry && attrEntry.data
               ? { data: attrEntry.data, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
-              : "event" in attrEntry && attrEntry.event
-                ? { event: attrEntry.event, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
-                : "table" in attrEntry && attrEntry.table
-                  ? { table: attrEntry.table, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
-                  : "command" in attrEntry && attrEntry.command
-                    ? { command: attrEntry.command, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
-                    : (() => { throw new Error("Attribute entry must include exactly one of data/event/table/command/message"); })();
+              : "table" in attrEntry && attrEntry.table
+                ? { table: attrEntry.table, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
+                : (() => { throw new Error("Attribute entry must include exactly one of data/table/message"); })();
         const packet = await UnsPacket.unsPacketFromUnsMessage(message);
         const singleMsg: IMqttMessage = {
           topic,
@@ -383,7 +379,6 @@ export default class UnsMqttProxy extends UnsProxy {
     try {
       const attributeType =
         msg.packet.message.data ? UnsAttributeType.Data :
-        msg.packet.message.event ? UnsAttributeType.Event :
         msg.packet.message.table ? UnsAttributeType.Table : null;
       
       let dataGroup = "";
@@ -391,8 +386,6 @@ export default class UnsMqttProxy extends UnsProxy {
         dataGroup = msg.packet.message.data.dataGroup ?? "";
       if (attributeType == UnsAttributeType.Table)
         dataGroup = msg.packet.message.table.dataGroup ?? "";
-      if (attributeType == UnsAttributeType.Event)
-        dataGroup = msg.packet.message.event.dataGroup ?? "";
 
       const { objectType, objectId, asset } = this.resolveObjectIdentity(msg);
       const normalizedTopic = this.normalizeTopicWithObject(msg.topic);
@@ -451,12 +444,10 @@ export default class UnsMqttProxy extends UnsProxy {
             logger.debug(`${this.instanceNameWithSuffix} - Need one more packet to calculate difference on value in data for topic ${publishTopic}`);
           }
         }
-      } else if (msg.packet.message.command) {
-        await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
-      } else if (msg.packet.message.event) {
-        await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
       } else if (msg.packet.message.table) {
         await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
+      } else {
+        logger.error(`${this.instanceNameWithSuffix} - Error publishing message to topic ${publishTopic}: packet.message must include data or table`);
       }
     } catch (error: any) {
       logger.error(`${this.instanceNameWithSuffix} - Error publishing message to topic ${msg.topic}${msg.attribute}: ${error.message}`);

@@ -295,15 +295,12 @@ export default class UnsMqttProxy extends UnsProxy {
     async processAndEnqueueMessage(msg, time, valueIsCumulative = false) {
         try {
             const attributeType = msg.packet.message.data ? UnsAttributeType.Data :
-                msg.packet.message.event ? UnsAttributeType.Event :
-                    msg.packet.message.table ? UnsAttributeType.Table : null;
+                msg.packet.message.table ? UnsAttributeType.Table : null;
             let dataGroup = "";
             if (attributeType == UnsAttributeType.Data)
                 dataGroup = msg.packet.message.data.dataGroup ?? "";
             if (attributeType == UnsAttributeType.Table)
                 dataGroup = msg.packet.message.table.dataGroup ?? "";
-            if (attributeType == UnsAttributeType.Event)
-                dataGroup = msg.packet.message.event.dataGroup ?? "";
             const { objectType, objectId, asset } = this.resolveObjectIdentity(msg);
             const normalizedTopic = this.normalizeTopicWithObject(msg.topic);
             msg.topic = normalizedTopic;
@@ -356,14 +353,11 @@ export default class UnsMqttProxy extends UnsProxy {
                     }
                 }
             }
-            else if (msg.packet.message.command) {
-                await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
-            }
-            else if (msg.packet.message.event) {
-                await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
-            }
             else if (msg.packet.message.table) {
                 await this.enqueueMessageToWorkerQueue(publishTopic, JSON.stringify(msg.packet));
+            }
+            else {
+                logger.error(`${this.instanceNameWithSuffix} - Error publishing message to topic ${publishTopic}: packet.message must include data or table`);
             }
         }
         catch (error) {

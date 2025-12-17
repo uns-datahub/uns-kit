@@ -4,9 +4,7 @@ import logger from '../logger.js';
 import {
   IUnsPacket,
   ISO8601,  
-  IUnsCommand,
   IUnsData,
-  IUnsEvent,
   IUnsMessage,
   isIOS8601Type,
   IUnsPackatParameters,
@@ -36,8 +34,6 @@ export class UnsPacket {
       // Check uns packet
       if (parsedMqttPacket && parsedMqttPacket.version) {
         const version = parsedMqttPacket.version;
-        const command: IUnsCommand | undefined = parsedMqttPacket.message.command;
-        const event: IUnsEvent | undefined = parsedMqttPacket.message.event;
         const data: IUnsExtendedData | undefined = parsedMqttPacket.message.data;
         const table: IUnsTable | undefined = parsedMqttPacket.message.table;
         const expiresAt: ISO8601 | undefined =
@@ -45,14 +41,12 @@ export class UnsPacket {
         const createdAt: ISO8601 | undefined =
           parsedMqttPacket.message.createdAt;
 
-        // Validate data and event objects
-        UnsPacket.validateMessageComponents(data, event, table);
+        // Validate data and table objects
+        UnsPacket.validateMessageComponents(data, table);
 
         const message: IUnsExtendedMessage = {
-          ...(command !== undefined && { command }),
           ...(data !== undefined && { data }),
           ...(table !== undefined && { table }),
-          ...(event !== undefined && { event }),
           ...(expiresAt !== undefined && { expiresAt }),
           ...(createdAt !== undefined && { createdAt }),
         };
@@ -81,14 +75,14 @@ export class UnsPacket {
   }
 
   /**
-   * Validates the data and event objects to ensure they have the required properties
+   * Validates the data and table objects to ensure they have the required properties
    * and that those properties have the correct types.
    * 
    * @param data - The data object to validate
-   * @param event - The event object to validate
+   * @param table - The table object to validate
    * @returns boolean | null
    */
-  private static validateMessageComponents(data: IUnsData, event: IUnsEvent, table: IUnsTable): boolean | null {
+  private static validateMessageComponents(data?: IUnsData, table?: IUnsTable): boolean | null {
     if (data) {
       if (data.dataGroup) {
         if (!/^[A-Za-z0-9_]+$/.test(data.dataGroup)) {
@@ -99,21 +93,6 @@ export class UnsPacket {
       if (!data.time)
         throw new Error(`Time is not defined in data object`);
       if (!isIOS8601Type(data.time))
-        throw new Error(`Time is not ISO8601`);
-    }
-
-    // Check event object
-    if (event) {
-      if (event.dataGroup) {
-        if (!/^[A-Za-z0-9_]+$/.test(event.dataGroup)) {
-          throw new Error(`dataGroup must be a valid name (alphanumeric and underscores only, no spaces or special characters)`);
-        }
-      }
-
-      if (!event.time) {
-        throw new Error(`Time is not defined in data object`);
-      }
-      if (!isIOS8601Type(event.time))
         throw new Error(`Time is not ISO8601`);
     }
 
@@ -164,18 +143,8 @@ export class UnsPacket {
   ): Promise<IUnsPacket> {
     try {
       // Validate the packet in message
-      if (UnsPacket.validateMessageComponents(message.data, message.event, message.table)) {
-        if (unsPackatParameters) {
-          // if (
-          //   unsPackatParameters.compressCommand &&
-          //   unsPackatParameters.compressCommand == true
-          // ) {
-          //   message.command = (
-          //     await this.compressString(message.command)
-          //   ).toString();
-          // }
-        }
-  
+      if (UnsPacket.validateMessageComponents(message.data, message.table)) {
+
         // HMAC
         // const algorithm = "sha256";
         // const key = "your-secret-key";
@@ -198,10 +167,8 @@ export class UnsPacket {
         };
 
         const extendedMessage: IUnsExtendedMessage = {
-          command: message.command,
           data,
           table: message.table,
-          event: message.event,
           expiresAt: message.expiresAt,
           createdAt: message.createdAt,
         };
