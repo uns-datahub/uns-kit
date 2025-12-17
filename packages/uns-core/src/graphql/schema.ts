@@ -171,7 +171,6 @@ export type TreeStructure = {
 export enum UnsAttributeType {
   Api = 'Api',
   Data = 'Data',
-  Event = 'Event',
   Table = 'Table'
 }
 
@@ -427,4 +426,3 @@ export type Resolvers<ContextType = any> = {
   TreeStructure?: TreeStructureResolvers<ContextType>;
   UnsNode?: UnsNodeResolvers<ContextType>;
 };
-

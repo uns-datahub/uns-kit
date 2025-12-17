@@ -72,22 +72,10 @@ export interface IUnsData {
   foreignEventKey?: string;
 }
 
-export interface IUnsEvent {
-  time: ISO8601;
-  dataGroup?: string;
-  details?: string;
-  uniqueEventId?: string;
-}
-
 export interface IUnsTable {
   time: ISO8601;
   values: Record<string, string | number | undefined | null>
   dataGroup?: string;
-}
-
-export interface IUnsCommand {
-  time: ISO8601;
-  details?: string;
 }
 
 export interface IMqttMessage {
@@ -112,11 +100,9 @@ export interface IMqttAttributeMessage {
 }
 
 type AttributePayload =
-  | { message: IUnsMessage; data?: never; event?: never; table?: never; command?: never; createdAt?: never; expiresAt?: never }
-  | { message?: never; data: IUnsData; event?: never; table?: never; command?: never; createdAt?: ISO8601; expiresAt?: ISO8601 }
-  | { message?: never; data?: never; event: IUnsEvent; table?: never; command?: never; createdAt?: ISO8601; expiresAt?: ISO8601 }
-  | { message?: never; data?: never; event?: never; table: IUnsTable; command?: never; createdAt?: ISO8601; expiresAt?: ISO8601 }
-  | { message?: never; data?: never; event?: never; table?: never; command: IUnsCommand; createdAt?: ISO8601; expiresAt?: ISO8601 };
+  | { message: IUnsMessage; data?: never; table?: never; createdAt?: never; expiresAt?: never }
+  | { message?: never; data: IUnsData; table?: never; createdAt?: ISO8601; expiresAt?: ISO8601 }
+  | { message?: never; data?: never; table: IUnsTable; createdAt?: ISO8601; expiresAt?: ISO8601 };
 
 export type IMqttAttributeEntry = IMqttAttributeMessage & AttributePayload;
 
@@ -153,9 +139,7 @@ export interface IUnsPackatParameters {
 }
 
 export interface IUnsMessage {
-    command?: IUnsCommand;
     data?: IUnsData;
-    event?: IUnsEvent;
     table?: IUnsTable;
     expiresAt?: ISO8601;
     createdAt?: ISO8601;
