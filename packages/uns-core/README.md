@@ -42,21 +42,27 @@ When configured via `uns-kit configure-codegen`, this script lives in your proje
 
 ### Generate UNS dictionary (object types & attributes with descriptions)
 
-Use `packages/uns-core/src/tools/generate-uns-dictionary.ts` to turn a JSON dictionary into a TypeScript helper (with optional GraphQL overlay). Defaults:
+Use `packages/uns-core/src/tools/generate-uns-dictionary.ts` to turn a JSON dictionary into a TypeScript helper. No network or GraphQL calls are involved.
 
 ```bash
 pnpm tsx packages/uns-core/src/tools/generate-uns-dictionary.ts \ 
-  --input uns-dictionary.json \            # base JSON (optional; skipped if missing)
+  --input uns-dictionary.json \            # base JSON
   --output src/uns/uns-dictionary.generated.ts \ 
-  --from-graphql \                         # optional: fetch overlay from GraphQL
-  --lang sl \                              # pick language code from descriptions
-  --priority overlay \                     # overlay wins when it has a description
-  --write-merged-json --json-out uns-dictionary.merged.json  # optional: persist merged view
+  --lang sl                                # pick language code from descriptions
 ```
 
-- Reads base JSON if present; overlays GraphQL results on top (additive, per-key override).
-- Logs any additions/overrides; JSON stays untouched unless `--write-merged-json` is passed.
-- The generated TS file exports constants, description maps, and helper getters for IntelliSense and metadata emission.
+- Reads the provided JSON and emits TypeScript constants, description maps, and helper getters for IntelliSense and metadata emission.
+
+To generate both dictionary and measurements in one step, use the wrapper:
+
+```bash
+pnpm tsx packages/uns-core/src/tools/generate-uns-reference.ts \
+  --dictionary uns-dictionary.json \
+  --dictionary-output src/uns/uns-dictionary.generated.ts \
+  --measurements uns-measurements.json \
+  --measurements-output src/uns/uns-measurements.generated.ts \
+  --lang sl
+```
 
 ### Infisical secret resolution in development
 
