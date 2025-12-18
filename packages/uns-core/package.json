@@ -1,6 +1,6 @@
 {
   "name": "@uns-kit/core",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "Core utilities and runtime building blocks for UNS-based realtime transformers.",
   "type": "module",
   "license": "MIT",
@@ -32,7 +32,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node ./scripts/copy-static-assets.cjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "postversion": "node ./scripts/update-cli-core-version.cjs"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.0",

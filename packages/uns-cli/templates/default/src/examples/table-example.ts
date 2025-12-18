@@ -13,6 +13,7 @@ import {
   GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
 import type { IUnsTableColumn } from "@uns-kit/core/uns/uns-interfaces.js";
+import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 
 /**
  * Load the configuration from a file.
@@ -28,13 +29,10 @@ registerAttributeDescriptions(GeneratedAttributeDescriptions);
  */
 const unsProxyProcess = new UnsProxyProcess(config.infra.host!, {processName: config.uns.processName!});
 const mqttInput = await unsProxyProcess.createUnsMqttProxy((config.input?.host)!, "templateUnsRttInput", config.uns.instanceMode!, config.uns.handover!, {
-  mqttSubToTopics: ["integration/raw-table"],
-  publishThrottlingDelay:0,
-  subscribeThrottlingDelay:0
+  mqttSubToTopics: ["raw/#"],
 });
 const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host)!, "templateUnsRttOutput", config.uns.instanceMode!, config.uns.handover!, {
-  publishThrottlingDelay:0,
-  subscribeThrottlingDelay:0  
+  publishThrottlingDelay: 1000,
 });
 
 /**
@@ -44,21 +42,37 @@ const mqttOutput = await unsProxyProcess.createUnsMqttProxy((config.output?.host
  */
 mqttInput.event.on("input", async (event) => {
   try {
-    if (event.topic === "integration/raw-table") {
-      const time = UnsPacket.formatToISO8601(new Date());
-      const columns: IUnsTableColumn[] = [
-        { name: "kolona_a", type: "int", value: 10 },
-        { name: "kolona_b", type: "symbol", value: "1" },
-        { name: "kolona_c", type: "varchar", value: "10" },
-        { name: "kolona_d", type: "double", value: 3 },
-      ];
+    if (event.topic === "raw/data") {
+      const values = event.message.split(",");
+      const [countRaw, timestampRaw, sensorRaw] = values;
+      if (!countRaw || !timestampRaw || !sensorRaw) {
+        logger.warn(`Skipping malformed raw/data payload: ${event.message}`);
+        return;
+      }
 
-      const message: IUnsMessage = { table: { dataGroup: "demo_table", columns, time } };
+      const currentValue = Number.parseFloat(countRaw);
+      const eventDate = new Date(Number.parseInt(timestampRaw, 10));
+      const sensorValue = Number.parseFloat(sensorRaw);
+
+      const time = UnsPacket.formatToISO8601(eventDate);
+      const dataGroup = "sensor_table";
+      const columns: IUnsTableColumn[] = [
+        { name: "current", type: "double", value: currentValue, uom: GeneratedPhysicalMeasurements.Ampere },
+        { name: "voltage", type: "double", value: sensorValue },
+      ];
+      const message: IUnsMessage = {
+        table: {
+          dataGroup,
+          time,
+          columns,
+        },
+      };
       const topic: UnsTopics = "enterprise/site/area/line/";
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
       mqttOutput.publishMqttMessage({
         topic,
-        asset:"asset",
+        asset: "asset",
+        assetDescription: "Sample asset",
         objectType: GeneratedObjectTypes["resource-status"],
         objectId: "main",
         attribute: GeneratedAttributes["status"] ?? "status",
