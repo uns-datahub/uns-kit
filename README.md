@@ -35,67 +35,15 @@ Each package is published independently to npm and can be consumed à la carte.
 
 ## Getting Started
 
-```bash
-pnpm install
-pnpm typecheck
-pnpm build
-```
-
-- `pnpm typecheck` runs the TypeScript compiler in no-emit mode for every package.
-- `pnpm build` emits JavaScript and declaration files into `packages/*/dist`.
-
-To work on a specific package:
-
-```bash
-cd packages/uns-api
-pnpm run typecheck
-pnpm run build
-```
-
-### Scaffolding a New Project
-
-```bash
-pnpm --package=@uns-kit/cli dlx uns-kit create my-uns-app
-# or with npx
-npx @uns-kit/cli create my-uns-app
-cd my-uns-app
-pnpm install
-pnpm run dev
-```
-
-Optional tooling setup (run inside the generated project):
-
-```bash
-uns-kit configure-devops
-pnpm install
-pnpm run pull-request
-
-uns-kit configure-vscode
-
-uns-kit configure-codegen
-pnpm install
-pnpm run codegen
-pnpm run refresh-uns
-
-uns-kit configure-api
-uns-kit configure-cron
-uns-kit configure-temporal
-uns-kit configure-python
-pnpm install
-```
-
-Keep your project schema aligned by editing `src/config/project.config.extension.ts` and running `pnpm run generate-config-schema` inside the generated app. The command refreshes both `config.schema.json` and `src/config/app-config.ts`, which augments `@uns-kit/core`'s `AppConfig`. Reload your editor's TypeScript server if completions lag behind.
-
-## Publishing
-
-1. Update versions in the relevant `package.json` files.
-2. Run `pnpm build` to generate the `dist/` folders.
-3. Publish with pnpm (example for the API package):
-   ```bash
-   pnpm publish --filter @uns-kit/api --access public
-   ```
-
-Repeat for the other packages as needed. Each package `package.json` already includes the correct metadata (license, repository, keywords, etc.).
+- Install dependencies for the monorepo: `pnpm install`.
+- Scaffold a new UNS app with the CLI (no global install required):
+  ```bash
+  pnpm --package=@uns-kit/cli dlx uns-kit create my-uns-app
+  # or with npx
+  npx @uns-kit/cli create my-uns-app
+  ```
+- Inside the generated app: `cd my-uns-app && pnpm install && pnpm run dev`.
+- Want the extras (DevOps, VS Code, codegen, API/cron/temporal scaffolds)? Run `uns-kit configure --all` inside the project to apply every template in one go.
 
 ## License
 
