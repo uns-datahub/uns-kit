@@ -2,7 +2,7 @@
 
 Core utilities and runtime building blocks for building Unified Namespace (UNS) realtime transformers. The package bundles the process lifecycle manager, MQTT integrations, gRPC gateway helpers, configuration tooling, and shared type definitions that power the UNS ecosystem.
 
-Note: Apps built with uns-kit are intended to be managed by the UNS Datahub controller.
+Note: Apps built with uns-kit are intended to be managed by the **UNS Datahub controller**.
 
 ## uns-kit in context
 

@@ -13,7 +13,7 @@ uns-kit is a batteries-included toolkit for building UNS-aware applications. It 
 
 The goal is to give teams a consistent, tested foundation for the Unified Namespace so you can focus on your domain logic instead of wiring, auth, and boilerplate.
 
-**Note:** Apps scaffolded with uns-kit are meant to be managed by the UNS Datahub controller. The controller is not yet open-sourced and remains internal for now; publish details will follow when it is released.
+**Note:** Apps scaffolded with uns-kit are meant to be managed by the **UNS Datahub controller**. The controller is not yet open-sourced and remains internal for now; publish details will follow when it is released.
 
 ## Monorepo Overview
 

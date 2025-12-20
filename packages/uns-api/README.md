@@ -2,7 +2,7 @@
 
 `@uns-kit/api` exposes Express-based HTTP endpoints for UNS deployments. The plugin attaches a `createApiProxy` method to `UnsProxyProcess`, handles JWT/JWKS access control, and automatically publishes API metadata back into the Unified Namespace.
 
-Note: Apps built with uns-kit are intended to be managed by the UNS Datahub controller.
+Note: Apps built with uns-kit are intended to be managed by the **UNS Datahub controller**.
 
 ## uns-kit in context
 
