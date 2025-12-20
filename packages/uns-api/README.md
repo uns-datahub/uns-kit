@@ -2,6 +2,18 @@
 
 `@uns-kit/api` exposes Express-based HTTP endpoints for UNS deployments. The plugin attaches a `createApiProxy` method to `UnsProxyProcess`, handles JWT/JWKS access control, and automatically publishes API metadata back into the Unified Namespace.
 
+## uns-kit in context
+
+uns-kit is a batteries-included toolkit for Unified Namespace applications. It standardizes MQTT wiring, auth, config schemas, and scaffolding so you can focus on your API surface instead of boilerplate. The toolkit packages are:
+
+| Package | Description |
+| --- | --- |
+| [`@uns-kit/core`](../uns-core) | Base runtime utilities (UnsProxyProcess, MQTT helpers, configuration tooling, gRPC gateway support). |
+| [`@uns-kit/api`](../uns-api) | Express plugin that exposes HTTP endpoints, handles JWT/JWKS auth, and republishes API metadata to UNS. |
+| [`@uns-kit/cron`](../uns-cron) | Cron-driven scheduler that emits UNS events on a fixed cadence. |
+| [`@uns-kit/temporal`](../uns-temporal) | Temporal.io integration that wires workflows into UnsProxyProcess. |
+| [`@uns-kit/cli`](../uns-cli) | Command line tool for scaffolding new UNS applications. |
+
 ## Installation
 
 ```bash

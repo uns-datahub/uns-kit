@@ -2,6 +2,18 @@
 
 `@uns-kit/temporal` bridges Temporal.io workflows into the Unified Namespace. The plugin registers a `createTemporalProxy` method on `UnsProxyProcess`, tracks workflow metadata, and republishes workflow results via UNS topics.
 
+## uns-kit in context
+
+uns-kit is a batteries-included toolkit for Unified Namespace applications. It standardizes MQTT wiring, auth, config schemas, and scaffolding so you can focus on orchestrating workflows instead of boilerplate. The toolkit includes:
+
+| Package | Description |
+| --- | --- |
+| [`@uns-kit/core`](../uns-core) | Base runtime utilities (UnsProxyProcess, MQTT helpers, configuration tooling, gRPC gateway support). |
+| [`@uns-kit/api`](../uns-api) | Express plugin that exposes HTTP endpoints, handles JWT/JWKS auth, and republishes API metadata to UNS. |
+| [`@uns-kit/cron`](../uns-cron) | Cron-driven scheduler that emits UNS events on a fixed cadence. |
+| [`@uns-kit/temporal`](../uns-temporal) | Temporal.io integration that wires workflows into UnsProxyProcess. |
+| [`@uns-kit/cli`](../uns-cli) | Command line tool for scaffolding new UNS applications. |
+
 ## Installation
 
 ```bash

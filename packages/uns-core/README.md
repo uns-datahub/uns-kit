@@ -2,6 +2,18 @@
 
 Core utilities and runtime building blocks for building Unified Namespace (UNS) realtime transformers. The package bundles the process lifecycle manager, MQTT integrations, gRPC gateway helpers, configuration tooling, and shared type definitions that power the UNS ecosystem.
 
+## uns-kit in context
+
+uns-kit is a batteries-included toolkit for Unified Namespace applications. It standardizes MQTT wiring, auth, config schemas, and scaffolding so teams can focus on domain logic instead of boilerplate. This package is the foundation; the full toolkit includes:
+
+| Package | Description |
+| --- | --- |
+| [`@uns-kit/core`](../uns-core) | Base runtime utilities (UnsProxyProcess, MQTT helpers, configuration tooling, gRPC gateway support). |
+| [`@uns-kit/api`](../uns-api) | Express plugin that exposes HTTP endpoints, handles JWT/JWKS auth, and republishes API metadata to UNS. |
+| [`@uns-kit/cron`](../uns-cron) | Cron-driven scheduler that emits UNS events on a fixed cadence. |
+| [`@uns-kit/temporal`](../uns-temporal) | Temporal.io integration that wires workflows into UnsProxyProcess. |
+| [`@uns-kit/cli`](../uns-cli) | Command line tool for scaffolding new UNS applications. |
+
 ## Installation
 
 ```bash
