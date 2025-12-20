@@ -8,11 +8,11 @@ uns-kit is a batteries-included toolkit for Unified Namespace applications. It s
 
 | Package | Description |
 | --- | --- |
-| [`@uns-kit/core`](https://www.npmjs.com/package/@uns-kit/core) | Base runtime utilities (UnsProxyProcess, MQTT helpers, configuration tooling, gRPC gateway support). |
-| [`@uns-kit/api`](https://www.npmjs.com/package/@uns-kit/api) | Express plugin that exposes HTTP endpoints, handles JWT/JWKS auth, and republishes API metadata to UNS. |
-| [`@uns-kit/cron`](https://www.npmjs.com/package/@uns-kit/cron) | Cron-driven scheduler that emits UNS events on a fixed cadence. |
-| [`@uns-kit/temporal`](https://www.npmjs.com/package/@uns-kit/temporal) | Temporal.io integration that wires workflows into UnsProxyProcess. |
-| [`@uns-kit/cli`](https://www.npmjs.com/package/@uns-kit/cli) | Command line tool for scaffolding new UNS applications. |
+| [`@uns-kit/core`](https://github.com/uns-datahub/uns-kit/tree/main/packages/uns-core) | Base runtime utilities (UnsProxyProcess, MQTT helpers, configuration tooling, gRPC gateway support). |
+| [`@uns-kit/api`](https://github.com/uns-datahub/uns-kit/tree/main/packages/uns-api) | Express plugin that exposes HTTP endpoints, handles JWT/JWKS auth, and republishes API metadata to UNS. |
+| [`@uns-kit/cron`](https://github.com/uns-datahub/uns-kit/tree/main/packages/uns-cron) | Cron-driven scheduler that emits UNS events on a fixed cadence. |
+| [`@uns-kit/temporal`](https://github.com/uns-datahub/uns-kit/tree/main/packages/uns-temporal) | Temporal.io integration that wires workflows into UnsProxyProcess. |
+| [`@uns-kit/cli`](https://github.com/uns-datahub/uns-kit/tree/main/packages/uns-cli) | Command line tool for scaffolding new UNS applications. |
 
 ## Installation
 

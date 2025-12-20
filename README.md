@@ -33,17 +33,16 @@ The goal is to give teams a consistent, tested foundation for the Unified Namesp
 
 Each package is published independently to npm and can be consumed à la carte.
 
-## Getting Started
+## Getting Started (new project)
 
-- Install dependencies for the monorepo: `pnpm install`.
 - Scaffold a new UNS app with the CLI (no global install required):
   ```bash
   pnpm --package=@uns-kit/cli dlx uns-kit create my-uns-app
   # or with npx
   npx @uns-kit/cli create my-uns-app
   ```
-- Inside the generated app: `cd my-uns-app && pnpm install && pnpm run dev`.
-- Want the extras (DevOps, VS Code, codegen, API/cron/temporal scaffolds)? Run `uns-kit configure --all` inside the project to apply every template in one go.
+- Then: `cd my-uns-app && pnpm install && pnpm run dev`.
+- For more templates and configure options, see the CLI docs: [`@uns-kit/cli`](packages/uns-cli).
 
 ## License
 
