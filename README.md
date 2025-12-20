@@ -35,7 +35,7 @@ The goal is to give teams a consistent, tested foundation for the Unified Namesp
 
 Each package is published independently to npm and can be consumed à la carte.
 
-## Getting Started (new project)
+## uns-kit/cli Quickstart
 
 - Scaffold a new UNS app with the CLI (no global install required):
   ```bash
