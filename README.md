@@ -6,7 +6,7 @@ This repository houses the official UNS toolkit published to npm under the `@uns
 
 uns-kit is a batteries-included toolkit for building UNS-aware applications. It standardizes how you:
 - connect to MQTT and UNS topics, process messages, and emit events (core runtime),
-- expose HTTP/GraphQL surfaces to interact with UNS data (API plugin),
+- expose HTTP/REST surfaces to interact with UNS data (API plugin),
 - trigger UNS events on schedules (cron plugin),
 - orchestrate workflows with Temporal.io while speaking UNS (temporal plugin),
 - scaffold new projects with sensible defaults, codegen hooks, and config schemas (CLI).
