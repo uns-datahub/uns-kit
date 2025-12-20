@@ -2,6 +2,8 @@
 
 Command line scaffolding tool for the UNS toolkit. It bootstraps a new project with `@uns-kit/core` preconfigured and ready to extend with additional plugins.
 
+Note: Apps built with uns-kit are intended to be managed by the UNS Datahub controller.
+
 ## uns-kit in context
 
 uns-kit is a batteries-included toolkit for Unified Namespace applications. It standardizes MQTT wiring, auth, config schemas, and scaffolding so you can focus on your domain logic. The toolkit packages are:
