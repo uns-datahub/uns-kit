@@ -231,6 +231,7 @@ export default class UnsMqttProxy extends UnsProxy {
         if ("attributes" in mqttMessage) {
             const { topic, asset, assetDescription, objectType, objectTypeDescription, objectId } = mqttMessage;
             for (const attrEntry of mqttMessage.attributes) {
+                const attrDescription = attrEntry.description ?? getAttributeDescription(attrEntry.attribute);
                 const message = "message" in attrEntry && attrEntry.message
                     ? attrEntry.message
                     : "data" in attrEntry && attrEntry.data
@@ -247,7 +248,7 @@ export default class UnsMqttProxy extends UnsProxy {
                     objectTypeDescription,
                     objectId,
                     attribute: attrEntry.attribute,
-                    description: attrEntry.description,
+                    description: attrDescription,
                     tags: attrEntry.tags,
                     attributeNeedsPersistence: attrEntry.attributeNeedsPersistence,
                     packet,
@@ -260,24 +261,28 @@ export default class UnsMqttProxy extends UnsProxy {
             logger.error(`${this.instanceNameWithSuffix} - Error publishing mqtt message: mqttMessage.packet must be defined.`);
             return;
         }
+        const baseDescription = mqttMessage.description ??
+            getAttributeDescription(mqttMessage.attribute) ??
+            mqttMessage.attribute;
+        const mqttMessageWithDesc = { ...mqttMessage, description: baseDescription };
         const time = UnsPacket.formatToISO8601(new Date());
         switch (mode) {
             case MessageMode.Raw: {
-                this.processAndEnqueueMessage(mqttMessage, time, false);
+                this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
                 break;
             }
             case MessageMode.Delta: {
-                const deltaMessage = { ...mqttMessage };
-                deltaMessage.attribute = `${mqttMessage.attribute}-delta`;
-                deltaMessage.description = `${mqttMessage.description} (delta)`;
+                const deltaMessage = { ...mqttMessageWithDesc };
+                deltaMessage.attribute = `${mqttMessageWithDesc.attribute}-delta`;
+                deltaMessage.description = `${baseDescription ?? ""} (delta)`;
                 this.processAndEnqueueMessage(deltaMessage, time, true);
                 break;
             }
             case MessageMode.Both: {
-                this.processAndEnqueueMessage(mqttMessage, time, false);
-                const deltaMessageBoth = { ...mqttMessage };
-                deltaMessageBoth.attribute = `${mqttMessage.attribute}-delta`;
-                deltaMessageBoth.description = `${mqttMessage.description} (delta)`;
+                this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
+                const deltaMessageBoth = { ...mqttMessageWithDesc };
+                deltaMessageBoth.attribute = `${mqttMessageWithDesc.attribute}-delta`;
+                deltaMessageBoth.description = `${baseDescription ?? ""} (delta)`;
                 this.processAndEnqueueMessage(deltaMessageBoth, time, true);
                 break;
             }
