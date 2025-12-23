@@ -126,10 +126,31 @@
       "attributes": [
         "power",
         "energy",
+        "active-energy-delivered",
+        "active-energy-received",
+        "reactive-energy-delivered",
+        "reactive-energy-received",
         "voltage",
         "current",
         "frequency",
         "cost"
+      ]
+    },
+    "energy-meter": {
+      "description": "Merilno mesto za aktivno/jalovo energijo in moč.",
+      "descriptions": {
+        "sl": "Merilno mesto za aktivno/jalovo energijo in moč.",
+        "en": "Energy meter / measurement point for active/reactive energy and power."
+      },
+      "attributes": [
+        "power",
+        "active-energy-delivered",
+        "active-energy-received",
+        "reactive-energy-delivered",
+        "reactive-energy-received",
+        "voltage",
+        "current",
+        "frequency"
       ]
     },
     "utility-resource": {
@@ -490,6 +511,34 @@
       "descriptions": {
         "sl": "Energija.",
         "en": "Energy."
+      }
+    },
+    "active-energy-delivered": {
+      "description": "Oddana delovna energija (izvoz).",
+      "descriptions": {
+        "sl": "Oddana delovna energija (izvoz).",
+        "en": "Active energy delivered (exported)."
+      }
+    },
+    "active-energy-received": {
+      "description": "Prejeta delovna energija (uvoz).",
+      "descriptions": {
+        "sl": "Prejeta delovna energija (uvoz).",
+        "en": "Active energy received (imported)."
+      }
+    },
+    "reactive-energy-delivered": {
+      "description": "Oddana jalova energija (izvoz).",
+      "descriptions": {
+        "sl": "Oddana jalova energija (izvoz).",
+        "en": "Reactive energy delivered (exported)."
+      }
+    },
+    "reactive-energy-received": {
+      "description": "Prejeta jalova energija (uvoz).",
+      "descriptions": {
+        "sl": "Prejeta jalova energija (uvoz).",
+        "en": "Reactive energy received (imported)."
       }
     },
     "voltage": {
