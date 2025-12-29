@@ -32,6 +32,65 @@ export default class MqttProxy {
         this.mqttParameters = mqttParameters ?? {};
         this.mqttWorker = mqttWorker;
     }
+    resolveProtocol() {
+        return this.mqttParameters.protocol ?? (this.mqttSSL ? "mqtts" : "mqtt");
+    }
+    resolveDefaultPort(protocol) {
+        switch (protocol) {
+            case "mqtts":
+            case "ssl":
+                return 8883;
+            case "wss":
+                return 443;
+            case "ws":
+                return 80;
+            case "tcp":
+            case "mqtt":
+            default:
+                return 1883;
+        }
+    }
+    buildServers(defaultProtocol) {
+        const servers = [];
+        const { port } = this.mqttParameters;
+        const protocol = this.mqttParameters.protocol ?? defaultProtocol;
+        if (Array.isArray(this.mqttParameters.servers) && this.mqttParameters.servers.length > 0) {
+            for (const server of this.mqttParameters.servers) {
+                if (!server?.host)
+                    continue;
+                const resolvedProtocol = server.protocol ?? protocol;
+                const resolvedPort = typeof server.port === "number"
+                    ? server.port
+                    : typeof port === "number"
+                        ? port
+                        : this.resolveDefaultPort(resolvedProtocol);
+                const entry = {
+                    host: server.host,
+                    port: resolvedPort,
+                };
+                if (resolvedProtocol) {
+                    entry.protocol = resolvedProtocol;
+                }
+                servers.push(entry);
+            }
+        }
+        else if (Array.isArray(this.mqttParameters.hosts) && this.mqttParameters.hosts.length > 0) {
+            for (const host of this.mqttParameters.hosts) {
+                if (!host)
+                    continue;
+                const resolvedPort = typeof port === "number" ? port : this.resolveDefaultPort(protocol);
+                const entry = {
+                    host,
+                    port: resolvedPort,
+                };
+                if (protocol) {
+                    entry.protocol = protocol;
+                }
+                servers.push(entry);
+            }
+        }
+        return servers.length > 0 ? servers : undefined;
+    }
     async start() {
         logger.info(`${this.instanceName} - Connecting to MQTT broker...`);
         return new Promise((resolve, reject) => {
@@ -39,11 +98,24 @@ export default class MqttProxy {
                 const username = this.mqttParameters.username;
                 const password = this.mqttParameters.password;
                 const clientId = this.mqttParameters.clientId ?? this.instanceName;
+                const protocol = this.resolveProtocol();
                 const options = {
                     username,
                     password,
                     protocolVersion: 5,
                     rejectUnauthorized: this.rejectUnauthorized,
+                    keepalive: this.mqttParameters.keepalive,
+                    clean: this.mqttParameters.clean ?? true,
+                    connectTimeout: this.mqttParameters.connectTimeout,
+                    reconnectPeriod: this.mqttParameters.reconnectPeriod,
+                    reconnectOnConnackError: this.mqttParameters.reconnectOnConnackError,
+                    resubscribe: this.mqttParameters.resubscribe,
+                    queueQoSZero: this.mqttParameters.queueQoSZero,
+                    properties: this.mqttParameters.properties,
+                    ca: this.mqttParameters.ca,
+                    cert: this.mqttParameters.cert,
+                    key: this.mqttParameters.key,
+                    servername: this.mqttParameters.servername,
                     will: {
                         topic: `${this.statusTopic}alive`,
                         payload: Buffer.from(""),
@@ -52,10 +124,19 @@ export default class MqttProxy {
                         properties: { messageExpiryInterval: 3600 },
                     },
                     clientId,
-                    clean: true,
                 };
-                const protocol = this.mqttSSL ? "mqtts" : "mqtt";
-                this.mqttClient = mqtt.connect(`${protocol}://${this.mqttHost}`, options);
+                const servers = this.buildServers(protocol);
+                if (servers) {
+                    options.servers = servers;
+                    options.protocol = protocol;
+                    this.mqttClient = mqtt.connect(options);
+                }
+                else {
+                    options.host = this.mqttHost;
+                    options.port = this.mqttParameters.port;
+                    options.protocol = protocol;
+                    this.mqttClient = mqtt.connect(options);
+                }
                 const onConnect = () => {
                     try {
                         this.mqttClient.stream.setMaxListeners(0);

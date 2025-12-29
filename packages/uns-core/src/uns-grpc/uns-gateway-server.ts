@@ -10,9 +10,9 @@ import logger from "../logger.js";
 import { ConfigFile } from "../config-file.js";
 import UnsProxyProcess from "../uns/uns-proxy-process.js";
 import UnsMqttProxy, { MessageMode } from "../uns-mqtt/uns-mqtt-proxy.js";
-import { IUnsMessage, IMqttMessage } from "../uns/uns-interfaces.js";
+import { IApiProxyOptions, IGetEndpointOptions, IMqttMessage, IUnsMessage, IUnsParameters, IUnsProcessParameters } from "../uns/uns-interfaces.js";
+import type { IMqttConnectProperties, IMqttServerConfig, MqttProtocol } from "../uns-mqtt/mqtt-interfaces.js";
 import { UnsPacket } from "../uns/uns-packet.js";
-import { IApiProxyOptions, IGetEndpointOptions } from "../uns/uns-interfaces.js";
 import { randomUUID } from "crypto";
 import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
 import { ObjectTypes } from "../uns/uns-object.js";
@@ -48,11 +48,98 @@ type UnsProxyProcessWithApi = UnsProxyProcess & {
   createApiProxy(instanceName: string, options: IApiProxyOptions): Promise<UnsApiProxyLike>;
 };
 
-const requireHost = (value: unknown, pathLabel: string): string => {
-  if (typeof value !== "string" || value.length === 0) {
-    throw new Error(`Configuration value '${pathLabel}' is required and must resolve to a string host.`);
+type MqttChannelConfig = {
+  host?: string;
+  hosts?: string[];
+  servers?: IMqttServerConfig[];
+  port?: number;
+  protocol?: MqttProtocol;
+  username?: string;
+  password?: string;
+  clientId?: string;
+  clean?: boolean;
+  keepalive?: number;
+  connectTimeout?: number;
+  reconnectPeriod?: number;
+  reconnectOnConnackError?: boolean;
+  resubscribe?: boolean;
+  queueQoSZero?: boolean;
+  rejectUnauthorized?: boolean;
+  properties?: IMqttConnectProperties;
+  ca?: string;
+  cert?: string;
+  key?: string;
+  servername?: string;
+};
+
+const resolveMqttHost = (channel: MqttChannelConfig | undefined, pathLabel: string): string => {
+  if (!channel) {
+    throw new Error(`Configuration value '${pathLabel}' is required.`);
   }
-  return value;
+  if (typeof channel.host === "string" && channel.host.length > 0) {
+    return channel.host;
+  }
+  if (Array.isArray(channel.hosts) && channel.hosts.length > 0) {
+    const candidate = channel.hosts.find((host) => typeof host === "string" && host.length > 0);
+    if (candidate) return candidate;
+  }
+  if (Array.isArray(channel.servers) && channel.servers.length > 0) {
+    const candidate = channel.servers.find((server) => typeof server.host === "string" && server.host.length > 0);
+    if (candidate) return candidate.host;
+  }
+  throw new Error(`Configuration value '${pathLabel}' must include host, hosts, or servers.`);
+};
+
+const buildUnsProcessParameters = (channel: MqttChannelConfig | undefined): IUnsProcessParameters => {
+  if (!channel) return {};
+  return {
+    username: channel.username,
+    password: channel.password,
+    clientId: channel.clientId,
+    hosts: channel.hosts,
+    servers: channel.servers,
+    port: channel.port,
+    protocol: channel.protocol,
+    keepalive: channel.keepalive,
+    clean: channel.clean,
+    connectTimeout: channel.connectTimeout,
+    reconnectPeriod: channel.reconnectPeriod,
+    reconnectOnConnackError: channel.reconnectOnConnackError,
+    resubscribe: channel.resubscribe,
+    queueQoSZero: channel.queueQoSZero,
+    rejectUnauthorized: channel.rejectUnauthorized,
+    properties: channel.properties,
+    ca: channel.ca,
+    cert: channel.cert,
+    key: channel.key,
+    servername: channel.servername,
+  };
+};
+
+const buildUnsParameters = (channel: MqttChannelConfig | undefined): IUnsParameters => {
+  if (!channel) return {};
+  return {
+    username: channel.username,
+    password: channel.password,
+    clientId: channel.clientId,
+    hosts: channel.hosts,
+    servers: channel.servers,
+    port: channel.port,
+    protocol: channel.protocol,
+    keepalive: channel.keepalive,
+    clean: channel.clean,
+    connectTimeout: channel.connectTimeout,
+    reconnectPeriod: channel.reconnectPeriod,
+    reconnectOnConnackError: channel.reconnectOnConnackError,
+    resubscribe: channel.resubscribe,
+    queueQoSZero: channel.queueQoSZero,
+    rejectUnauthorized: channel.rejectUnauthorized,
+    properties: channel.properties,
+    ca: channel.ca,
+    cert: channel.cert,
+    key: channel.key,
+    servername: channel.servername,
+  };
 };
 
 export class UnsGatewayServer {
@@ -67,6 +154,8 @@ export class UnsGatewayServer {
 
   private inputHost: string;
   private outputHost: string;
+  private inputParams: IUnsParameters | null = null;
+  private outputParams: IUnsParameters | null = null;
   private apiOptions: IApiProxyOptions | null = null;
   private outPublisherActive = false;
   private inSubscriberActive = false;
@@ -96,11 +185,14 @@ export class UnsGatewayServer {
     const handover = (typeof opts?.handoverOverride === "boolean") ? opts.handoverOverride : cfg.uns.handover;
     const suffix = opts?.instanceSuffix ? `-${opts.instanceSuffix}` : "";
 
-    const infraHost = requireHost(cfg.infra?.host, "infra.host");
-    this.unsProcess = new UnsProxyProcess(infraHost, { processName }) as UnsProxyProcessWithApi;
+    const infraHost = resolveMqttHost(cfg.infra as MqttChannelConfig, "infra");
+    const infraParams = buildUnsProcessParameters(cfg.infra as MqttChannelConfig);
+    this.unsProcess = new UnsProxyProcess(infraHost, { processName, ...infraParams }) as UnsProxyProcessWithApi;
     // cache hosts/options; proxies created lazily on first use
-    this.inputHost = requireHost(cfg.input?.host, "input.host");
-    this.outputHost = requireHost(cfg.output?.host, "output.host");
+    this.inputHost = resolveMqttHost(cfg.input as MqttChannelConfig, "input");
+    this.outputHost = resolveMqttHost(cfg.output as MqttChannelConfig, "output");
+    this.inputParams = buildUnsParameters(cfg.input as MqttChannelConfig);
+    this.outputParams = buildUnsParameters(cfg.output as MqttChannelConfig);
     this.apiOptions = cfg.uns?.jwksWellKnownUrl
       ? { jwks: { wellKnownJwksUrl: cfg.uns.jwksWellKnownUrl, activeKidUrl: cfg.uns.kidWellKnownUrl } }
       : { jwtSecret: "CHANGEME" };
@@ -292,12 +384,16 @@ export class UnsGatewayServer {
       while ((this.unsProcess as any)?.processMqttProxy?.isConnected === false) {
         await new Promise((r) => setTimeout(r, 50));
       }
+      const outputParams: IUnsParameters = {
+        ...(this.outputParams ?? {}),
+        publishThrottlingDelay: this.outputParams?.publishThrottlingDelay ?? 1,
+      };
       this.mqttOutput = await this.unsProcess!.createUnsMqttProxy(
         this.outputHost,
         this.getInstanceName("gatewayOutput"),
         "force",
         true,
-        { publishThrottlingDelay: 1 },
+        outputParams,
       );
       this.attachStatusListeners();
     }
@@ -308,12 +404,16 @@ export class UnsGatewayServer {
       while ((this.unsProcess as any)?.processMqttProxy?.isConnected === false) {
         await new Promise((r) => setTimeout(r, 50));
       }
+      const inputParams: IUnsParameters = {
+        ...(this.inputParams ?? {}),
+        mqttSubToTopics: this.inputParams?.mqttSubToTopics ?? [],
+      };
       this.mqttInput = await this.unsProcess!.createUnsMqttProxy(
         this.inputHost,
         this.getInstanceName("gatewayInput"),
         "force",
         true,
-        { mqttSubToTopics: [] },
+        inputParams,
       );
       this.attachStatusListeners();
     }

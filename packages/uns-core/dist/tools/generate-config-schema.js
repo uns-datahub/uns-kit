@@ -65,7 +65,23 @@ write(path.resolve("config.schema.json"), JSON.stringify(jsonSchema, null, 2));
 // 2) TypeScript `export type AppConfig = {...}`
 const { node } = zodToTs(baseSchema, "AppConfig");
 const interfaceBody = printNode(node);
-const tsContent = `/* Auto-generated. Do not edit by hand. */\nexport interface ProjectAppConfig ${interfaceBody}\n\nexport interface AppConfig extends ProjectAppConfig {}\n\ntype GeneratedProjectAppConfig = ProjectAppConfig;\ntype GeneratedAppConfig = AppConfig;\n\ndeclare module "@uns-kit/core/config/app-config.js" {\n  interface ProjectAppConfig extends GeneratedProjectAppConfig {}\n  interface AppConfig extends GeneratedAppConfig {}\n}\n`;
+let shouldAugment = true;
+try {
+    const pkgJsonPath = path.resolve(process.cwd(), "package.json");
+    if (fs.existsSync(pkgJsonPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+        if (pkg?.name === "@uns-kit/core") {
+            shouldAugment = false;
+        }
+    }
+}
+catch {
+    shouldAugment = true;
+}
+const augmentationBlock = shouldAugment
+    ? `\n\ntype GeneratedProjectAppConfig = ProjectAppConfig;\ntype GeneratedAppConfig = AppConfig;\n\ndeclare module "@uns-kit/core/config/app-config.js" {\n  interface ProjectAppConfig extends GeneratedProjectAppConfig {}\n  interface AppConfig extends GeneratedAppConfig {}\n}\n`
+    : "\n";
+const tsContent = `/* Auto-generated. Do not edit by hand. */\nexport interface ProjectAppConfig ${interfaceBody}\n\nexport interface AppConfig extends ProjectAppConfig {}${augmentationBlock}`;
 write(path.resolve("./src/config/app-config.ts"), tsContent);
 console.log("Generated config.schema.json and updated src/config/app-config.ts");
 //# sourceMappingURL=generate-config-schema.js.map

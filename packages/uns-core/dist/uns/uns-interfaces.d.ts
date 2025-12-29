@@ -3,6 +3,7 @@ import { MeasurementUnit } from "./uns-measurements.js";
 import { UnsTags } from "./uns-tags.js";
 import type { UnsObjectId, UnsObjectType } from "./uns-object.js";
 import type { UnsAsset } from "./uns-asset.js";
+import type { IMqttConnectProperties, IMqttServerConfig, MqttProtocol } from "../uns-mqtt/mqtt-interfaces.js";
 import { UnsTopics } from "./uns-topics.js";
 import { type KnownUnsAttributeName } from "./uns-attributes.js";
 export type ISO8601 = `${number}-${string}-${string}T${string}:${string}:${string}.${string}Z`;
@@ -21,6 +22,22 @@ export interface IUnsParameters {
     subscribeThrottlingDelay?: number;
     rejectUnauthorized?: boolean;
     clientId?: string;
+    hosts?: string[];
+    servers?: IMqttServerConfig[];
+    port?: number;
+    protocol?: MqttProtocol;
+    keepalive?: number;
+    clean?: boolean;
+    connectTimeout?: number;
+    reconnectPeriod?: number;
+    reconnectOnConnackError?: boolean;
+    resubscribe?: boolean;
+    queueQoSZero?: boolean;
+    properties?: IMqttConnectProperties;
+    ca?: string;
+    cert?: string;
+    key?: string;
+    servername?: string;
 }
 export interface IUnsProcessParameters {
     processName?: string | undefined;
@@ -29,6 +46,23 @@ export interface IUnsProcessParameters {
     password?: string;
     mqttSSL?: boolean;
     clientId?: string;
+    hosts?: string[];
+    servers?: IMqttServerConfig[];
+    port?: number;
+    protocol?: MqttProtocol;
+    keepalive?: number;
+    clean?: boolean;
+    connectTimeout?: number;
+    reconnectPeriod?: number;
+    reconnectOnConnackError?: boolean;
+    resubscribe?: boolean;
+    queueQoSZero?: boolean;
+    rejectUnauthorized?: boolean;
+    properties?: IMqttConnectProperties;
+    ca?: string;
+    cert?: string;
+    key?: string;
+    servername?: string;
 }
 export interface UnsEvents {
     input: {

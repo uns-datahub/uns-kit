@@ -2,12 +2,48 @@
 import { z } from "zod";
 import { secretValueSchema } from "./secret-placeholders.js";
 import { hostValueSchema } from "./host-placeholders.js";
-const mqttChannelSchema = z.object({
+const mqttProtocolSchema = z.enum(["mqtt", "mqtts", "ws", "wss", "tcp", "ssl"]);
+const mqttServerSchema = z.object({
     host: hostValueSchema,
+    port: z.number().int().positive().optional(),
+    protocol: mqttProtocolSchema.optional(),
+}).strict();
+const mqttConnectPropertiesSchema = z.object({
+    sessionExpiryInterval: z.number().int().nonnegative().optional(),
+    receiveMaximum: z.number().int().positive().optional(),
+    maximumPacketSize: z.number().int().positive().optional(),
+    topicAliasMaximum: z.number().int().nonnegative().optional(),
+    requestResponseInformation: z.boolean().optional(),
+    requestProblemInformation: z.boolean().optional(),
+    userProperties: z.record(z.string()).optional(),
+}).strict();
+const mqttChannelSchema = z.object({
+    host: hostValueSchema.optional(),
+    hosts: z.array(hostValueSchema).optional(),
+    servers: z.array(mqttServerSchema).optional(),
+    port: z.number().int().positive().optional(),
+    protocol: mqttProtocolSchema.optional(),
     username: z.string().optional(),
     password: secretValueSchema.optional(),
     clientId: z.string().optional(),
-}).strict();
+    clean: z.boolean().optional(),
+    keepalive: z.number().int().nonnegative().optional(),
+    connectTimeout: z.number().int().nonnegative().optional(),
+    reconnectPeriod: z.number().int().nonnegative().optional(),
+    reconnectOnConnackError: z.boolean().optional(),
+    resubscribe: z.boolean().optional(),
+    queueQoSZero: z.boolean().optional(),
+    rejectUnauthorized: z.boolean().optional(),
+    properties: mqttConnectPropertiesSchema.optional(),
+    ca: z.string().optional(),
+    cert: z.string().optional(),
+    key: z.string().optional(),
+    servername: z.string().optional(),
+}).strict().refine((value) => {
+    return !!value.host || (Array.isArray(value.hosts) && value.hosts.length > 0) || (Array.isArray(value.servers) && value.servers.length > 0);
+}, {
+    message: "One of host, hosts, or servers must be provided.",
+});
 export const unsCoreSchema = z.object({
     uns: z.object({
         graphql: z.string().url(),

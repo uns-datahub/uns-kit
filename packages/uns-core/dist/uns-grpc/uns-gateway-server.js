@@ -19,11 +19,76 @@ const defaultGatewayProto = path.resolve(__dirname, "uns-gateway.proto");
 const GATEWAY_PROTO = process.env.UNS_GATEWAY_PROTO
     ? path.resolve(process.cwd(), process.env.UNS_GATEWAY_PROTO)
     : defaultGatewayProto;
-const requireHost = (value, pathLabel) => {
-    if (typeof value !== "string" || value.length === 0) {
-        throw new Error(`Configuration value '${pathLabel}' is required and must resolve to a string host.`);
+const resolveMqttHost = (channel, pathLabel) => {
+    if (!channel) {
+        throw new Error(`Configuration value '${pathLabel}' is required.`);
     }
-    return value;
+    if (typeof channel.host === "string" && channel.host.length > 0) {
+        return channel.host;
+    }
+    if (Array.isArray(channel.hosts) && channel.hosts.length > 0) {
+        const candidate = channel.hosts.find((host) => typeof host === "string" && host.length > 0);
+        if (candidate)
+            return candidate;
+    }
+    if (Array.isArray(channel.servers) && channel.servers.length > 0) {
+        const candidate = channel.servers.find((server) => typeof server.host === "string" && server.host.length > 0);
+        if (candidate)
+            return candidate.host;
+    }
+    throw new Error(`Configuration value '${pathLabel}' must include host, hosts, or servers.`);
+};
+const buildUnsProcessParameters = (channel) => {
+    if (!channel)
+        return {};
+    return {
+        username: channel.username,
+        password: channel.password,
+        clientId: channel.clientId,
+        hosts: channel.hosts,
+        servers: channel.servers,
+        port: channel.port,
+        protocol: channel.protocol,
+        keepalive: channel.keepalive,
+        clean: channel.clean,
+        connectTimeout: channel.connectTimeout,
+        reconnectPeriod: channel.reconnectPeriod,
+        reconnectOnConnackError: channel.reconnectOnConnackError,
+        resubscribe: channel.resubscribe,
+        queueQoSZero: channel.queueQoSZero,
+        rejectUnauthorized: channel.rejectUnauthorized,
+        properties: channel.properties,
+        ca: channel.ca,
+        cert: channel.cert,
+        key: channel.key,
+        servername: channel.servername,
+    };
+};
+const buildUnsParameters = (channel) => {
+    if (!channel)
+        return {};
+    return {
+        username: channel.username,
+        password: channel.password,
+        clientId: channel.clientId,
+        hosts: channel.hosts,
+        servers: channel.servers,
+        port: channel.port,
+        protocol: channel.protocol,
+        keepalive: channel.keepalive,
+        clean: channel.clean,
+        connectTimeout: channel.connectTimeout,
+        reconnectPeriod: channel.reconnectPeriod,
+        reconnectOnConnackError: channel.reconnectOnConnackError,
+        resubscribe: channel.resubscribe,
+        queueQoSZero: channel.queueQoSZero,
+        rejectUnauthorized: channel.rejectUnauthorized,
+        properties: channel.properties,
+        ca: channel.ca,
+        cert: channel.cert,
+        key: channel.key,
+        servername: channel.servername,
+    };
 };
 export class UnsGatewayServer {
     server = null;
@@ -36,6 +101,8 @@ export class UnsGatewayServer {
     pendingApi = new Map();
     inputHost;
     outputHost;
+    inputParams = null;
+    outputParams = null;
     apiOptions = null;
     outPublisherActive = false;
     inSubscriberActive = false;
@@ -54,11 +121,14 @@ export class UnsGatewayServer {
         const instanceMode = opts?.instanceModeOverride ?? cfg.uns.instanceMode;
         const handover = (typeof opts?.handoverOverride === "boolean") ? opts.handoverOverride : cfg.uns.handover;
         const suffix = opts?.instanceSuffix ? `-${opts.instanceSuffix}` : "";
-        const infraHost = requireHost(cfg.infra?.host, "infra.host");
-        this.unsProcess = new UnsProxyProcess(infraHost, { processName });
+        const infraHost = resolveMqttHost(cfg.infra, "infra");
+        const infraParams = buildUnsProcessParameters(cfg.infra);
+        this.unsProcess = new UnsProxyProcess(infraHost, { processName, ...infraParams });
         // cache hosts/options; proxies created lazily on first use
-        this.inputHost = requireHost(cfg.input?.host, "input.host");
-        this.outputHost = requireHost(cfg.output?.host, "output.host");
+        this.inputHost = resolveMqttHost(cfg.input, "input");
+        this.outputHost = resolveMqttHost(cfg.output, "output");
+        this.inputParams = buildUnsParameters(cfg.input);
+        this.outputParams = buildUnsParameters(cfg.output);
         this.apiOptions = cfg.uns?.jwksWellKnownUrl
             ? { jwks: { wellKnownJwksUrl: cfg.uns.jwksWellKnownUrl, activeKidUrl: cfg.uns.kidWellKnownUrl } }
             : { jwtSecret: "CHANGEME" };
@@ -245,7 +315,11 @@ export class UnsGatewayServer {
             while (this.unsProcess?.processMqttProxy?.isConnected === false) {
                 await new Promise((r) => setTimeout(r, 50));
             }
-            this.mqttOutput = await this.unsProcess.createUnsMqttProxy(this.outputHost, this.getInstanceName("gatewayOutput"), "force", true, { publishThrottlingDelay: 1 });
+            const outputParams = {
+                ...(this.outputParams ?? {}),
+                publishThrottlingDelay: this.outputParams?.publishThrottlingDelay ?? 1,
+            };
+            this.mqttOutput = await this.unsProcess.createUnsMqttProxy(this.outputHost, this.getInstanceName("gatewayOutput"), "force", true, outputParams);
             this.attachStatusListeners();
         }
     }
@@ -254,7 +328,11 @@ export class UnsGatewayServer {
             while (this.unsProcess?.processMqttProxy?.isConnected === false) {
                 await new Promise((r) => setTimeout(r, 50));
             }
-            this.mqttInput = await this.unsProcess.createUnsMqttProxy(this.inputHost, this.getInstanceName("gatewayInput"), "force", true, { mqttSubToTopics: [] });
+            const inputParams = {
+                ...(this.inputParams ?? {}),
+                mqttSubToTopics: this.inputParams?.mqttSubToTopics ?? [],
+            };
+            this.mqttInput = await this.unsProcess.createUnsMqttProxy(this.inputHost, this.getInstanceName("gatewayInput"), "force", true, inputParams);
             this.attachStatusListeners();
         }
     }

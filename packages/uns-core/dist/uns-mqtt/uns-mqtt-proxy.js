@@ -49,6 +49,22 @@ export default class UnsMqttProxy extends UnsProxy {
             statusTopic: this.instanceStatusTopic,
             rejectUnauthorized: unsParameters?.rejectUnauthorized ?? false,
             clientId: unsParameters?.clientId,
+            hosts: unsParameters?.hosts,
+            servers: unsParameters?.servers,
+            port: unsParameters?.port,
+            protocol: unsParameters?.protocol,
+            keepalive: unsParameters?.keepalive,
+            clean: unsParameters?.clean,
+            connectTimeout: unsParameters?.connectTimeout,
+            reconnectPeriod: unsParameters?.reconnectPeriod,
+            reconnectOnConnackError: unsParameters?.reconnectOnConnackError,
+            resubscribe: unsParameters?.resubscribe,
+            queueQoSZero: unsParameters?.queueQoSZero,
+            properties: unsParameters?.properties,
+            ca: unsParameters?.ca,
+            cert: unsParameters?.cert,
+            key: unsParameters?.key,
+            servername: unsParameters?.servername,
         };
         this.unsParameters = unsParameters ?? {};
         this.startQueueWorker(mqttHost, this.instanceNameWithSuffix, mqttParameters, publisherActive, subscriberActive);

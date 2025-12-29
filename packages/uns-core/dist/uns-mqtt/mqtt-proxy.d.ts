@@ -23,6 +23,9 @@ export default class MqttProxy {
     isConnected: boolean;
     private rejectUnauthorized;
     constructor(mqttHost: string, instanceName: string, mqttParameters: IMqttParameters, mqttWorker?: MqttWorker);
+    private resolveProtocol;
+    private resolveDefaultPort;
+    private buildServers;
     start(): Promise<void>;
     publish(topic: string, message: string | Buffer, options?: mqtt.IClientPublishOptions): Promise<void>;
     subscribeAsync(topic: string | string[], options?: mqtt.IClientSubscribeOptions): Promise<mqtt.ISubscriptionGrant[]>;

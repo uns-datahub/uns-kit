@@ -93,6 +93,23 @@ class UnsProxyProcess {
             mqttSSL: unsProxyProcessParameters?.mqttSSL ?? false,
             statusTopic: this.processStatusTopic,
             clientId: unsProxyProcessParameters?.clientId ?? `${this.processName}-${this.processId}`,
+            hosts: unsProxyProcessParameters?.hosts,
+            servers: unsProxyProcessParameters?.servers,
+            port: unsProxyProcessParameters?.port,
+            protocol: unsProxyProcessParameters?.protocol,
+            keepalive: unsProxyProcessParameters?.keepalive,
+            clean: unsProxyProcessParameters?.clean,
+            connectTimeout: unsProxyProcessParameters?.connectTimeout,
+            reconnectPeriod: unsProxyProcessParameters?.reconnectPeriod,
+            reconnectOnConnackError: unsProxyProcessParameters?.reconnectOnConnackError,
+            resubscribe: unsProxyProcessParameters?.resubscribe,
+            queueQoSZero: unsProxyProcessParameters?.queueQoSZero,
+            rejectUnauthorized: unsProxyProcessParameters?.rejectUnauthorized ?? false,
+            properties: unsProxyProcessParameters?.properties,
+            ca: unsProxyProcessParameters?.ca,
+            cert: unsProxyProcessParameters?.cert,
+            key: unsProxyProcessParameters?.key,
+            servername: unsProxyProcessParameters?.servername,
         };
         // Initialize MQTT proxy and start connection.
         this.processMqttProxy = new MqttProxy(mqttHost, this.processName, mqttParameters);

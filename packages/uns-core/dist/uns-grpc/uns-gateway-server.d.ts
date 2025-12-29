@@ -19,6 +19,8 @@ export declare class UnsGatewayServer {
     private pendingApi;
     private inputHost;
     private outputHost;
+    private inputParams;
+    private outputParams;
     private apiOptions;
     private outPublisherActive;
     private inSubscriberActive;
