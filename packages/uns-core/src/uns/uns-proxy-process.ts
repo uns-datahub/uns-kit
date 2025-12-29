@@ -1,4 +1,5 @@
 import logger from "../logger.js";
+import { randomBytes } from "crypto";
 import { IUnsMessage, IUnsParameters, IUnsProcessParameters, UnsEvents } from "./uns-interfaces.js";
 import { IMqttParameters } from "../uns-mqtt/mqtt-interfaces.js";
 import MqttProxy from "../uns-mqtt/mqtt-proxy.js";
@@ -36,6 +37,7 @@ class UnsProxyProcess {
   private active: boolean = false;
   private processStatusTopic: string;
   private processName: string;
+  private processId: string;
   private unsMqttProxies: UnsMqttProxy[];
   private unsApiProxies: unknown[];
   private unsTemporalProxies: unknown[];
@@ -98,6 +100,7 @@ class UnsProxyProcess {
     this.unsApiProxies = [];
     this.unsTemporalProxies = [];
     this.processName = unsProxyProcessParameters.processName || getProcessName();
+    this.processId = randomBytes(16).toString("hex");
     const { name: packageName, version } = PACKAGE_INFO;
 
     // Instantiate the topic builder.
@@ -121,6 +124,7 @@ class UnsProxyProcess {
       password: unsProxyProcessParameters?.password ?? "",
       mqttSSL: unsProxyProcessParameters?.mqttSSL ?? false,
       statusTopic: this.processStatusTopic,
+      clientId: unsProxyProcessParameters?.clientId ?? `${this.processName}-${this.processId}`,
     };
 
     // Initialize MQTT proxy and start connection.
@@ -134,6 +138,7 @@ class UnsProxyProcess {
       () => this.active,
       MQTT_UPDATE_INTERVAL,
       MQTT_UPDATE_INTERVAL,
+      { processName: this.processName, processId: this.processId },
     );
     this.statusMonitor.start();
   }
@@ -149,6 +154,7 @@ class UnsProxyProcess {
 
     this.handoverManager = new HandoverManager(
       this.processName,
+      this.processId,
       this.processMqttProxy,
       this.unsMqttProxies,
       handoverRequestEnabled,
@@ -185,7 +191,11 @@ class UnsProxyProcess {
       this.initHandoverManager(instanceMode, handover);
     }
 
-    const unsMqttProxy = new UnsMqttProxy(mqttHost, this.processName, instanceName, unsParameters);
+    const resolvedUnsParameters: IUnsParameters = {
+      ...(unsParameters ?? {}),
+      clientId: unsParameters?.clientId ?? `${this.processName}-${instanceName}-${this.processId}`,
+    };
+    const unsMqttProxy = new UnsMqttProxy(mqttHost, this.processName, instanceName, resolvedUnsParameters);
     
     // Listen for UNS proxy producing topics and publish them via MQTT.
     unsMqttProxy.event.on("unsProxyProducedTopics", (event) => {

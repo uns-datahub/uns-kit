@@ -11,6 +11,7 @@ import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
 export declare class HandoverManager {
     event: HandoverManagerEventEmitter<HandoverManagerEvents>;
     private processName;
+    private processId;
     private mqttProxy;
     private unsMqttProxies;
     private requestingHandover;
@@ -21,7 +22,10 @@ export declare class HandoverManager {
     handoverRequestEnabled: boolean;
     handoverEnabled: boolean;
     forceStartEnabled: boolean;
-    constructor(processName: string, mqttProxy: MqttProxy, unsMqttProxies: UnsMqttProxy[], handoverRequestEnabled: boolean, handoverEnabled: boolean, forceStartEnabled: boolean);
+    constructor(processName: string, processId: string, mqttProxy: MqttProxy, unsMqttProxies: UnsMqttProxy[], handoverRequestEnabled: boolean, handoverEnabled: boolean, forceStartEnabled: boolean);
+    private getUserProperties;
+    private getSourceProcessId;
+    private parseActiveValue;
     /**
      * Main entry point for handling incoming MQTT messages.
      * It checks the topic and delegates to the corresponding handler.

@@ -45,6 +45,7 @@ export default class MqttProxy {
       try {
         const username = this.mqttParameters.username;
         const password = this.mqttParameters.password;
+        const clientId = this.mqttParameters.clientId ?? this.instanceName;
 
         const options: IClientOptions = {
           username,
@@ -59,7 +60,7 @@ export default class MqttProxy {
             retain: true,
             properties: { messageExpiryInterval: 3600 },
           },
-          clientId: this.instanceName,
+          clientId,
           clean: true,
         };
 

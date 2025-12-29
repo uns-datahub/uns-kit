@@ -50,6 +50,7 @@ export interface IUnsParameters {
   publishThrottlingDelay?: number; // Delay in milliseconds; default is 1ms
   subscribeThrottlingDelay?: number; // Delay in milliseconds; default is 1ms
   rejectUnauthorized?: boolean;
+  clientId?: string;
 }
 
 export interface IUnsProcessParameters {
@@ -58,6 +59,7 @@ export interface IUnsProcessParameters {
   username?: string;
   password?: string;
   mqttSSL?: boolean;
+  clientId?: string;
 }
 
 export interface UnsEvents {

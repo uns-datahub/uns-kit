@@ -20,6 +20,7 @@ export interface IUnsParameters {
     publishThrottlingDelay?: number;
     subscribeThrottlingDelay?: number;
     rejectUnauthorized?: boolean;
+    clientId?: string;
 }
 export interface IUnsProcessParameters {
     processName?: string | undefined;
@@ -27,6 +28,7 @@ export interface IUnsProcessParameters {
     username?: string;
     password?: string;
     mqttSSL?: boolean;
+    clientId?: string;
 }
 export interface UnsEvents {
     input: {

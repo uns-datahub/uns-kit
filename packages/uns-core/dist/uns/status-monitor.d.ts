@@ -5,6 +5,7 @@ export declare class StatusMonitor {
     private activeSupplier;
     private memoryIntervalMs;
     private statusIntervalMs;
+    private processIdentity?;
     private memoryInterval?;
     private statusInterval?;
     /**
@@ -13,8 +14,12 @@ export declare class StatusMonitor {
      * @param activeSupplier A function returning the current active state (boolean).
      * @param memoryIntervalMs Interval in milliseconds for publishing memory status.
      * @param statusIntervalMs Interval in milliseconds for publishing active status.
+     * @param processIdentity Optional identity to attach to active status messages.
      */
-    constructor(mqttProxy: MqttProxy, processStatusTopic: string, activeSupplier: () => boolean, memoryIntervalMs: number, statusIntervalMs: number);
+    constructor(mqttProxy: MqttProxy, processStatusTopic: string, activeSupplier: () => boolean, memoryIntervalMs: number, statusIntervalMs: number, processIdentity?: {
+        processName: string;
+        processId: string;
+    });
     /**
      * Starts the periodic memory and status updates.
      */

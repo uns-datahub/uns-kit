@@ -15,6 +15,7 @@ import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
 export class HandoverManager {
   public event: HandoverManagerEventEmitter<HandoverManagerEvents> = new HandoverManagerEventEmitter<HandoverManagerEvents>();
   private processName: string;
+  private processId: string;
   private mqttProxy: MqttProxy;
   private unsMqttProxies: UnsMqttProxy[];
   private requestingHandover: boolean = false;
@@ -26,8 +27,9 @@ export class HandoverManager {
   public handoverEnabled: boolean = true;
   public forceStartEnabled: boolean = false;
 
-  constructor(processName: string, mqttProxy: MqttProxy, unsMqttProxies: UnsMqttProxy[], handoverRequestEnabled: boolean, handoverEnabled: boolean, forceStartEnabled: boolean) {
+  constructor(processName: string, processId: string, mqttProxy: MqttProxy, unsMqttProxies: UnsMqttProxy[], handoverRequestEnabled: boolean, handoverEnabled: boolean, forceStartEnabled: boolean) {
     this.processName = processName;
+    this.processId = processId;
     this.mqttProxy = mqttProxy;
     this.unsMqttProxies = unsMqttProxies;
     this.handoverRequestEnabled = handoverRequestEnabled;
@@ -52,22 +54,59 @@ export class HandoverManager {
     }, ACTIVE_TIMEOUT);
   }
 
+  private getUserProperties(): Record<string, string> {
+    return {
+      processName: this.processName,
+      processId: this.processId,
+    };
+  }
+
+  private getSourceProcessId(event: UnsEvents["input"]): string | undefined {
+    return event.packet?.properties?.userProperties?.processId;
+  }
+
+  private parseActiveValue(message: string): boolean | null {
+    try {
+      const parsed = JSON.parse(message);
+      const value = parsed?.message?.data?.value ?? parsed?.data?.value;
+      if (value === 1 || value === "1" || value === true || value === "true") {
+        return true;
+      }
+      if (value === 0 || value === "0" || value === false || value === "false") {
+        return false;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Main entry point for handling incoming MQTT messages.
    * It checks the topic and delegates to the corresponding handler.
    */
   public async handleMqttMessage(event: UnsEvents["input"]): Promise<void> {
     try {
+      const activeTopic = this.topicBuilder.getActiveTopic();
       // Check if the packet is active messages from other processes and this process is not active.
       if (
+        event.topic === activeTopic &&
         this.requestingHandover === false &&
-        this.topicBuilder.getActiveTopic() !== event.topic &&
         this.active === false &&
         this.handoverInProgress === false
       ) {
-        logger.info(`${this.processName} - Another process is active on ${event.topic}.`);
+        const sourceProcessId = this.getSourceProcessId(event);
+        if (sourceProcessId === this.processId) {
+          return;
+        }
+        const activeValue = this.parseActiveValue(event.message.toString());
+        if (activeValue !== true) {
+          return;
+        }
+        const sourceInfo = sourceProcessId ? ` (processId=${sourceProcessId})` : "";
+        logger.info(`${this.processName} - Another process is active${sourceInfo} on ${event.topic}.`);
 
-        if (this.handoverRequestEnabled) {
+        if (this.handoverRequestEnabled && this.handoverEnabled) {
           // Requester process
           // Publish a handover request message after 10 seconds to the handover topic.
           clearTimeout(this.activeTimeout); // Clear the active timeout if it exists - prevent this process from becoming active after a timeout.
@@ -83,9 +122,7 @@ export class HandoverManager {
               retain: false,
               properties: {
                 responseTopic: this.topicBuilder.getHandoverTopic(),
-                userProperties: {
-                  processName: this.processName,
-                },
+                userProperties: this.getUserProperties(),
               },
             });
           }, 10000);
@@ -107,14 +144,15 @@ export class HandoverManager {
           }
           else {
             logger.info(`${this.processName} - Waiting for the other process on topic ${event.topic} to become passive.`);
-            this.activeTimeout.refresh();
+            this.activeTimeout?.refresh();
           }
         }
       }
 
       // Check if the packet is an handover message, sent to a handover topic.
       if (event.topic === this.topicBuilder.getHandoverTopic() && this.handoverEnabled) {
-        if (event.packet?.properties?.userProperties?.processName && event.packet.properties.userProperties.processName !== this.processName) {
+        const sourceProcessId = this.getSourceProcessId(event);
+        if (sourceProcessId !== this.processId) {
           await this.handleHandover(event);
         }
       }
@@ -162,9 +200,7 @@ export class HandoverManager {
                 retain: false,
                 properties: {
                   responseTopic: this.topicBuilder.getHandoverTopic(),
-                  userProperties: {
-                    processName: this.processName,
-                  },
+                  userProperties: this.getUserProperties(),
                 },
               },
             );
@@ -185,9 +221,7 @@ export class HandoverManager {
             retain: false,
             properties: {
               responseTopic: this.topicBuilder.getHandoverTopic(),
-              userProperties: {
-                processName: this.processName,
-              },
+              userProperties: this.getUserProperties(),
             },
           },
         );
@@ -241,9 +275,7 @@ export class HandoverManager {
             retain: false,
             properties: {
               responseTopic: this.topicBuilder.getHandoverTopic(),
-              userProperties: {
-                processName: this.processName,
-              },
+              userProperties: this.getUserProperties(),
             },
           },
         );

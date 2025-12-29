@@ -3,6 +3,7 @@ export interface IMqttParameters {
     username?: string;
     password?: string;
     mqttSSL?: boolean;
+    clientId?: string;
     statusTopic?: string;
     rejectUnauthorized?: boolean;
 }

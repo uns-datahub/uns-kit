@@ -8,6 +8,7 @@ export class StatusMonitor {
     activeSupplier;
     memoryIntervalMs;
     statusIntervalMs;
+    processIdentity;
     memoryInterval;
     statusInterval;
     /**
@@ -16,13 +17,15 @@ export class StatusMonitor {
      * @param activeSupplier A function returning the current active state (boolean).
      * @param memoryIntervalMs Interval in milliseconds for publishing memory status.
      * @param statusIntervalMs Interval in milliseconds for publishing active status.
+     * @param processIdentity Optional identity to attach to active status messages.
      */
-    constructor(mqttProxy, processStatusTopic, activeSupplier, memoryIntervalMs, statusIntervalMs) {
+    constructor(mqttProxy, processStatusTopic, activeSupplier, memoryIntervalMs, statusIntervalMs, processIdentity) {
         this.mqttProxy = mqttProxy;
         this.processStatusTopic = processStatusTopic;
         this.activeSupplier = activeSupplier;
         this.memoryIntervalMs = memoryIntervalMs;
         this.statusIntervalMs = statusIntervalMs;
+        this.processIdentity = processIdentity;
     }
     /**
      * Starts the periodic memory and status updates.
@@ -73,7 +76,17 @@ export class StatusMonitor {
                 data: { time, value: Number(this.activeSupplier()) },
             };
             const packet = await UnsPacket.unsPacketFromUnsMessage(activeMessage);
-            this.mqttProxy.publish(`${this.processStatusTopic}active`, JSON.stringify(packet), { retain: false, });
+            this.mqttProxy.publish(`${this.processStatusTopic}active`, JSON.stringify(packet), {
+                retain: false,
+                properties: this.processIdentity
+                    ? {
+                        userProperties: {
+                            processName: this.processIdentity.processName,
+                            processId: this.processIdentity.processId,
+                        },
+                    }
+                    : undefined,
+            });
         }
         catch (error) {
             logger.error(`StatusMonitor - Error publishing status updates: ${error.message}`);

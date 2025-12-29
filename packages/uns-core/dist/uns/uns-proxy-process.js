@@ -1,4 +1,5 @@
 import logger from "../logger.js";
+import { randomBytes } from "crypto";
 import MqttProxy from "../uns-mqtt/mqtt-proxy.js";
 import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
 import { HandoverManager } from "./handover-manager.js";
@@ -12,6 +13,7 @@ class UnsProxyProcess {
     active = false;
     processStatusTopic;
     processName;
+    processId;
     unsMqttProxies;
     unsApiProxies;
     unsTemporalProxies;
@@ -70,6 +72,7 @@ class UnsProxyProcess {
         this.unsApiProxies = [];
         this.unsTemporalProxies = [];
         this.processName = unsProxyProcessParameters.processName || getProcessName();
+        this.processId = randomBytes(16).toString("hex");
         const { name: packageName, version } = PACKAGE_INFO;
         // Instantiate the topic builder.
         const topicBuilder = new MqttTopicBuilder(`uns-infra/${MqttTopicBuilder.sanitizeTopicPart(packageName)}/${MqttTopicBuilder.sanitizeTopicPart(version)}/${MqttTopicBuilder.sanitizeTopicPart(this.processName)}/`);
@@ -89,12 +92,13 @@ class UnsProxyProcess {
             password: unsProxyProcessParameters?.password ?? "",
             mqttSSL: unsProxyProcessParameters?.mqttSSL ?? false,
             statusTopic: this.processStatusTopic,
+            clientId: unsProxyProcessParameters?.clientId ?? `${this.processName}-${this.processId}`,
         };
         // Initialize MQTT proxy and start connection.
         this.processMqttProxy = new MqttProxy(mqttHost, this.processName, mqttParameters);
         this.processMqttProxy.start();
         // Instantiate and start the StatusMonitor for memory and status updates.
-        this.statusMonitor = new StatusMonitor(this.processMqttProxy, this.processStatusTopic, () => this.active, MQTT_UPDATE_INTERVAL, MQTT_UPDATE_INTERVAL);
+        this.statusMonitor = new StatusMonitor(this.processMqttProxy, this.processStatusTopic, () => this.active, MQTT_UPDATE_INTERVAL, MQTT_UPDATE_INTERVAL, { processName: this.processName, processId: this.processId });
         this.statusMonitor.start();
     }
     /**
@@ -104,7 +108,7 @@ class UnsProxyProcess {
     initHandoverManager(instanceMode, handover) {
         const handoverRequestEnabled = instanceMode == "handover" ? true : false;
         const forceStartEnabled = instanceMode == "force" ? true : false;
-        this.handoverManager = new HandoverManager(this.processName, this.processMqttProxy, this.unsMqttProxies, handoverRequestEnabled, handover ?? true, forceStartEnabled);
+        this.handoverManager = new HandoverManager(this.processName, this.processId, this.processMqttProxy, this.unsMqttProxies, handoverRequestEnabled, handover ?? true, forceStartEnabled);
         // Listen for handover events.
         this.handoverManager.event.on("handoverManager", (event) => {
             this.active = event.active;
@@ -125,7 +129,11 @@ class UnsProxyProcess {
         if (!this.handoverManager) {
             this.initHandoverManager(instanceMode, handover);
         }
-        const unsMqttProxy = new UnsMqttProxy(mqttHost, this.processName, instanceName, unsParameters);
+        const resolvedUnsParameters = {
+            ...(unsParameters ?? {}),
+            clientId: unsParameters?.clientId ?? `${this.processName}-${instanceName}-${this.processId}`,
+        };
+        const unsMqttProxy = new UnsMqttProxy(mqttHost, this.processName, instanceName, resolvedUnsParameters);
         // Listen for UNS proxy producing topics and publish them via MQTT.
         unsMqttProxy.event.on("unsProxyProducedTopics", (event) => {
             this.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedTopics), {

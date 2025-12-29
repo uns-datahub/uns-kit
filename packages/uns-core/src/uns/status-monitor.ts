@@ -15,6 +15,7 @@ export class StatusMonitor {
    * @param activeSupplier A function returning the current active state (boolean).
    * @param memoryIntervalMs Interval in milliseconds for publishing memory status.
    * @param statusIntervalMs Interval in milliseconds for publishing active status.
+   * @param processIdentity Optional identity to attach to active status messages.
    */
   constructor(
     private mqttProxy: MqttProxy,
@@ -22,6 +23,7 @@ export class StatusMonitor {
     private activeSupplier: () => boolean,
     private memoryIntervalMs: number,
     private statusIntervalMs: number,
+    private processIdentity?: { processName: string; processId: string },
   ) {}
 
   /**
@@ -86,7 +88,17 @@ export class StatusMonitor {
       this.mqttProxy.publish(
         `${this.processStatusTopic}active`,
         JSON.stringify(packet),
-        { retain: false, },
+        {
+          retain: false,
+          properties: this.processIdentity
+            ? {
+              userProperties: {
+                processName: this.processIdentity.processName,
+                processId: this.processIdentity.processId,
+              },
+            }
+            : undefined,
+        },
       );
     } catch (error: any) {
       logger.error(`StatusMonitor - Error publishing status updates: ${error.message}`);

@@ -19,6 +19,7 @@ declare class UnsProxyProcess {
     private active;
     private processStatusTopic;
     private processName;
+    private processId;
     private unsMqttProxies;
     private unsApiProxies;
     private unsTemporalProxies;
