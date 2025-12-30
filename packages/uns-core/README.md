@@ -43,6 +43,7 @@ const process = new UnsProxyProcess("mqtt-broker.svc:1883", { processName: "my-r
 ```
 
 See the individual plugin packages (`@uns-kit/cron`, `@uns-kit/api`, `@uns-kit/temporal`) for examples on extending the process with runtime capabilities.
+For a list of topics published by core (and the API plugin), see `../../docs/uns-topics.md`.
 
 ### Refresh UNS topic/tag unions
 
