@@ -19,6 +19,10 @@ Instance-specific topics append the instance name:
 uns-infra/<packageName>/<version>/<processName>/<instanceName>/
 ```
 
+`instanceName` is the label you pass when creating a proxy instance in code
+(for example, `createUnsMqttProxy(..., "input")` or `createApiProxy(..., "api")`).
+It lets a single process publish separate instance-level status and registries.
+
 ## Core process-level topics
 
 These are emitted for each process (not per instance):
@@ -101,3 +105,122 @@ Fields:
 - `apiSwaggerEndpoint`
 
 Use this topic to discover which UNS paths are backed by HTTP endpoints in the current process.
+
+## Sample payloads
+
+### Active status (`.../active`)
+
+```json
+{
+  "message": {
+    "data": {
+      "time": "2024-01-01T12:00:00.000Z",
+      "value": 1,
+      "uom": "bit",
+      "valueType": "number"
+    }
+  },
+  "version": "1.2.0"
+}
+```
+
+### Heap used (`.../heap-used`)
+
+```json
+{
+  "message": {
+    "data": {
+      "time": "2024-01-01T12:00:00.000Z",
+      "value": 128,
+      "uom": "MB",
+      "valueType": "number"
+    }
+  },
+  "version": "1.2.0"
+}
+```
+
+### Instance alive (`.../<instanceName>/alive`)
+
+```json
+{
+  "message": {
+    "data": {
+      "time": "2024-01-01T12:00:00.000Z",
+      "value": 1,
+      "uom": "bit",
+      "valueType": "number"
+    }
+  },
+  "version": "1.2.0"
+}
+```
+
+### Handover messages (`.../handover`)
+
+Handover messages are simple JSON objects that coordinate ownership between processes.
+
+```json
+{ "type": "handover_request" }
+```
+
+```json
+{ "type": "handover_subscriber", "instanceName": "templateUnsRttOutput" }
+```
+
+```json
+{ "type": "handover_fin" }
+```
+
+```json
+{ "type": "handover_ack" }
+```
+
+The requesting and responding processes also include `processName` and `processId`
+in MQTT user properties when publishing these messages.
+
+### Produced topics registry (`.../topics`)
+
+```json
+[
+  {
+    "timestamp": "2024-01-01T12:00:00.000Z",
+    "topic": "enterprise/site/area/line/",
+    "asset": "asset-1",
+    "assetDescription": "Line asset",
+    "objectType": "energy-resource",
+    "objectTypeDescription": "Energy carriers (electricity/steam/gas)",
+    "objectId": "main",
+    "attribute": "voltage",
+    "attributeType": "Data",
+    "description": "Measured voltage",
+    "tags": ["electrical"],
+    "attributeNeedsPersistence": true,
+    "dataGroup": "sensor"
+  }
+]
+```
+
+### API endpoints registry (`.../api-endpoints`)
+
+```json
+[
+  {
+    "timestamp": "2024-01-01T12:00:00.000Z",
+    "topic": "enterprise/site/area/line/",
+    "asset": "asset-1",
+    "objectType": "resource-status",
+    "objectId": "main",
+    "attribute": "status",
+    "attributeType": "Api",
+    "apiDescription": "Line status endpoint",
+    "apiHost": "http://10.0.0.10:8080",
+    "apiEndpoint": "/api/enterprise/site/area/line/status",
+    "apiSwaggerEndpoint": "/process/api/swagger.json",
+    "apiMethod": "GET",
+    "apiQueryParams": [
+      { "name": "limit", "type": "number", "required": false }
+    ]
+  }
+]
+```
