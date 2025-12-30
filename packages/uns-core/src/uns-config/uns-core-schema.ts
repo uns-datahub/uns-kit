@@ -56,7 +56,10 @@ export const unsCoreSchema = z.object({
     email: z.string().email().describe("Email used when authenticating to graphql endpoint of the UNS instance."),
     password: secretValueSchema.describe("Password or secret value paired with the UNS email."),
     instanceMode: z.enum(["wait", "force", "handover"]).default("wait"),
-    processName: z.string().min(1).optional(),
+    processName: z
+      .string()
+      .min(1)
+      .describe("Process name used in MQTT topics and logs."),
     handover: z.boolean().default(true),
     jwksWellKnownUrl: z.string().url().optional(),
     kidWellKnownUrl: z.string().url().optional(),

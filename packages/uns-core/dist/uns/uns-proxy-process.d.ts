@@ -34,7 +34,7 @@ declare class UnsProxyProcess {
     private static applyPlugin;
     private static applyAll;
     private mqttInputHandler;
-    constructor(mqttHost: string, unsProxyProcessParameters?: IUnsProcessParameters);
+    constructor(mqttHost: string, unsProxyProcessParameters: IUnsProcessParameters);
     /**
      * Initializes the HandoverManager instance and sets up event listeners for handover and MQTT input events.
      * Determines handover and force start modes based on process arguments.

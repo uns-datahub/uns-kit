@@ -40,7 +40,7 @@ export interface IUnsParameters {
     servername?: string;
 }
 export interface IUnsProcessParameters {
-    processName?: string | undefined;
+    processName: string;
     mqttSubToTopics?: string | string[];
     username?: string;
     password?: string;

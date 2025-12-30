@@ -115,7 +115,8 @@
             },
             "processName": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Process name used in MQTT topics and logs."
             },
             "handover": {
               "type": "boolean",
@@ -144,7 +145,8 @@
             "graphql",
             "rest",
             "email",
-            "password"
+            "password",
+            "processName"
           ],
           "additionalProperties": false
         },

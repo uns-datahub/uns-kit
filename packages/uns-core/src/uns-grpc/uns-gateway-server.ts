@@ -90,7 +90,9 @@ const resolveMqttHost = (channel: MqttChannelConfig | undefined, pathLabel: stri
   throw new Error(`Configuration value '${pathLabel}' must include host, hosts, or servers.`);
 };
 
-const buildUnsProcessParameters = (channel: MqttChannelConfig | undefined): IUnsProcessParameters => {
+const buildUnsProcessParameters = (
+  channel: MqttChannelConfig | undefined,
+): Omit<IUnsProcessParameters, "processName"> => {
   if (!channel) return {};
   return {
     username: channel.username,

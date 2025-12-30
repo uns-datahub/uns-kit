@@ -8,7 +8,8 @@ export interface ProjectAppConfig {
         /** Password or secret value paired with the UNS email. */
         password: string;
         instanceMode?: "wait" | "force" | "handover";
-        processName?: string | undefined;
+        /** Process name used in MQTT topics and logs. */
+        processName: string;
         handover?: boolean;
         jwksWellKnownUrl?: string | undefined;
         kidWellKnownUrl?: string | undefined;

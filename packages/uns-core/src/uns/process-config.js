@@ -2,8 +2,6 @@
 import * as path from "path";
 import { readFileSync } from "fs";
 import { basePath } from "../base-path.js";
-// Path to the process name file
-export const PROCESS_NAME_FILE = path.join(basePath, "uns-process-name.conf");
 // Path to package.json to retrieve package name and version
 export const PACKAGE_JSON_PATH = path.join(basePath, "package.json");
 const sanitizePackageName = name => {

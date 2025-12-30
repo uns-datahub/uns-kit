@@ -1,4 +1,3 @@
-export declare const PROCESS_NAME_FILE: string;
 export declare const PACKAGE_JSON_PATH: string;
 interface PackageInfo {
     name: string;

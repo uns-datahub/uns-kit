@@ -45,7 +45,7 @@ export declare const unsCoreSchema: z.ZodObject<{
             projectId?: string;
         }>]>]>;
         instanceMode: z.ZodDefault<z.ZodEnum<["wait", "force", "handover"]>>;
-        processName: z.ZodOptional<z.ZodString>;
+        processName: z.ZodString;
         handover: z.ZodDefault<z.ZodBoolean>;
         jwksWellKnownUrl: z.ZodOptional<z.ZodString>;
         kidWellKnownUrl: z.ZodOptional<z.ZodString>;

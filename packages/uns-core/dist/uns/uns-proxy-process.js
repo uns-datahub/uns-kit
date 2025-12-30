@@ -5,7 +5,6 @@ import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
 import { HandoverManager } from "./handover-manager.js";
 // Import configuration and initialization modules.
 import { PACKAGE_INFO, MQTT_UPDATE_INTERVAL } from "./process-config.js";
-import { getProcessName } from "./process-name-service.js";
 import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
 import { StatusMonitor } from "./status-monitor.js";
 import { UnsPacket } from "./uns-packet.js";
@@ -71,7 +70,10 @@ class UnsProxyProcess {
         this.unsMqttProxies = [];
         this.unsApiProxies = [];
         this.unsTemporalProxies = [];
-        this.processName = unsProxyProcessParameters.processName || getProcessName();
+        if (!unsProxyProcessParameters?.processName) {
+            throw new Error("UnsProxyProcess requires a processName in configuration.");
+        }
+        this.processName = unsProxyProcessParameters.processName;
         this.processId = randomBytes(16).toString("hex");
         const { name: packageName, version } = PACKAGE_INFO;
         // Instantiate the topic builder.
