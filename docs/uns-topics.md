@@ -159,6 +159,12 @@ Use this topic to discover which UNS paths are backed by HTTP endpoints in the c
 ### Handover messages (`.../handover`)
 
 Handover messages are simple JSON objects that coordinate ownership between processes.
+`handover_intent` is emitted immediately when a process decides to request a handover
+and waits the configured delay before publishing `handover_request`.
+
+```json
+{ "type": "handover_intent" }
+```
 
 ```json
 { "type": "handover_request" }

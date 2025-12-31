@@ -60,9 +60,17 @@ export class HandoverManager {
                     this.activeTimeout = undefined;
                     this.event.emit("handoverManager", { active: this.active });
                     this.requestingHandover = true;
+                    const eventHandoverTopic = new MqttTopicBuilder(MqttTopicBuilder.extractBaseTopic(event.topic)).getHandoverTopic();
+                    await this.mqttProxy.publish(eventHandoverTopic, JSON.stringify({ type: "handover_intent" }), {
+                        retain: false,
+                        properties: {
+                            userProperties: {
+                                processName: this.processName,
+                            },
+                        },
+                    });
                     logger.info(`${this.processName} - Requesting handover in 10 seconds.`);
                     setTimeout(async () => {
-                        const eventHandoverTopic = new MqttTopicBuilder(MqttTopicBuilder.extractBaseTopic(event.topic)).getHandoverTopic();
                         logger.info(`${this.processName} - Requesting handover ${eventHandoverTopic}.`);
                         this.handoverInProgress = true;
                         await this.mqttProxy.publish(eventHandoverTopic, JSON.stringify({ type: "handover_request" }), {
