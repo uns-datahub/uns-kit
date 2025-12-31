@@ -81,16 +81,25 @@ export class HandoverManager {
     }
   }
 
+  private isProcessActiveTopic(topic: string): boolean {
+    const parts = topic.split("/");
+    if (parts.length !== 5) return false;
+    const [root, pkg, , process, tail] = parts;
+    if (root !== "uns-infra" || tail !== "active") return false;
+    const expectedPackage = MqttTopicBuilder.sanitizeTopicPart(PACKAGE_INFO.name);
+    const expectedProcess = MqttTopicBuilder.sanitizeTopicPart(this.processName);
+    return pkg === expectedPackage && process === expectedProcess;
+  }
+
   /**
    * Main entry point for handling incoming MQTT messages.
    * It checks the topic and delegates to the corresponding handler.
    */
   public async handleMqttMessage(event: UnsEvents["input"]): Promise<void> {
     try {
-      const activeTopic = this.topicBuilder.getActiveTopic();
       // Check if the packet is active messages from other processes and this process is not active.
       if (
-        event.topic === activeTopic &&
+        this.isProcessActiveTopic(event.topic) &&
         this.requestingHandover === false &&
         this.active === false &&
         this.handoverInProgress === false

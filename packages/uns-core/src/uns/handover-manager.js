@@ -41,6 +41,33 @@ export class HandoverManager {
             });
         }, ACTIVE_TIMEOUT);
     }
+    parseActiveValue(message) {
+        try {
+            const parsed = JSON.parse(message);
+            const value = parsed?.message?.data?.value ?? parsed?.data?.value;
+            if (value === 1 || value === "1" || value === true || value === "true") {
+                return true;
+            }
+            if (value === 0 || value === "0" || value === false || value === "false") {
+                return false;
+            }
+            return null;
+        }
+        catch {
+            return null;
+        }
+    }
+    isProcessActiveTopic(topic) {
+        const parts = topic.split("/");
+        if (parts.length !== 5)
+            return false;
+        const [root, pkg, , process, tail] = parts;
+        if (root !== "uns-infra" || tail !== "active")
+            return false;
+        const expectedPackage = MqttTopicBuilder.sanitizeTopicPart(PACKAGE_INFO.name);
+        const expectedProcess = MqttTopicBuilder.sanitizeTopicPart(this.processName);
+        return pkg === expectedPackage && process === expectedProcess;
+    }
     /**
      * Main entry point for handling incoming MQTT messages.
      * It checks the topic and delegates to the corresponding handler.
@@ -48,10 +75,14 @@ export class HandoverManager {
     async handleMqttMessage(event) {
         try {
             // Check if the packet is active messages from other processes and this process is not active.
-            if (this.requestingHandover === false &&
-                this.topicBuilder.getActiveTopic() !== event.topic &&
+            if (this.isProcessActiveTopic(event.topic) &&
+                this.requestingHandover === false &&
                 this.active === false &&
                 this.handoverInProgress === false) {
+                const activeValue = this.parseActiveValue(event.message.toString());
+                if (activeValue !== true) {
+                    return;
+                }
                 logger.info(`${this.processName} - Another process is active on ${event.topic}.`);
                 if (this.handoverRequestEnabled) {
                     // Requester process

@@ -33,7 +33,7 @@
     "azure-devops-node-api": "^15.1.1"
   },
   "unsKitPackages": {
-    "@uns-kit/core": "1.0.28",
+    "@uns-kit/core": "1.0.29",
     "@uns-kit/api": "0.0.19",
     "@uns-kit/cron": "0.0.18",
     "@uns-kit/temporal": "0.0.18"

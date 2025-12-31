@@ -26,6 +26,7 @@ export declare class HandoverManager {
     private getUserProperties;
     private getSourceProcessId;
     private parseActiveValue;
+    private isProcessActiveTopic;
     /**
      * Main entry point for handling incoming MQTT messages.
      * It checks the topic and delegates to the corresponding handler.
