@@ -11,9 +11,9 @@ const getCronProxies = (instance) => {
 };
 const unsCronPlugin = ({ define }) => {
     define({
-        async createCrontabProxy(cronExpression, options) {
+        async createCrontabProxy(cronInput, options) {
             await this.waitForProcessConnection();
-            const unsCronProxy = new UnsCronProxy(cronExpression, options);
+            const unsCronProxy = new UnsCronProxy(cronInput, options);
             getCronProxies(this).push(unsCronProxy);
             return unsCronProxy;
         },

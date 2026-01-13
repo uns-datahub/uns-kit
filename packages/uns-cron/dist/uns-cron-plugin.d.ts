@@ -1,9 +1,8 @@
-import type { TaskOptions } from "node-cron";
 import UnsProxyProcess, { type UnsProxyProcessPlugin } from "@uns-kit/core/uns/uns-proxy-process.js";
-import UnsCronProxy from "./uns-cron-proxy.js";
+import UnsCronProxy, { type CronProxyOptions, type CronScheduleInput } from "./uns-cron-proxy.js";
 declare const unsCronPlugin: UnsProxyProcessPlugin;
 export default unsCronPlugin;
 export { UnsCronProxy };
 export type UnsProxyProcessWithCron = UnsProxyProcess & {
-    createCrontabProxy(cronExpression: string, options?: TaskOptions): Promise<UnsCronProxy>;
+    createCrontabProxy(cronInput: CronScheduleInput, options?: CronProxyOptions): Promise<UnsCronProxy>;
 };
