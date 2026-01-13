@@ -1,6 +1,5 @@
-import type { TaskOptions } from "node-cron";
 import UnsProxyProcess, { type UnsProxyProcessPlugin } from "@uns-kit/core/uns/uns-proxy-process.js";
-import UnsCronProxy from "./uns-cron-proxy.js";
+import UnsCronProxy, { type CronProxyOptions, type CronScheduleInput } from "./uns-cron-proxy.js";
 
 const cronProxyRegistry = new WeakMap<UnsProxyProcess, UnsCronProxy[]>();
 
@@ -15,9 +14,9 @@ const getCronProxies = (instance: UnsProxyProcess): UnsCronProxy[] => {
 
 const unsCronPlugin: UnsProxyProcessPlugin = ({ define }) => {
   define({
-    async createCrontabProxy(this: UnsProxyProcess, cronExpression: string, options?: TaskOptions) {
+    async createCrontabProxy(this: UnsProxyProcess, cronInput: CronScheduleInput, options?: CronProxyOptions) {
       await this.waitForProcessConnection();
-      const unsCronProxy = new UnsCronProxy(cronExpression, options);
+      const unsCronProxy = new UnsCronProxy(cronInput, options);
       getCronProxies(this).push(unsCronProxy);
       return unsCronProxy;
     },
@@ -31,5 +30,5 @@ export default unsCronPlugin;
 export { UnsCronProxy };
 
 export type UnsProxyProcessWithCron = UnsProxyProcess & {
-  createCrontabProxy(cronExpression: string, options?: TaskOptions): Promise<UnsCronProxy>;
+  createCrontabProxy(cronInput: CronScheduleInput, options?: CronProxyOptions): Promise<UnsCronProxy>;
 };

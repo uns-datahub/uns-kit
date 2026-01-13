@@ -108,7 +108,7 @@ export interface UnsEvents {
   mqttWorker: { command: string, instanceName: string; batchSize: number, referenceHash: string };
 
   // Emitter in UnsCronProxy
-  cronEvent: {};
+  cronEvent: { event?: string; cronExpression?: string };
 
   // Emitters in UnsApiProxy
   apiGetEvent: {req: any, res: any};

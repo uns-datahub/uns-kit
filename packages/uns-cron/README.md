@@ -36,13 +36,31 @@ import "@uns-kit/cron";
 async function main() {
   const process = new UnsProxyProcess("mqtt-broker:1883", { processName: "cron-demo" }) as UnsProxyProcessWithCron;
 
-  const cronProxy = await process.createCrontabProxy("*/5 * * * *");
-  cronProxy.event.on("cronEvent", () => {
-    console.log("tick");
+  const cronProxy = await process.createCrontabProxy("*/5 * * * *", { event: "heartbeat" });
+  cronProxy.event.on("cronEvent", ({ event, cronExpression }) => {
+    console.log("tick", event, cronExpression);
   });
 }
 
 void main();
+```
+
+## Multiple schedules
+
+```ts
+const cronProxy = await process.createCrontabProxy([
+  { cronExpression: "* * * * * *", event: "a" },
+  { cronExpression: "*/10 * * * * *", event: "b" },
+]);
+```
+
+You can also pass an array of cron strings and optional default options:
+
+```ts
+const cronProxy = await process.createCrontabProxy(
+  ["*/5 * * * *", "*/15 * * * *"],
+  { timezone: "UTC" },
+);
 ```
 
 ## Scripts
