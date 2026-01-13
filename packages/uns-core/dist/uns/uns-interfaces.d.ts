@@ -86,7 +86,10 @@ export interface UnsEvents {
         batchSize: number;
         referenceHash: string;
     };
-    cronEvent: {};
+    cronEvent: {
+        event?: string;
+        cronExpression?: string;
+    };
     apiGetEvent: {
         req: any;
         res: any;
