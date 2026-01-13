@@ -150,6 +150,30 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "sandbox-app: cli configure-templates",
+      "runtimeArgs": [
+        "--enable-source-maps",
+        "--import",
+        "tsx",
+      ],
+      "program": "${workspaceFolder}/packages/uns-cli/src/index.ts",
+      "args": ["configure-templates", "sandbox-app"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "outputCapture": "std",
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**"
+      ],
+      "sourceMapPathOverrides": {
+        "${workspaceFolder}/**/node_modules/@uns-kit/*/src/*": "${workspaceFolder}/packages/uns-*/src/*"
+      },
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "sandbox-app: cli configure-temporal",
       "runtimeArgs": [
         "--enable-source-maps",
