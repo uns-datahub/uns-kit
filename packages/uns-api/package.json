@@ -32,7 +32,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "postversion": "node ../../scripts/update-cli-package-version.cjs"
   },
   "dependencies": {
     "@uns-kit/core": "workspace:*",

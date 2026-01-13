@@ -33,7 +33,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node ./scripts/copy-static-assets.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "postversion": "node ./scripts/update-cli-core-version.cjs"
+    "postversion": "node ../../scripts/update-cli-package-version.cjs"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.0",
