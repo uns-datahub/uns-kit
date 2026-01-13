@@ -32,6 +32,6 @@ Update `config.json` with your broker, UNS URLs, and credentials. The generated 
 - Run `uns-kit configure-codegen` to scaffold GraphQL code generation and UNS refresh scripts.
 - Edit `uns-dictionary.json` (object types/attributes + descriptions) and run `pnpm run generate-uns-dictionary` to emit `src/uns/uns-dictionary.generated.ts` for IDE hints/metadata; publish calls will automatically fall back to these descriptions when you omit them.
 - Edit `uns-measurements.json` (units + descriptions) and run `pnpm run generate-uns-measurements` to emit `src/uns/uns-measurements.generated.ts` and feed measurement unit IntelliSense.
-- Run `uns-kit configure-api` / `configure-cron` / `configure-temporal` to pull in example stubs and install the matching UNS plugins.
+- Run `uns-kit configure-api` / `configure-cron` / `configure-temporal` to pull in example stubs and install the matching UNS plugins (add `--overwrite` to refresh templates).
 - Run `uns-kit configure-python` to copy the Python gateway client template (examples, scripts, proto).
 - Commit your new project and start building!

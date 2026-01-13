@@ -46,7 +46,8 @@ When `git` is available on your PATH the scaffold also initializes a fresh repos
 ## Commands
 
 - `uns-kit create <name>` – create a new UNS project in the specified directory.
-- `uns-kit configure [path] [features...]` – run multiple configure templates in sequence (`--all` applies every template).
+- `uns-kit configure [path] [features...]` – run multiple configure templates in sequence (`--all`, `--overwrite`).
+- `uns-kit configure-templates [path] [templates...]` – copy any template directory (`--all`, `--overwrite`).
 - `uns-kit configure-devops [path]` – add Azure DevOps tooling (dependencies, script, config) to an existing project.
 - `uns-kit configure-vscode [path]` – copy VS Code launch/workspace files into an existing project.
 - `uns-kit configure-codegen [path]` – scaffold GraphQL code generation and UNS refresh scripts.
@@ -65,7 +66,16 @@ uns-kit configure --all
 uns-kit configure ./apps/gateway devops vscode codegen
 ```
 
-Mix and match feature names after an optional target directory. Use `--all` to apply every available template in one shot.
+Mix and match feature names after an optional target directory. Use `--all` to apply every available template in one shot. Add `--overwrite` to refresh files from newer template versions.
+
+### Copy arbitrary templates
+
+Need a template that is not wired into a configure feature (or added in a newer release)? Use:
+
+```bash
+uns-kit configure-templates --all
+uns-kit configure-templates ./apps/gateway uns-dictionary uns-measurements --overwrite
+```
 
 ### Configure Azure DevOps
 
@@ -85,7 +95,7 @@ The command prompts for your Azure DevOps organization/project, ensures the remo
 uns-kit configure-vscode
 ```
 
-Copies `.vscode/launch.json` plus a baseline workspace file into the project. Existing files are never overwritten, making it safe to re-run after hand edits.
+Copies `.vscode/launch.json` plus a baseline workspace file into the project. Existing files are skipped unless you pass `--overwrite`.
 
 ### Configure GraphQL code generation
 
@@ -106,6 +116,7 @@ pnpm install
 ```
 
 Copies API-oriented examples (under `src/examples/`) and adds `@uns-kit/api` to your project dependencies.
+Use `--overwrite` to refresh the examples after updating `uns-kit`.
 
 ### Add cron-based scaffolding
 
@@ -115,6 +126,7 @@ pnpm install
 ```
 
 Adds cron-oriented example stubs and installs `@uns-kit/cron`.
+Use `--overwrite` to refresh the examples after updating `uns-kit`.
 
 ### Add Temporal scaffolding
 
@@ -124,6 +136,7 @@ pnpm install
 ```
 
 Copies Temporal example placeholders and installs `@uns-kit/temporal`.
+Use `--overwrite` to refresh the examples after updating `uns-kit`.
 
 ### Add Python gateway scaffolding
 
@@ -132,6 +145,7 @@ uns-kit configure-python
 ```
 
 Copies the Python gateway client template (examples, scripts, requirements, proto) into your project so you can iterate on the gRPC gateway from Python alongside your TypeScript project.
+Use `--overwrite` to refresh the examples after updating `uns-kit`.
 
 ### Extend the Config Schema
 

@@ -30,9 +30,9 @@ async function main(): Promise<void> {
   }
 
   if (command === "configure-config") {
-    const targetPath = args[1];
+    const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
     try {
-      await configureConfigFiles(targetPath);
+      await configureConfigFiles(targetPath, { overwrite });
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -51,10 +51,21 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (command === "configure-devops") {
-    const targetPath = args[1];
+  if (command === "configure-templates") {
+    const configureArgs = args.slice(1);
     try {
-      await configureDevops(targetPath);
+      await runConfigureTemplatesCommand(configureArgs);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  if (command === "configure-devops") {
+    const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
+    try {
+      await configureDevops(targetPath, { overwrite });
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -63,9 +74,9 @@ async function main(): Promise<void> {
   }
 
   if (command === "configure-vscode") {
-    const targetPath = args[1];
+    const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
     try {
-      await configureVscode(targetPath);
+      await configureVscode(targetPath, { overwrite });
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -74,9 +85,9 @@ async function main(): Promise<void> {
   }
 
   if (command === "configure-codegen") {
-    const targetPath = args[1];
+    const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
     try {
-      await configureCodegen(targetPath);
+      await configureCodegen(targetPath, { overwrite });
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -85,9 +96,9 @@ async function main(): Promise<void> {
   }
 
   if (command === "configure-api") {
-    const targetPath = args[1];
+    const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
     try {
-      await configureApi(targetPath);
+      await configureApi(targetPath, { overwrite });
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -96,9 +107,9 @@ async function main(): Promise<void> {
   }
 
   if (command === "configure-cron") {
-    const targetPath = args[1];
+    const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
     try {
-      await configureCron(targetPath);
+      await configureCron(targetPath, { overwrite });
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -107,9 +118,9 @@ async function main(): Promise<void> {
   }
 
   if (command === "configure-temporal") {
-    const targetPath = args[1];
+    const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
     try {
-      await configureTemporal(targetPath);
+      await configureTemporal(targetPath, { overwrite });
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -118,9 +129,9 @@ async function main(): Promise<void> {
   }
 
   if (command === "configure-python") {
-    const targetPath = args[1];
+    const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
     try {
-      await configurePython(targetPath);
+      await configurePython(targetPath, { overwrite });
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -129,9 +140,9 @@ async function main(): Promise<void> {
   }
 
   if (command === "configure-uns-reference") {
-    const targetPath = args[1];
+    const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
     try {
-      await configureUnsReference(targetPath);
+      await configureUnsReference(targetPath, { overwrite });
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -167,7 +178,8 @@ function printHelp(): void {
     "\nUsage: uns-kit <command> [options]\n" +
     "\nCommands:\n" +
     "  create <name>           Scaffold a new UNS application\n" +
-    "  configure [dir] [features...] Configure multiple templates (--all for everything)\n" +
+    "  configure [dir] [features...] Configure multiple templates (--all, --overwrite)\n" +
+    "  configure-templates [dir] [templates...] Copy any template directory (--all, --overwrite)\n" +
     "  configure-config [dir]  Copy configuration example files\n" +
     "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n" +
     "  configure-vscode [dir]  Add VS Code workspace configuration files\n" +
@@ -277,7 +289,17 @@ type AzureRemoteInfo = {
   repository?: string;
 };
 
-async function configureDevops(targetPath?: string): Promise<void> {
+type ConfigureTemplateOptions = {
+  overwrite?: boolean;
+};
+
+type CopyTemplateResult = {
+  copied: string[];
+  skipped: string[];
+  overwritten: string[];
+};
+
+async function configureDevops(targetPath?: string, options?: ConfigureTemplateOptions): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
   const packagePath = path.join(targetDir, "package.json");
   const configPath = path.join(targetDir, "config.json");
@@ -398,9 +420,15 @@ async function configureDevops(targetPath?: string): Promise<void> {
   }
 
   const pipelineTargetPath = path.join(targetDir, "azure-pipelines.yml");
+  const overwrite = !!options?.overwrite;
   let pipelineMessage = "";
   if (await fileExists(pipelineTargetPath)) {
-    pipelineMessage = "  azure-pipelines.yml already exists (skipped).";
+    if (overwrite) {
+      await copyFile(azurePipelineTemplatePath, pipelineTargetPath);
+      pipelineMessage = "  Overwrote azure-pipelines.yml pipeline definition.";
+    } else {
+      pipelineMessage = "  azure-pipelines.yml already exists (skipped).";
+    }
   } else {
     await copyFile(azurePipelineTemplatePath, pipelineTargetPath);
     pipelineMessage = "  Added azure-pipelines.yml pipeline definition.";
@@ -431,7 +459,7 @@ async function configureDevops(targetPath?: string): Promise<void> {
   }
 }
 
-async function configureVscode(targetPath?: string): Promise<void> {
+async function configureVscode(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
   const templateDir = path.resolve(__dirname, "../templates/vscode");
 
@@ -441,12 +469,18 @@ async function configureVscode(targetPath?: string): Promise<void> {
     throw new Error("VS Code template directory is missing. Please ensure templates/vscode is available.");
   }
 
-  const { copied, skipped } = await copyTemplateDirectory(templateDir, targetDir, targetDir);
+  const { copied, skipped, overwritten } = await copyTemplateDirectory(templateDir, targetDir, targetDir, options);
 
   console.log("\nVS Code configuration files processed.");
   if (copied.length) {
     console.log("  Added:");
     for (const file of copied) {
+      console.log(`    ${file}`);
+    }
+  }
+  if (overwritten.length) {
+    console.log("  Overwritten:");
+    for (const file of overwritten) {
       console.log(`    ${file}`);
     }
   }
@@ -461,7 +495,7 @@ async function configureVscode(targetPath?: string): Promise<void> {
   }
 }
 
-async function configureConfigFiles(targetPath?: string): Promise<void> {
+async function configureConfigFiles(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
   const templateDir = path.resolve(__dirname, "../templates/config-files");
 
@@ -471,9 +505,9 @@ async function configureConfigFiles(targetPath?: string): Promise<void> {
     throw new Error("Configuration template directory is missing. Please ensure templates/config-files is available.");
   }
 
-  const { copied, skipped } = await copyTemplateDirectory(templateDir, targetDir, targetDir);
+  const { copied, skipped, overwritten } = await copyTemplateDirectory(templateDir, targetDir, targetDir, options);
 
-  const configFilesToAdjust = copied.filter((file) => {
+  const configFilesToAdjust = [...copied, ...overwritten].filter((file) => {
     const filename = path.basename(file);
     return filename.toLowerCase().startsWith("config") && filename.toLowerCase().endsWith(".json");
   });
@@ -485,6 +519,12 @@ async function configureConfigFiles(targetPath?: string): Promise<void> {
   if (copied.length) {
     console.log("  Added:");
     for (const file of copied) {
+      console.log(`    ${file}`);
+    }
+  }
+  if (overwritten.length) {
+    console.log("  Overwritten:");
+    for (const file of overwritten) {
       console.log(`    ${file}`);
     }
   }
@@ -513,7 +553,7 @@ async function applyConfigTemplatePlaceholders(targetDir: string, relativePaths:
   }
 }
 
-async function configureCodegen(targetPath?: string): Promise<void> {
+async function configureCodegen(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
   const templateDir = path.resolve(__dirname, "../templates/codegen");
   const packagePath = path.join(targetDir, "package.json");
@@ -536,7 +576,7 @@ async function configureCodegen(targetPath?: string): Promise<void> {
 
   const pkg = JSON.parse(pkgRaw) as PackageJson;
 
-  const { copied, skipped } = await copyTemplateDirectory(templateDir, targetDir, targetDir);
+  const { copied, skipped, overwritten } = await copyTemplateDirectory(templateDir, targetDir, targetDir, options);
 
   const devDeps = (pkg.devDependencies ??= {});
   const deps = pkg.dependencies ?? {};
@@ -584,6 +624,12 @@ async function configureCodegen(targetPath?: string): Promise<void> {
       console.log(`    ${file}`);
     }
   }
+  if (overwritten.length) {
+    console.log("  Overwritten files:");
+    for (const file of overwritten) {
+      console.log(`    ${file}`);
+    }
+  }
   if (skipped.length) {
     console.log("  Skipped existing files:");
     for (const file of skipped) {
@@ -601,56 +647,64 @@ async function configureCodegen(targetPath?: string): Promise<void> {
   }
 }
 
-async function configureApi(targetPath?: string): Promise<void> {
+async function configureApi(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   await configurePlugin({
     targetPath,
     templateName: "api",
     dependencyName: "@uns-kit/api",
     dependencySpecifier: resolveUnsPackageSpecifier("@uns-kit/api", "../../uns-api/package.json"),
     label: "UNS API",
+    overwrite: options.overwrite,
   });
 }
 
-async function configureCron(targetPath?: string): Promise<void> {
+async function configureCron(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   await configurePlugin({
     targetPath,
     templateName: "cron",
     dependencyName: "@uns-kit/cron",
     dependencySpecifier: resolveUnsPackageSpecifier("@uns-kit/cron", "../../uns-cron/package.json"),
     label: "UNS cron",
+    overwrite: options.overwrite,
   });
 }
 
-async function configureTemporal(targetPath?: string): Promise<void> {
+async function configureTemporal(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   await configurePlugin({
     targetPath,
     templateName: "temporal",
     dependencyName: "@uns-kit/temporal",
     dependencySpecifier: resolveUnsPackageSpecifier("@uns-kit/temporal", "../../uns-temporal/package.json"),
     label: "UNS Temporal",
+    overwrite: options.overwrite,
   });
 }
 
-async function configurePython(targetPath?: string): Promise<void> {
+async function configurePython(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   await configurePlugin({
     targetPath,
     templateName: "python",
     label: "UNS Python client",
+    overwrite: options.overwrite,
   });
 }
 
-async function configureUnsReference(targetPath?: string): Promise<void> {
+async function configureUnsReference(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   await configurePlugin({
     targetPath,
     templateName: "uns-dictionary",
     label: "UNS dictionary (object/attribute metadata)",
+    overwrite: options.overwrite,
   });
   await configurePlugin({
     targetPath,
     templateName: "uns-measurements",
     label: "UNS measurements (units)",
+    overwrite: options.overwrite,
   });
 }
+
+type ConfigureFeatureHandler = (targetPath?: string, options?: ConfigureTemplateOptions) => Promise<void>;
 
 const configureFeatureHandlers = {
   devops: configureDevops,
@@ -662,7 +716,7 @@ const configureFeatureHandlers = {
   temporal: configureTemporal,
   python: configurePython,
   "uns-reference": configureUnsReference,
-} as const;
+} as const satisfies Record<string, ConfigureFeatureHandler>;
 
 type ConfigureFeatureName = keyof typeof configureFeatureHandlers;
 
@@ -683,10 +737,11 @@ const configureFeatureLabels: Record<ConfigureFeatureName, string> = {
 type ConfigureCommandOptions = {
   targetPath?: string;
   features: ConfigureFeatureName[];
+  overwrite: boolean;
 };
 
 async function runConfigureCommand(args: string[]): Promise<void> {
-  const { targetPath, features } = parseConfigureArgs(args);
+  const { targetPath, features, overwrite } = parseConfigureArgs(args);
   if (!features.length) {
     throw new Error("No features specified. Provide feature names or pass --all.");
   }
@@ -696,18 +751,161 @@ async function runConfigureCommand(args: string[]): Promise<void> {
   console.log(`Configuring ${featureSummary} in ${location}`);
   for (const feature of features) {
     const handler = configureFeatureHandlers[feature];
-    await handler(targetPath);
+    await handler(targetPath, { overwrite });
+  }
+}
+
+const DEFAULT_TEMPLATE_NAME = "default";
+
+async function listTemplateDirectories(templateRoot: string, options?: { includeDefault?: boolean }): Promise<string[]> {
+  const entries = await readdir(templateRoot, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((name) => options?.includeDefault ? true : name !== DEFAULT_TEMPLATE_NAME)
+    .sort();
+}
+
+type ConfigureTemplatesCommandOptions = {
+  targetPath?: string;
+  overwrite: boolean;
+  includeAll: boolean;
+  templateNames: string[];
+};
+
+function parseConfigureTemplatesArgs(
+  args: string[],
+  availableTemplates: string[],
+): ConfigureTemplatesCommandOptions {
+  const templateMap = new Map(availableTemplates.map((name) => [name.toLowerCase(), name]));
+  const templateSet = new Set(templateMap.keys());
+  const templateNames: string[] = [];
+  const unknownTemplates: string[] = [];
+  let targetPath: string | undefined;
+  let overwrite = false;
+  let includeAll = false;
+  let expectDir = false;
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (expectDir) {
+      targetPath = arg;
+      expectDir = false;
+      continue;
+    }
+    if (arg === "--dir") {
+      expectDir = true;
+      continue;
+    }
+    if (arg === "--all") {
+      includeAll = true;
+      continue;
+    }
+    if (arg === "--overwrite" || arg === "--force") {
+      overwrite = true;
+      continue;
+    }
+    if (arg.startsWith("--")) {
+      throw new Error(`Unknown option ${arg}.`);
+    }
+
+    const normalized = arg.trim().toLowerCase();
+    const resolved = templateMap.get(normalized);
+    if (resolved) {
+      templateNames.push(resolved);
+      continue;
+    }
+
+    if (!targetPath && (includeAll || i < args.length - 1) && !templateSet.has(normalized)) {
+      targetPath = arg;
+      continue;
+    }
+
+    unknownTemplates.push(arg);
+  }
+
+  if (expectDir) {
+    throw new Error("Missing value for --dir.");
+  }
+
+  if (unknownTemplates.length) {
+    const available = availableTemplates.join(", ");
+    throw new Error(
+      `Unknown template(s): ${unknownTemplates.join(", ")}. Available templates: ${available || "none"}.`,
+    );
+  }
+
+  return { targetPath, overwrite, includeAll, templateNames };
+}
+
+async function runConfigureTemplatesCommand(args: string[]): Promise<void> {
+  const templateRoot = path.resolve(__dirname, "../templates");
+  const availableTemplates = await listTemplateDirectories(templateRoot, { includeDefault: true });
+  const allTemplates = await listTemplateDirectories(templateRoot, { includeDefault: false });
+  const { targetPath, overwrite, includeAll, templateNames } = parseConfigureTemplatesArgs(args, availableTemplates);
+
+  const selectedTemplates = new Set<string>();
+  if (includeAll) {
+    allTemplates.forEach((name) => selectedTemplates.add(name));
+  }
+  for (const name of templateNames) {
+    selectedTemplates.add(name);
+  }
+
+  if (!selectedTemplates.size) {
+    throw new Error("No templates specified. Provide template names or pass --all.");
+  }
+
+  const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
+  const sortedTemplates = Array.from(selectedTemplates).sort();
+
+  for (const templateName of sortedTemplates) {
+    const templateDir = path.resolve(templateRoot, templateName);
+    const { copied, skipped, overwritten } = await copyTemplateDirectory(
+      templateDir,
+      targetDir,
+      targetDir,
+      { overwrite },
+    );
+
+    console.log(`\nTemplate "${templateName}" processed.`);
+    if (copied.length) {
+      console.log("  Added:");
+      for (const file of copied) {
+        console.log(`    ${file}`);
+      }
+    }
+    if (overwritten.length) {
+      console.log("  Overwritten:");
+      for (const file of overwritten) {
+        console.log(`    ${file}`);
+      }
+    }
+    if (skipped.length) {
+      console.log("  Skipped (already exists):");
+      for (const file of skipped) {
+        console.log(`    ${file}`);
+      }
+    }
+    if (!copied.length && !overwritten.length && !skipped.length) {
+      console.log("  No template files were copied.");
+    }
   }
 }
 
 function parseConfigureArgs(args: string[]): ConfigureCommandOptions {
   let targetPath: string | undefined;
   let includeAll = false;
+  let overwrite = false;
   const featureInputs: string[] = [];
 
   for (const arg of args) {
     if (arg === "--all") {
       includeAll = true;
+      continue;
+    }
+    if (arg === "--overwrite" || arg === "--force") {
+      overwrite = true;
       continue;
     }
     if (arg.startsWith("--")) {
@@ -748,7 +946,27 @@ function parseConfigureArgs(args: string[]): ConfigureCommandOptions {
     addFeature(resolveConfigureFeatureName(input));
   }
 
-  return { targetPath, features: featureOrder };
+  return { targetPath, features: featureOrder, overwrite };
+}
+
+function parseTemplateCommandArgs(args: string[]): { targetPath?: string; overwrite: boolean } {
+  let targetPath: string | undefined;
+  let overwrite = false;
+  for (const arg of args) {
+    if (arg === "--overwrite" || arg === "--force") {
+      overwrite = true;
+      continue;
+    }
+    if (arg.startsWith("--")) {
+      throw new Error(`Unknown option ${arg}.`);
+    }
+    if (!targetPath) {
+      targetPath = arg;
+      continue;
+    }
+    throw new Error(`Unexpected argument ${arg}.`);
+  }
+  return { targetPath, overwrite };
 }
 
 const configureFeatureAliases: Record<string, ConfigureFeatureName> = {
@@ -859,10 +1077,12 @@ async function copyTemplateDirectory(
   sourceDir: string,
   targetDir: string,
   targetRoot: string,
-): Promise<{ copied: string[]; skipped: string[] }> {
+  options: ConfigureTemplateOptions = {},
+): Promise<CopyTemplateResult> {
   const entries = await readdir(sourceDir, { withFileTypes: true });
   const copied: string[] = [];
   const skipped: string[] = [];
+  const overwritten: string[] = [];
 
   for (const entry of entries) {
     const sourcePath = path.join(sourceDir, entry.name);
@@ -872,16 +1092,22 @@ async function copyTemplateDirectory(
 
     if (entry.isDirectory()) {
       await mkdir(destinationPath, { recursive: true });
-      const result = await copyTemplateDirectory(sourcePath, destinationPath, targetRoot);
+      const result = await copyTemplateDirectory(sourcePath, destinationPath, targetRoot, options);
       copied.push(...result.copied);
       skipped.push(...result.skipped);
+      overwritten.push(...result.overwritten);
       continue;
     }
 
     if (entry.isFile()) {
       await mkdir(path.dirname(destinationPath), { recursive: true });
       if (await fileExists(destinationPath)) {
-        skipped.push(relativePath);
+        if (options.overwrite) {
+          await copyFile(sourcePath, destinationPath);
+          overwritten.push(relativePath);
+        } else {
+          skipped.push(relativePath);
+        }
         continue;
       }
       await copyFile(sourcePath, destinationPath);
@@ -889,7 +1115,7 @@ async function copyTemplateDirectory(
     }
   }
 
-  return { copied, skipped };
+  return { copied, skipped, overwritten };
 }
 
 function normalizeTemplateFilename(filename: string): string {
@@ -905,8 +1131,9 @@ async function configurePlugin(options: {
   dependencyName?: string;
   dependencySpecifier?: string;
   label: string;
+  overwrite?: boolean;
 }): Promise<void> {
-  const { targetPath, templateName, dependencyName, dependencySpecifier, label } = options;
+  const { targetPath, templateName, dependencyName, dependencySpecifier, label, overwrite } = options;
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
   const templateDir = path.resolve(__dirname, `../templates/${templateName}`);
   const packagePath = path.join(targetDir, "package.json");
@@ -929,7 +1156,7 @@ async function configurePlugin(options: {
 
   const pkg = JSON.parse(pkgRaw) as PackageJson;
 
-  const { copied, skipped } = await copyTemplateDirectory(templateDir, targetDir, targetDir);
+  const { copied, skipped, overwritten } = await copyTemplateDirectory(templateDir, targetDir, targetDir, { overwrite });
 
   let pkgChanged = false;
   if (dependencyName && dependencySpecifier) {
@@ -951,13 +1178,19 @@ async function configurePlugin(options: {
       console.log(`    ${file}`);
     }
   }
+  if (overwritten.length) {
+    console.log("  Overwritten files:");
+    for (const file of overwritten) {
+      console.log(`    ${file}`);
+    }
+  }
   if (skipped.length) {
     console.log("  Skipped existing files:");
     for (const file of skipped) {
       console.log(`    ${file}`);
     }
   }
-  if (!copied.length && !skipped.length) {
+  if (!copied.length && !overwritten.length && !skipped.length) {
     console.log("  No template files were copied.");
   }
 
