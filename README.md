@@ -46,6 +46,9 @@ Each package is published independently to npm and can be consumed à la carte.
 - Then: `cd my-uns-app && pnpm install && pnpm run dev`.
 - For more templates and configure options, see the CLI docs: [`@uns-kit/cli`](packages/uns-cli).
 
+## Agent Onboarding (for AI/code-assist tools)
+
+Projects scaffolded from `uns-kit` include a local `AGENTS.md` in the template root with pointers for AI/code-assist tools.
 ## License
 
 MIT © Aljoša Vister
