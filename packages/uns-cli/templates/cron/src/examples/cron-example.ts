@@ -13,8 +13,8 @@ import {
   GeneratedAttributesByType,
   GeneratedAttributeDescriptions,
   GeneratedObjectTypeDescriptions,
-} from "./uns/uns-dictionary.generated.js";
-import { GeneratedPhysicalMeasurements } from "./uns/uns-measurements.generated.js";
+} from "../uns/uns-dictionary.generated.js";
+import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 
 
 /**
