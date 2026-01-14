@@ -1,6 +1,6 @@
 {
   "name": "@uns-kit/cli",
-  "version": "0.0.65",
+  "version": "0.0.66",
   "description": "Command line scaffolding tool for UNS applications",
   "type": "module",
   "license": "MIT",
@@ -33,9 +33,9 @@
     "azure-devops-node-api": "^15.1.1"
   },
   "unsKitPackages": {
-    "@uns-kit/core": "1.0.31",
-    "@uns-kit/api": "0.0.41",
-    "@uns-kit/cron": "0.0.41",
-    "@uns-kit/temporal": "0.0.40"
+    "@uns-kit/core": "1.0.32",
+    "@uns-kit/api": "0.0.42",
+    "@uns-kit/cron": "0.0.42",
+    "@uns-kit/temporal": "0.0.41"
   }
 }
