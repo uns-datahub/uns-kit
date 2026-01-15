@@ -16,6 +16,7 @@ export default class App {
     processName;
     instanceName;
     swaggerSpec;
+    swaggerDocs = new Map();
     constructor(port, processName, instanceName, appContext) {
         this.router = express.Router();
         this.port = port;
@@ -67,6 +68,11 @@ export default class App {
     }
     getSwaggerSpec() {
         return this.swaggerSpec;
+    }
+    registerSwaggerDoc(path, doc) {
+        const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+        this.swaggerDocs.set(normalizedPath, doc);
+        this.expressApplication.get(normalizedPath, (_req, res) => res.json(doc));
     }
     async start() {
         // Listen on provided port, on all network interfaces.

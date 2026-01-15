@@ -18,6 +18,7 @@ export default class App {
         };
         paths: Record<string, any>;
     };
+    private swaggerDocs;
     constructor(port: number, processName: string, instanceName: string, appContext?: any);
     static getExternalIPv4(): string | null;
     getSwaggerSpec(): {
@@ -28,5 +29,6 @@ export default class App {
         };
         paths: Record<string, any>;
     };
+    registerSwaggerDoc(path: string, doc: Record<string, unknown>): void;
     start(): Promise<void>;
 }

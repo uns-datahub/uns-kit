@@ -36,6 +36,10 @@ export default class UnsApiProxy extends UnsProxy {
         apiBase?: string;
         apiBasePath?: string;
         swaggerPath?: string;
+        swaggerDoc?: Record<string, unknown>;
+        apiDescription?: string;
+        tags?: string[];
+        queryParams?: IGetEndpointOptions["queryParams"];
     }): Promise<void>;
     post(..._args: any[]): any;
     private extractBearerToken;

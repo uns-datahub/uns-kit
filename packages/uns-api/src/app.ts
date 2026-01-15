@@ -21,6 +21,7 @@ export default class App {
     info: { title: string; version: string };
     paths: Record<string, any>;
   };
+  private swaggerDocs: Map<string, Record<string, unknown>> = new Map();
 
 
 
@@ -93,6 +94,12 @@ export default class App {
 
   public getSwaggerSpec() {
     return this.swaggerSpec;
+  }
+
+  public registerSwaggerDoc(path: string, doc: Record<string, unknown>): void {
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    this.swaggerDocs.set(normalizedPath, doc);
+    this.expressApplication.get(normalizedPath, (_req: any, res: any) => res.json(doc));
   }
 
   public async start() {

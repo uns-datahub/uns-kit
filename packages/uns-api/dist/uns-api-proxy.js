@@ -229,6 +229,8 @@ export default class UnsApiProxy extends UnsProxy {
         while (this.app.server.listening === false) {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
+        const finalOptions = options ?? {};
+        const topicNormalized = topicPrefix.endsWith("/") ? topicPrefix : `${topicPrefix}`;
         const addressInfo = this.app.server.address();
         let ip;
         let port;
@@ -240,17 +242,48 @@ export default class UnsApiProxy extends UnsProxy {
             ip = App.getExternalIPv4();
             port = "";
         }
-        const apiBase = typeof options?.apiBase === "string" && options.apiBase.length
-            ? options.apiBase
+        const apiBase = typeof finalOptions?.apiBase === "string" && finalOptions.apiBase.length
+            ? finalOptions.apiBase
             : `http://${ip}:${port}`;
-        const apiBasePath = typeof options?.apiBasePath === "string" && options.apiBasePath.length
-            ? options.apiBasePath
+        const apiBasePath = typeof finalOptions?.apiBasePath === "string" && finalOptions.apiBasePath.length
+            ? finalOptions.apiBasePath
             : "/api";
-        const swaggerPath = typeof options?.swaggerPath === "string" && options.swaggerPath.length
-            ? options.swaggerPath
-            : `/${this.processName}/${this.instanceName}/swagger.json`;
+        const swaggerPath = typeof finalOptions?.swaggerPath === "string" && finalOptions.swaggerPath.length
+            ? finalOptions.swaggerPath
+            : `/${this.processName}/${this.instanceName}/catchall-swagger.json`;
+        const normalizedSwaggerPath = swaggerPath.startsWith("/") ? swaggerPath : `/${swaggerPath}`;
+        const swaggerDoc = finalOptions.swaggerDoc ||
+            {
+                openapi: "3.0.0",
+                info: {
+                    title: "Catch-all API",
+                    version: "1.0.0",
+                },
+                paths: {
+                    "/api/{topicPath}": {
+                        get: {
+                            summary: finalOptions.apiDescription || "Catch-all handler",
+                            tags: finalOptions.tags || [],
+                            parameters: (finalOptions.queryParams || []).map((p) => ({
+                                name: p.name,
+                                in: "query",
+                                required: !!p.required,
+                                schema: { type: p.type },
+                                description: p.description,
+                            })),
+                            responses: {
+                                "200": { description: "OK" },
+                                "400": { description: "Bad Request" },
+                                "401": { description: "Unauthorized" },
+                                "403": { description: "Forbidden" },
+                            },
+                        },
+                    },
+                },
+            };
+        this.app.registerSwaggerDoc(normalizedSwaggerPath, swaggerDoc);
         this.registerApiCatchAll({
-            topic: topicPrefix,
+            topic: topicNormalized,
             apiBase,
             apiBasePath,
             swaggerPath,

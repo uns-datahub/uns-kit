@@ -70,21 +70,22 @@ apiInput.get(
 /**
  * Optional: register a catch-all API mapping for a topic prefix.
  * This does not create per-attribute API nodes; the controller treats it as a fallback handler.
+ * You can provide a separate Swagger doc for catch-all so it stays distinct from normal APIs (optional).
  */
-const apiInputWithCatchAll = apiInput as typeof apiInput & {
-  registerCatchAll?: (
-    topicPrefix: string,
-    options?: { apiBase?: string; apiBasePath?: string; swaggerPath?: string }
-  ) => Promise<void>;
-};
-if (apiInputWithCatchAll.registerCatchAll) {
-  await apiInputWithCatchAll.registerCatchAll("sij/acroni/#", {
-    // apiBase/apiBasePath/swaggerPath are optional; defaults use this service host/port and "/api".
-    // apiBase: "http://127.0.0.1:3000",
-    // apiBasePath: "/api",
-    // swaggerPath: "/swagger.json",
-  });
-}
+await apiInput.registerCatchAll("sij/acroni/#", {
+  // apiBase/apiBasePath/swaggerPath are optional; defaults use this service host/port and "/api".
+  // apiBase: "http://127.0.0.1:3000",
+  // apiBasePath: "/api",
+  apiDescription: "Catch-all handler for sij/acroni/*",
+  tags: ["CatchAll"],
+  queryParams: [
+    { name: "topicPath", type: "string", required: true, description: "Resolved topic path" },
+    { name: "filter", type: "string", required: false, description: "Filter parameter" },
+  ],
+  // Optional: serve a separate Swagger doc for catch-all
+  // swaggerPath: "/catchall-swagger.json",
+  // swaggerDoc: { ... },
+});
 
 apiInput.event.on("apiGetEvent", (event: UnsEvents["apiGetEvent"]) => {
   try {
