@@ -30,6 +30,7 @@ export default class UnsApiProxy extends UnsProxy {
   private app: App;
   private options: IApiProxyOptions;
   private jwksCache?: { keys: any[]; fetchedAt: number };
+  private catchAllRouteRegistered = false;
 
   constructor(processName: string, instanceName: string, options: IApiProxyOptions) {
     super();
@@ -325,13 +326,22 @@ export default class UnsApiProxy extends UnsProxy {
             get: {
               summary: finalOptions.apiDescription || "Catch-all handler",
               tags: finalOptions.tags || [],
-              parameters: (finalOptions.queryParams || []).map((p) => ({
-                name: p.name,
-                in: "query",
-                required: !!p.required,
-                schema: { type: p.type },
-                description: p.description,
-              })),
+              parameters: [
+                {
+                  name: "topicPath",
+                  in: "path",
+                  required: true,
+                  schema: { type: "string" },
+                  description: "Resolved UNS topic path",
+                },
+                ...(finalOptions.queryParams || []).map((p) => ({
+                  name: p.name,
+                  in: "query",
+                  required: !!p.required,
+                  schema: { type: p.type },
+                  description: p.description,
+                })),
+              ],
               responses: {
                 "200": { description: "OK" },
                 "400": { description: "Bad Request" },
@@ -344,6 +354,15 @@ export default class UnsApiProxy extends UnsProxy {
       };
 
     this.app.registerSwaggerDoc(normalizedSwaggerPath, swaggerDoc);
+
+    if (!this.catchAllRouteRegistered) {
+      this.app.router.use((req: any, res: any) => {
+        const topicPath = (req.path ?? "").replace(/^\/+/, "");
+        req.params = { ...(req.params || {}), topicPath };
+        this.event.emit("apiGetEvent", { req, res });
+      });
+      this.catchAllRouteRegistered = true;
+    }
 
     this.registerApiCatchAll({
       topic: topicNormalized,

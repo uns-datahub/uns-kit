@@ -12,6 +12,7 @@ export default class UnsApiProxy extends UnsProxy {
     private app;
     private options;
     private jwksCache?;
+    private catchAllRouteRegistered;
     constructor(processName: string, instanceName: string, options: IApiProxyOptions);
     /**
      * Unregister endpoint

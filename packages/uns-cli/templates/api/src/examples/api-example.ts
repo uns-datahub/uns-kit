@@ -76,7 +76,6 @@ await apiInput.registerCatchAll("sij/acroni/#", {
   apiDescription: "Catch-all handler for sij/acroni/*",
   tags: ["CatchAll"],
   queryParams: [
-    { name: "topicPath", type: "string", required: true, description: "Resolved topic path" },
     { name: "filter", type: "string", required: false, description: "Filter parameter" },
   ]
 });
