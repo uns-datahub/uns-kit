@@ -354,6 +354,9 @@ export default class UnsApiProxy extends UnsProxy {
       };
 
     this.app.registerSwaggerDoc(normalizedSwaggerPath, swaggerDoc);
+    logger.info(
+      `${this.instanceNameWithSuffix} - Catch-all Swagger available at ${normalizedSwaggerPath} (target ${apiBase.replace(/\/+$/, "")}${normalizedSwaggerPath})`
+    );
 
     if (!this.catchAllRouteRegistered) {
       this.app.router.use((req: any, res: any) => {
