@@ -73,18 +73,12 @@ apiInput.get(
  * You can provide a separate Swagger doc for catch-all so it stays distinct from normal APIs (optional).
  */
 await apiInput.registerCatchAll("sij/acroni/#", {
-  // apiBase/apiBasePath/swaggerPath are optional; defaults use this service host/port and "/api".
-  // apiBase: "http://127.0.0.1:3000",
-  // apiBasePath: "/api",
   apiDescription: "Catch-all handler for sij/acroni/*",
   tags: ["CatchAll"],
   queryParams: [
     { name: "topicPath", type: "string", required: true, description: "Resolved topic path" },
     { name: "filter", type: "string", required: false, description: "Filter parameter" },
-  ],
-  // Optional: serve a separate Swagger doc for catch-all
-  // swaggerPath: "/catchall-swagger.json",
-  // swaggerDoc: { ... },
+  ]
 });
 
 apiInput.event.on("apiGetEvent", (event: UnsEvents["apiGetEvent"]) => {
