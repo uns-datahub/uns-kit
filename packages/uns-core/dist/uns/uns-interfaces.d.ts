@@ -102,6 +102,10 @@ export interface UnsEvents {
         producedApiEndpoints: IApiObject[];
         statusTopic: string;
     };
+    unsProxyProducedApiCatchAll: {
+        producedCatchall: IApiCatchallMapping[];
+        statusTopic: string;
+    };
 }
 export interface IUnsExtendedData extends IUnsData {
     valueType: ValueTypeString;
@@ -219,6 +223,12 @@ export interface IApiObject {
     asset: UnsAsset;
     objectType: UnsObjectType;
     objectId: UnsObjectId;
+}
+export interface IApiCatchallMapping {
+    topic: string;
+    apiBase: string;
+    apiBasePath: string;
+    swaggerPath: string;
 }
 export interface QueryParamDef {
     name: string;

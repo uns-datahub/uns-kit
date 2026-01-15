@@ -4,6 +4,7 @@ import { UnsEventEmitter } from "./uns-event-emitter.js";
 import { UnsPacket } from "./uns-packet.js";
 import { UnsAsset } from "./uns-asset.js";
 import { UnsObjectId, UnsObjectType } from "./uns-object.js";
+import { IApiCatchallMapping } from "./uns-interfaces.js";
 
 export default class UnsProxy {
   private publishInterval: NodeJS.Timeout | null = null;
@@ -12,12 +13,14 @@ export default class UnsProxy {
   protected instanceNameWithSuffix: string; //was prot
   private producedTopics: Map<string, ITopicObject> = new Map();
   private producedApiEndpoints: Map<string, IApiObject> = new Map();
+  private producedApiCatchall: Map<string, IApiCatchallMapping> = new Map();
 
   constructor() {
     // Set up interval to publish produced topics every 60 seconds.
     this.publishInterval = setInterval(() => {
       this.emitProducedTopics();
       this.emitProducedApiEndpoints();
+      this.emitProducedApiCatchall();
     }, 60000);    
   }
       
@@ -55,6 +58,26 @@ export default class UnsProxy {
           logger.error(`${this.instanceNameWithSuffix} - Error publishing produced API endpoints: ${error.message}`);
         }
         logger.debug(`${this.instanceNameWithSuffix} - Published produced API endpoints.`);
+      }
+    }
+  }
+
+  /**
+   * Publishes the list of catch-all API mappings to the MQTT broker.
+   */
+  private async emitProducedApiCatchall(): Promise<void> {
+    if (this.instanceStatusTopic !== "") {
+      const catchallArray = [...this.producedApiCatchall.values()];
+      if (catchallArray.length > 0) {
+        try {
+          this.event.emit("unsProxyProducedApiCatchAll", {
+            producedCatchall: catchallArray,
+            statusTopic: this.instanceStatusTopic + "api-catchall",
+          });
+        } catch (error: any) {
+          logger.error(`${this.instanceNameWithSuffix} - Error publishing catch-all API mappings: ${error.message}`);
+        }
+        logger.debug(`${this.instanceNameWithSuffix} - Published catch-all API mappings.`);
       }
     }
   }
@@ -115,6 +138,19 @@ export default class UnsProxy {
         this.emitProducedApiEndpoints();
         logger.info(`${this.instanceNameWithSuffix} - Registered new api endpoint: /${fullTopic}`);
       }
+    }
+  }
+
+  protected registerApiCatchAll(mapping: IApiCatchallMapping): void {
+    if (this.instanceStatusTopic !== "") {
+      const key = mapping.topic.replace(/\/+$/, "");
+      if (!this.producedApiCatchall.has(key)) {
+        this.producedApiCatchall.set(key, mapping);
+      } else {
+        this.producedApiCatchall.set(key, { ...this.producedApiCatchall.get(key)!, ...mapping });
+      }
+      this.emitProducedApiCatchall();
+      logger.info(`${this.instanceNameWithSuffix} - Registered catch-all API mapping: ${key}`);
     }
   }
 

@@ -27,6 +27,12 @@ const unsApiPlugin = ({ define }) => {
                     properties: { messageExpiryInterval: 120000 },
                 });
             });
+            unsApiProxy.event.on("unsProxyProducedApiCatchAll", (event) => {
+                internals.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedCatchall), {
+                    retain: true,
+                    properties: { messageExpiryInterval: 120000 },
+                });
+            });
             internals.unsApiProxies.push(unsApiProxy);
             getApiProxies(this).push(unsApiProxy);
             return unsApiProxy;

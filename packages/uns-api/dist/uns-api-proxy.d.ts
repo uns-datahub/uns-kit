@@ -28,6 +28,15 @@ export default class UnsApiProxy extends UnsProxy {
      * @param options.tags - Optional tags.
      */
     get(topic: UnsTopics, asset: UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: UnsAttribute, options?: IGetEndpointOptions): Promise<void>;
+    /**
+     * Register a catch-all API mapping for a topic prefix (e.g., "sij/acroni/#").
+     * Does not create individual API attribute nodes; the controller treats this as a fallback.
+     */
+    registerCatchAll(topicPrefix: string, options?: {
+        apiBase?: string;
+        apiBasePath?: string;
+        swaggerPath?: string;
+    }): Promise<void>;
     post(..._args: any[]): any;
     private extractBearerToken;
     private getPublicKeyFromJwks;

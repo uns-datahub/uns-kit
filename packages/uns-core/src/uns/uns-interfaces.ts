@@ -118,6 +118,9 @@ export interface UnsEvents {
 
   // Emitters in UnsProxy
   unsProxyProducedApiEndpoints: { producedApiEndpoints: IApiObject[], statusTopic: string };
+
+  // Emitters in UnsProxy
+  unsProxyProducedApiCatchAll: { producedCatchall: IApiCatchallMapping[], statusTopic: string };
 }
 
 export interface IUnsExtendedData extends IUnsData {
@@ -247,6 +250,13 @@ export interface IApiObject {
   asset: UnsAsset;
   objectType: UnsObjectType;
   objectId: UnsObjectId;
+}
+
+export interface IApiCatchallMapping {
+  topic: string;
+  apiBase: string;
+  apiBasePath: string;
+  swaggerPath: string;
 }
 
 export interface QueryParamDef {

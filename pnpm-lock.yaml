@@ -206,9 +206,15 @@ importers:
 
   sandbox-app:
     dependencies:
+      '@uns-kit/api':
+        specifier: workspace:^
+        version: link:../packages/uns-api
       '@uns-kit/core':
         specifier: workspace:^
         version: link:../packages/uns-core
+      '@uns-kit/cron':
+        specifier: workspace:^
+        version: link:../packages/uns-cron
       zod:
         specifier: ^3.23.8
         version: 3.25.76

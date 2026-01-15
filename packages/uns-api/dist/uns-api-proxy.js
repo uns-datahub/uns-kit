@@ -221,6 +221,41 @@ export default class UnsApiProxy extends UnsProxy {
             logger.error(`${this.instanceNameWithSuffix} - Error publishing message to topic ${topic}${attribute}: ${error.message}`);
         }
     }
+    /**
+     * Register a catch-all API mapping for a topic prefix (e.g., "sij/acroni/#").
+     * Does not create individual API attribute nodes; the controller treats this as a fallback.
+     */
+    async registerCatchAll(topicPrefix, options) {
+        while (this.app.server.listening === false) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        const addressInfo = this.app.server.address();
+        let ip;
+        let port;
+        if (addressInfo && typeof addressInfo === "object") {
+            ip = App.getExternalIPv4();
+            port = addressInfo.port;
+        }
+        else if (typeof addressInfo === "string") {
+            ip = App.getExternalIPv4();
+            port = "";
+        }
+        const apiBase = typeof options?.apiBase === "string" && options.apiBase.length
+            ? options.apiBase
+            : `http://${ip}:${port}`;
+        const apiBasePath = typeof options?.apiBasePath === "string" && options.apiBasePath.length
+            ? options.apiBasePath
+            : "/api";
+        const swaggerPath = typeof options?.swaggerPath === "string" && options.swaggerPath.length
+            ? options.swaggerPath
+            : `/${this.processName}/${this.instanceName}/swagger.json`;
+        this.registerApiCatchAll({
+            topic: topicPrefix,
+            apiBase,
+            apiBasePath,
+            swaggerPath,
+        });
+    }
     post(..._args) {
         // Implement POST logic or route binding here
         return "POST called";

@@ -2,6 +2,7 @@ import { IApiObject, ITopicObject, UnsEvents } from "./uns-interfaces.js";
 import { UnsEventEmitter } from "./uns-event-emitter.js";
 import { UnsAsset } from "./uns-asset.js";
 import { UnsObjectId, UnsObjectType } from "./uns-object.js";
+import { IApiCatchallMapping } from "./uns-interfaces.js";
 export default class UnsProxy {
     private publishInterval;
     event: UnsEventEmitter<UnsEvents>;
@@ -9,6 +10,7 @@ export default class UnsProxy {
     protected instanceNameWithSuffix: string;
     private producedTopics;
     private producedApiEndpoints;
+    private producedApiCatchall;
     constructor();
     /**
      * Publishes the list of produced topics to the MQTT broker.
@@ -19,6 +21,10 @@ export default class UnsProxy {
      */
     private emitProducedApiEndpoints;
     /**
+     * Publishes the list of catch-all API mappings to the MQTT broker.
+     */
+    private emitProducedApiCatchall;
+    /**
      * Registers a unique topic so that it is tracked and published only once.
      *
      * @param topicObject - The object containing topic details.
@@ -28,6 +34,7 @@ export default class UnsProxy {
      * Registers an API endpoint to handle requests for a specific topic and attribute.
      */
     protected registerApiEndpoint(apiObject: IApiObject): void;
+    protected registerApiCatchAll(mapping: IApiCatchallMapping): void;
     protected unregisterApiEndpoint(topic: string, asset: UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: string): void;
     stop(): Promise<void>;
 }
