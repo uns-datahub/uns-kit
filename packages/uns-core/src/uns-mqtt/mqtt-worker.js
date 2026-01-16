@@ -9,9 +9,9 @@ export class MqttWorker {
     publisher;
     subscriber;
     constructor(workerData) {
-        const publishThrottlingDelay = workerData.publishThrottlingDelay || 1;
-        const subscribeThrottlingDelay = workerData.subscribeThrottlingDelay || 1;
-        const persistToDisk = workerData.persistToDisk || false;
+        const publishThrottlingDelay = workerData.publishThrottlingDelay ?? 1;
+        const subscribeThrottlingDelay = workerData.subscribeThrottlingDelay ?? 1;
+        const persistToDisk = workerData.persistToDisk ?? false;
         const mqttHost = workerData.mqttHost;
         const instanceName = workerData.instanceNameWithSuffix;
         const mqttParameters = workerData.mqttParameters;
