@@ -12,7 +12,7 @@ import {
   GeneratedAttributeDescriptions,
   GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
-import { GeneratedAssets } from "../uns/uns-assets.js";
+import { GeneratedAssets, resolveGeneratedAsset } from "../uns/uns-assets.js";
 import type { IUnsTableColumn } from "@uns-kit/core/uns/uns-interfaces.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 
@@ -69,7 +69,7 @@ mqttInput.event.on("input", async (event) => {
         },
       };
       const topic: UnsTopics = "enterprise/site/area/line/";
-      const asset = GeneratedAssets["asset"];
+      const asset = resolveGeneratedAsset("asset");
       const assetDescription = ""; // customize manually
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
       mqttOutput.publishMqttMessage({

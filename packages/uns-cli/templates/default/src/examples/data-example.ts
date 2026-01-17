@@ -12,7 +12,7 @@ import {
   GeneratedAttributesByType,
   GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
-import { GeneratedAssets } from "../uns/uns-assets.js";
+import { GeneratedAssets, resolveGeneratedAsset } from "../uns/uns-assets.js";
 
 /**
  * Load the configuration from a file.
@@ -53,7 +53,7 @@ mqttInput.event.on("input", async (event) => {
       const dataGroup = "sensor";
 
       const topic: UnsTopics = "enterprise/site/area/line/";
-      const asset = GeneratedAssets["asset"];
+      const asset = resolveGeneratedAsset("asset");
       const assetDescription = ""; // customize manually
 
       mqttOutput.publishMqttMessage({

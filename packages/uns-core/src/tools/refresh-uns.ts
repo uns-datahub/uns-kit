@@ -197,7 +197,15 @@ async function refreshUnsAssets() {
     })
     .join("\n");
 
-  const vsebina = `${header}export const GeneratedAssets = {\n${entries}\n} as const;\nexport type GeneratedAssetName = typeof GeneratedAssets[keyof typeof GeneratedAssets];\n`;
+  const helpers = `
+export function resolveGeneratedAsset(name: keyof typeof GeneratedAssets): (typeof GeneratedAssets)[keyof typeof GeneratedAssets];
+export function resolveGeneratedAsset<T extends string>(name: T): (typeof GeneratedAssets)[keyof typeof GeneratedAssets] | T;
+export function resolveGeneratedAsset(name: string): string {
+  return (GeneratedAssets as Record<string, string>)[name] ?? name;
+}
+`;
+
+  const vsebina = `${header}export const GeneratedAssets = {\n${entries}\n} as const;\nexport type GeneratedAssetName = typeof GeneratedAssets[keyof typeof GeneratedAssets];\n${helpers}`;
   const outputPath = path.resolve(process.cwd(), "src/uns/uns-assets.ts");
   await ensureDirectory(path.dirname(outputPath));
   await writeToFile(outputPath, vsebina);
