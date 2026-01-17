@@ -107,6 +107,7 @@ pnpm run refresh-uns
 ```
 
 Adds `codegen.ts`, seeds `src/uns/` placeholder types, and wires the GraphQL Code Generator / `refresh-uns` script into `package.json`. After installing the new dev dependencies you can regenerate strongly-typed operations (`pnpm run codegen`) and rebuild UNS topics/tags from your environment (`pnpm run refresh-uns`).
+After installing the new dev dependencies you can regenerate strongly-typed operations (`pnpm run codegen`) and rebuild UNS metadata (topics/tags/assets) from your environment (`pnpm run generate-uns-metadata`).
 
 ### Add UNS API scaffolding
 

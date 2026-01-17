@@ -175,11 +175,22 @@ export type MutationStopRttNodeArgs = {
 /** name: uns-datahub */
 export type Query = {
   __typename?: 'Query';
+  GetAssets?: Maybe<Array<Maybe<UnsAssetSummary>>>;
+  GetAttributes?: Maybe<Array<Maybe<UnsAttributeSummary>>>;
+  GetTags?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
   /** Get MQTT Translator translations. */
   GetMqttTranslations?: Maybe<Array<Maybe<MqttTranslation>>>;
   GetMqttTranslatorTopics?: Maybe<Array<Maybe<MqttTranslatorTopic>>>;
   GetRttNodes?: Maybe<Array<Maybe<RttNode>>>;
   GetTreeStructure?: Maybe<Array<Maybe<TreeStructure>>>;
+};
+
+export type QueryGetAssetsArgs = {
+  pathPrefix?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type QueryGetAttributesArgs = {
+  pathPrefix?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type RttNode = {
@@ -205,6 +216,25 @@ export type TreeStructure = {
   id?: Maybe<Scalars['Int']['output']>;
   parent?: Maybe<Scalars['Int']['output']>;
   unsNode?: Maybe<Scalars['String']['output']>;
+};
+
+export type UnsAssetSummary = {
+  __typename?: 'UnsAssetSummary';
+  asset?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  objectId?: Maybe<Scalars['String']['output']>;
+  objectType?: Maybe<Scalars['String']['output']>;
+  path?: Maybe<Scalars['String']['output']>;
+};
+
+export type UnsAttributeSummary = {
+  __typename?: 'UnsAttributeSummary';
+  attributeType?: Maybe<Scalars['String']['output']>;
+  dataGroup?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  objectId?: Maybe<Scalars['String']['output']>;
+  objectType?: Maybe<Scalars['String']['output']>;
+  path?: Maybe<Scalars['String']['output']>;
 };
 
 export type UnsNode = {

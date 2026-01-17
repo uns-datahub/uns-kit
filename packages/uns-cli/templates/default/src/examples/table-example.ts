@@ -12,6 +12,7 @@ import {
   GeneratedAttributeDescriptions,
   GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
+import { GeneratedAssets } from "../uns/uns-assets.js";
 import type { IUnsTableColumn } from "@uns-kit/core/uns/uns-interfaces.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 
@@ -68,11 +69,13 @@ mqttInput.event.on("input", async (event) => {
         },
       };
       const topic: UnsTopics = "enterprise/site/area/line/";
+      const asset = GeneratedAssets["asset"];
+      const assetDescription = ""; // customize manually
       const packet = await UnsPacket.unsPacketFromUnsMessage(message);
       mqttOutput.publishMqttMessage({
         topic,
-        asset: "asset",
-        assetDescription: "Sample asset",
+        asset,
+        assetDescription,
         objectType: GeneratedObjectTypes["resource-status"],
         objectId: "main",
         attribute: GeneratedAttributes["status"] ?? "status",

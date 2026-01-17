@@ -1,5 +1,5 @@
 import { GraphQLClient, gql, ClientError } from "graphql-request";
-import { TreeStructure } from "./schema.js";
+import { TreeStructure, UnsAttributeSummary, UnsAssetSummary } from "./schema.js";
 import * as path from "path";
 import * as fs from 'fs';
 import { mkdir } from "fs/promises";
@@ -119,13 +119,101 @@ async function refreshUnsTags() {
   await writeToFile(outputPath, vsebina);
 }
 
+function normalizeAttributePath(pathValue: string | null | undefined): string {
+  if (!pathValue) return "";
+  return pathValue.replace(/\/+$/, "");
+}
+
+function buildAttributeEntries(attributes: Array<UnsAttributeSummary | null | undefined>) {
+  const deduped = new Map<string, {
+    path: string;
+    description: string | null;
+    attributeType: string | null;
+    dataGroup: string | null;
+    objectType: string | null;
+    objectId: string | null;
+  }>();
+
+  for (const attr of attributes) {
+    if (!attr) continue;
+    const path = normalizeAttributePath(typeof attr.path === "string" ? attr.path : null);
+    if (!path) continue;
+    deduped.set(path, {
+      path,
+      description: typeof attr.description === "string" ? attr.description : null,
+      attributeType: typeof attr.attributeType === "string" ? attr.attributeType : null,
+      dataGroup: typeof attr.dataGroup === "string" ? attr.dataGroup : null,
+      objectType: typeof attr.objectType === "string" ? attr.objectType : null,
+      objectId: typeof attr.objectId === "string" ? attr.objectId : null,
+    });
+  }
+
+  return Array.from(deduped.values()).sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function buildAssetEntries(assets: Array<UnsAssetSummary | null | undefined>) {
+  const deduped = new Map<string, {
+    asset: string;
+    description: string | null;
+  }>();
+
+  for (const entry of assets) {
+    if (!entry) continue;
+    const assetName = typeof entry.asset === "string" ? entry.asset.trim() : "";
+    if (!assetName) continue;
+    const description = typeof entry.description === "string" ? entry.description : null;
+    if (!deduped.has(assetName)) {
+      deduped.set(assetName, { asset: assetName, description });
+    }
+  }
+
+  return Array.from(deduped.values()).sort((a, b) => a.asset.localeCompare(b.asset));
+}
+
+// Fetch and generate UnsAssets
+async function refreshUnsAssets() {
+  const document = gql`
+  query GetAssets {
+    GetAssets {
+      path
+      description
+      asset
+      objectType
+      objectId
+    }
+  }`;
+
+  const query: any = await requestWithAuth(document);
+  let assets = buildAssetEntries(Array.isArray(query.GetAssets) ? query.GetAssets : []);
+  if (!assets.length) {
+    assets = [{ asset: "asset", description: null }];
+  }
+
+  const header = `// Generated UNS asset list. Run \`pnpm run refresh-uns\` to update.\n`;
+  const entries = assets
+    .map((entry) => {
+      const comment = entry.description ? `  /** ${sanitizeComment(entry.description)} */\n` : "";
+      return `${comment}  "${entry.asset}": "${entry.asset}",`;
+    })
+    .join("\n");
+
+  const vsebina = `${header}export const GeneratedAssets = {\n${entries}\n} as const;\nexport type GeneratedAssetName = typeof GeneratedAssets[keyof typeof GeneratedAssets];\n`;
+  const outputPath = path.resolve(process.cwd(), "src/uns/uns-assets.ts");
+  await ensureDirectory(path.dirname(outputPath));
+  await writeToFile(outputPath, vsebina);
+}
+
 // Execute the refresh processes
 async function refresh() {
-  await Promise.all([refreshUnsTopics(), refreshUnsTags()]);
+  await Promise.all([refreshUnsTopics(), refreshUnsTags(), refreshUnsAssets()]);
 }
 
 refresh().catch(error => console.error('Error during refresh:', error));
 
 async function ensureDirectory(dirPath: string): Promise<void> {
   await mkdir(dirPath, { recursive: true });
+}
+
+function sanitizeComment(text: string): string {
+  return text.replace(/\*\//g, "*\\/");
 }

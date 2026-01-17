@@ -45,7 +45,7 @@ const process = new UnsProxyProcess("mqtt-broker.svc:1883", { processName: "my-r
 See the individual plugin packages (`@uns-kit/cron`, `@uns-kit/api`, `@uns-kit/temporal`) for examples on extending the process with runtime capabilities.
 For a list of topics published by core (and the API plugin), see `../../docs/uns-topics.md`.
 
-### Refresh UNS topic/tag unions
+### Refresh UNS topic/tag/attribute unions
 
 The package ships a CLI tool that regenerates strongly-typed UNS topics and tags based on the live GraphQL schema:
 
@@ -53,7 +53,7 @@ The package ships a CLI tool that regenerates strongly-typed UNS topics and tags
 pnpm run refresh-uns
 ```
 
-When configured via `uns-kit configure-codegen`, this script lives in your project `package.json` and writes into `src/uns/`.
+When configured via `uns-kit configure-codegen`, this script lives in your project `package.json` and writes into `src/uns/` (topics, tags, and attribute summaries for IntelliSense).
 
 ### Generate UNS dictionary (object types & attributes with descriptions)
 

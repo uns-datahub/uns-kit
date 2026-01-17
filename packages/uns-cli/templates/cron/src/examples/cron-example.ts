@@ -15,6 +15,7 @@ import {
   GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
+import { GeneratedAssets } from "../uns/uns-assets.js";
 
 
 /**
@@ -42,7 +43,7 @@ cronInput.event.on("cronEvent", async (event: UnsEvents["cronEvent"]) => {
     const time = UnsPacket.formatToISO8601(new Date());
     const numberValue: number = 42;
     const topic: UnsTopics = "example/";
-    const asset = "asset";
+    const asset = GeneratedAssets["asset"];
     const assetDescription = "Sample asset";
 
     const dataGroup = "sensor";

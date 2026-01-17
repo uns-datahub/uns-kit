@@ -10,9 +10,9 @@ import {
   GeneratedObjectTypes,
   GeneratedAttributes,
   GeneratedAttributesByType,
-  GeneratedAttributeDescriptions,
   GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
+import { GeneratedAssets } from "../uns/uns-assets.js";
 
 /**
  * Load the configuration from a file.
@@ -21,7 +21,6 @@ import {
  */
 const config = await ConfigFile.loadConfig();
 registerObjectTypeDescriptions(GeneratedObjectTypeDescriptions);
-registerAttributeDescriptions(GeneratedAttributeDescriptions);
 
 /**
  * Connect to input and output brokers
@@ -54,8 +53,8 @@ mqttInput.event.on("input", async (event) => {
       const dataGroup = "sensor";
 
       const topic: UnsTopics = "enterprise/site/area/line/";
-      const asset = "asset";
-      const assetDescription = "Sample asset";
+      const asset = GeneratedAssets["asset"];
+      const assetDescription = ""; // customize manually
 
       mqttOutput.publishMqttMessage({
         topic,

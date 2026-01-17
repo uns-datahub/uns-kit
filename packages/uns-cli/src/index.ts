@@ -603,15 +603,8 @@ async function configureCodegen(targetPath?: string, options: ConfigureTemplateO
     scripts["generate-codegen"] = "graphql-code-generator --config codegen.ts";
     pkgChanged = true;
   }
-  if (!scripts["generate-uns-topics-tags"]) {
-    scripts["generate-uns-topics-tags"] = "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js";
-    pkgChanged = true;
-  }
-  // Preserve legacy name if it already exists; otherwise, prefer the new name.
-  if (!scripts["refresh-uns"] && !scripts["generate-uns-topics-tags"]) {
-    scripts["refresh-uns"] = "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js";
-    pkgChanged = true;
-  }
+  scripts["generate-uns-metadata"] = "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js";
+  pkgChanged = true;
 
   if (pkgChanged) {
     await writeFile(packagePath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
