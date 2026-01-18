@@ -10,7 +10,7 @@ import logger from "../logger.js";
 import { ConfigFile } from "../config-file.js";
 import UnsProxyProcess from "../uns/uns-proxy-process.js";
 import UnsMqttProxy, { MessageMode } from "../uns-mqtt/uns-mqtt-proxy.js";
-import { IApiProxyOptions, IGetEndpointOptions, IMqttMessage, IUnsMessage, IUnsParameters, IUnsProcessParameters } from "../uns/uns-interfaces.js";
+import { IApiProxyOptions, IGetEndpointOptions, IMqttPublishRequest, IUnsMessage, IUnsParameters, IUnsProcessParameters } from "../uns/uns-interfaces.js";
 import type { IMqttConnectProperties, IMqttServerConfig, MqttProtocol } from "../uns-mqtt/mqtt-interfaces.js";
 import { UnsPacket } from "../uns/uns-packet.js";
 import { randomUUID } from "crypto";
@@ -310,25 +310,24 @@ export class UnsGatewayServer {
         throw new Error("PublishRequest.content must be data or table");
       }
 
-      const packet = await UnsPacket.unsPacketFromUnsMessage(message);
-      const mqttMsg: IMqttMessage = {
+      const mqttMsg: IMqttPublishRequest = {
         topic,
-        attribute,
-        description,
-        tags,
-        packet,
-        asset:"meter",
+        asset: "meter",
         objectType: ObjectTypes["energy-resource"],
         objectId: "main",
-        attributeNeedsPersistence,
+        attributes: {
+          attribute,
+          description,
+          tags,
+          attributeNeedsPersistence,
+          ...(message.data ? { data: message.data } : { table: message.table! }),
+        },
       };
 
-      // delta mode if cumulative
-      if (message.data && valueIsCumulative) {
-        this.mqttOutput.publishMqttMessage(mqttMsg, MessageMode.Delta);
-      } else {
-        this.mqttOutput.publishMqttMessage(mqttMsg, MessageMode.Raw);
-      }
+      this.mqttOutput.publishMqttMessage(
+        mqttMsg,
+        message.data && valueIsCumulative ? MessageMode.Delta : MessageMode.Raw,
+      );
 
       callback(null, { ok: true });
     } catch (err: any) {

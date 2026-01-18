@@ -76,8 +76,20 @@ describe('Integration Tests for Message Transformation', () => {
     const message: IUnsMessage = { data: { time, value: 123 } };
     const topic: UnsTopics = "example/";
     const tags: UnsTags[] = [];
-    const packet = await UnsPacket.unsPacketFromUnsMessage(message);
-    outputProxy.publishMqttMessage({ topic, attribute: "data-single", packet, description: "Number value", tags });
+    outputProxy.publishMqttMessage({
+      topic,
+      asset: "",
+      objectType: "equipment",
+      objectId: "",
+      attributes: [
+        {
+          attribute: "data-single",
+          description: "Number value",
+          data: { time, value: 123 },
+          tags,
+        },
+      ],
+    });
 
     await new Promise((r) => setTimeout(r, 200));
 

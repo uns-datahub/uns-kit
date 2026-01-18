@@ -244,77 +244,62 @@ export default class UnsMqttProxy extends UnsProxy {
             logger.error(`${this.instanceNameWithSuffix} - Error publishing mqtt message: mqttMessage must be defined.`);
             return;
         }
-        // Multi-attribute payload
-        if ("attributes" in mqttMessage) {
-            const { topic, asset, assetDescription, objectType, objectTypeDescription, objectId } = mqttMessage;
-            for (const attrEntry of mqttMessage.attributes) {
-                const attrDescription = attrEntry.description ?? getAttributeDescription(attrEntry.attribute);
-                const message = "message" in attrEntry && attrEntry.message
-                    ? attrEntry.message
-                    : "data" in attrEntry && attrEntry.data
-                        ? { data: attrEntry.data, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
-                        : "table" in attrEntry && attrEntry.table
-                            ? { table: attrEntry.table, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
-                            : (() => { throw new Error("Attribute entry must include exactly one of data/table/message"); })();
-                const packet = await UnsPacket.unsPacketFromUnsMessage(message);
-                const singleMsg = {
-                    topic,
-                    asset,
-                    assetDescription,
-                    objectType,
-                    objectTypeDescription,
-                    objectId,
-                    attribute: attrEntry.attribute,
-                    description: attrDescription,
-                    tags: attrEntry.tags,
-                    attributeNeedsPersistence: attrEntry.attributeNeedsPersistence,
-                    packet,
-                };
-                await this.publishMqttMessage(singleMsg, mode);
-            }
-            return;
-        }
-        if (!mqttMessage.packet) {
-            const derivedMessage = mqttMessage.data || mqttMessage.table || mqttMessage.createdAt || mqttMessage.expiresAt
-                ? {
-                    ...(mqttMessage.data ? { data: mqttMessage.data } : {}),
-                    ...(mqttMessage.table ? { table: mqttMessage.table } : {}),
-                    ...(mqttMessage.createdAt ? { createdAt: mqttMessage.createdAt } : {}),
-                    ...(mqttMessage.expiresAt ? { expiresAt: mqttMessage.expiresAt } : {}),
+        const attrs = Array.isArray(mqttMessage.attributes)
+            ? mqttMessage.attributes
+            : [mqttMessage.attributes];
+        const { topic, asset, assetDescription, objectType, objectTypeDescription, objectId } = mqttMessage;
+        for (const attrEntry of attrs) {
+            const attrDescription = attrEntry.description ?? getAttributeDescription(attrEntry.attribute);
+            const message = "message" in attrEntry && attrEntry.message
+                ? attrEntry.message
+                : "data" in attrEntry && attrEntry.data
+                    ? { data: attrEntry.data, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
+                    : "table" in attrEntry && attrEntry.table
+                        ? { table: attrEntry.table, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
+                        : (() => { throw new Error("Attribute entry must include exactly one of data/table/message"); })();
+            const packet = await UnsPacket.unsPacketFromUnsMessage(message);
+            const singleMsg = {
+                topic,
+                asset,
+                assetDescription,
+                objectType,
+                objectTypeDescription,
+                objectId,
+                attribute: attrEntry.attribute,
+                description: attrDescription,
+                tags: attrEntry.tags,
+                attributeNeedsPersistence: attrEntry.attributeNeedsPersistence,
+                packet,
+            };
+            // existing single-attribute flow
+            const baseDescription = singleMsg.description ??
+                getAttributeDescription(singleMsg.attribute) ??
+                singleMsg.attribute;
+            const mqttMessageWithDesc = { ...singleMsg, description: baseDescription };
+            const time = UnsPacket.formatToISO8601(new Date());
+            switch (mode) {
+                case MessageMode.Raw: {
+                    this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
+                    break;
                 }
-                : null;
-            if (!derivedMessage) {
-                logger.error(`${this.instanceNameWithSuffix} - Error publishing mqtt message: mqttMessage.packet must be defined.`);
-                return;
-            }
-            mqttMessage.packet = await UnsPacket.unsPacketFromUnsMessage(derivedMessage);
-        }
-        const baseDescription = mqttMessage.description ??
-            getAttributeDescription(mqttMessage.attribute) ??
-            mqttMessage.attribute;
-        const mqttMessageWithDesc = { ...mqttMessage, description: baseDescription };
-        const time = UnsPacket.formatToISO8601(new Date());
-        switch (mode) {
-            case MessageMode.Raw: {
-                this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
-                break;
-            }
-            case MessageMode.Delta: {
-                const deltaMessage = { ...mqttMessageWithDesc };
-                deltaMessage.attribute = `${mqttMessageWithDesc.attribute}-delta`;
-                deltaMessage.description = `${baseDescription ?? ""} (delta)`;
-                this.processAndEnqueueMessage(deltaMessage, time, true);
-                break;
-            }
-            case MessageMode.Both: {
-                this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
-                const deltaMessageBoth = { ...mqttMessageWithDesc };
-                deltaMessageBoth.attribute = `${mqttMessageWithDesc.attribute}-delta`;
-                deltaMessageBoth.description = `${baseDescription ?? ""} (delta)`;
-                this.processAndEnqueueMessage(deltaMessageBoth, time, true);
-                break;
+                case MessageMode.Delta: {
+                    const deltaMessage = { ...mqttMessageWithDesc };
+                    deltaMessage.attribute = `${mqttMessageWithDesc.attribute}-delta`;
+                    deltaMessage.description = `${baseDescription ?? ""} (delta)`;
+                    this.processAndEnqueueMessage(deltaMessage, time, true);
+                    break;
+                }
+                case MessageMode.Both: {
+                    this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
+                    const deltaMessageBoth = { ...mqttMessageWithDesc };
+                    deltaMessageBoth.attribute = `${mqttMessageWithDesc.attribute}-delta`;
+                    deltaMessageBoth.description = `${baseDescription ?? ""} (delta)`;
+                    this.processAndEnqueueMessage(deltaMessageBoth, time, true);
+                    break;
+                }
             }
         }
+        return;
     }
     /**
      * Publishes a message to a specified topic.

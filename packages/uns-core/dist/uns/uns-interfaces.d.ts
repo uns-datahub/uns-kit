@@ -128,23 +128,6 @@ export interface IUnsTable {
     dataGroup?: string;
     columns: IUnsTableColumn[];
 }
-export interface IMqttMessage {
-    topic: UnsTopics;
-    attribute: UnsAttribute;
-    asset: UnsAsset;
-    assetDescription?: string;
-    objectType: UnsObjectType;
-    objectTypeDescription?: string;
-    objectId: UnsObjectId;
-    description?: string;
-    tags?: UnsTags[];
-    packet?: IUnsPacket;
-    data?: IUnsData;
-    table?: IUnsTable;
-    createdAt?: ISO8601;
-    expiresAt?: ISO8601;
-    attributeNeedsPersistence?: boolean | null;
-}
 export interface IMqttAttributeMessage {
     attribute: UnsAttribute;
     description?: string;
@@ -171,14 +154,14 @@ type AttributePayload = {
     expiresAt?: ISO8601;
 };
 export type IMqttAttributeEntry = IMqttAttributeMessage & AttributePayload;
-export interface IMqttMultiMessage {
+export interface IMqttPublishRequest {
     topic: UnsTopics;
     asset: UnsAsset;
     assetDescription?: string;
     objectType: UnsObjectType;
     objectTypeDescription?: string;
     objectId: UnsObjectId;
-    attributes: IMqttAttributeEntry[];
+    attributes: IMqttAttributeEntry | IMqttAttributeEntry[];
 }
 export interface IUnsPacket {
     message: IUnsExtendedMessage;

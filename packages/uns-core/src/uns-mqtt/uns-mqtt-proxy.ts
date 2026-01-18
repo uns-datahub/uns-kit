@@ -5,7 +5,7 @@ import { Worker } from "worker_threads";
 import { fileURLToPath } from "url";
 import { basePath } from "../base-path.js";
 import logger from "../logger.js";
-import { IMqttMessage, IMqttMultiMessage, IUnsMessage, IUnsPacket, IUnsParameters, UnsEvents, ValueType } from "../uns/uns-interfaces.js";
+import { IMqttPublishRequest, IUnsMessage, IUnsPacket, IUnsParameters, UnsAttribute, UnsEvents, ValueType } from "../uns/uns-interfaces.js";
 import { getObjectTypeDescription, type UnsObjectId, type UnsObjectType } from "../uns/uns-object.js";
 import type { UnsAsset } from "../uns/uns-asset.js";
 import { MeasurementUnit } from "../uns/uns-measurements.js";
@@ -15,6 +15,8 @@ import { MqttTopicBuilder } from "./mqtt-topic-builder.js";
 import UnsProxy from "../uns/uns-proxy.js";
 import { UnsAttributeType } from "../graphql/schema.js";
 import { getAttributeDescription } from "../uns/uns-attributes.js";
+import { UnsTags } from "../uns/uns-tags.js";
+import { UnsTopics } from "../uns/uns-topics.js";
 
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
@@ -28,6 +30,20 @@ export enum MessageMode {
   Delta = 'delta', // Send only the delta message
   Both = 'both'    // Send both the original and delta messages
 }
+
+type InternalMqttMessage = {
+  topic: UnsTopics;
+  attribute: UnsAttribute;
+  asset: UnsAsset;
+  assetDescription?: string;
+  objectType: UnsObjectType;
+  objectTypeDescription?: string;
+  objectId: UnsObjectId;
+  description?: string;
+  tags?: UnsTags[];
+  attributeNeedsPersistence?: boolean | null;
+  packet: IUnsPacket;
+};
 
 export default class UnsMqttProxy extends UnsProxy {
   private lastValues: Map<string, { value: ValueType; uom: string; timestamp: Date }> = new Map();
@@ -93,7 +109,7 @@ export default class UnsMqttProxy extends UnsProxy {
    * Resolve object identity from explicit fields or the tail of the topic path.
    * Falls back to parsing when not provided for backward compatibility.
    */
-  private resolveObjectIdentity(msg: IMqttMessage): { objectType?: UnsObjectType; objectId?: UnsObjectId; asset?: UnsAsset } {
+  private resolveObjectIdentity(msg: InternalMqttMessage): { objectType?: UnsObjectType; objectId?: UnsObjectId; asset?: UnsAsset } {
     const providedType = msg.objectType;
     const providedId = msg.objectId;
     const providedAsset = msg.asset;
@@ -279,89 +295,72 @@ export default class UnsMqttProxy extends UnsProxy {
    * @param mqttMessage - The MQTT message object.
    * @param mode - The message mode (Raw, Delta, or Both).
    */
-  public async publishMqttMessage(mqttMessage: IMqttMessage | IMqttMultiMessage | null, mode: MessageMode = MessageMode.Raw) {
+  public async publishMqttMessage(mqttMessage: IMqttPublishRequest | null, mode: MessageMode = MessageMode.Raw) {
     if (!mqttMessage) {
       logger.error(`${this.instanceNameWithSuffix} - Error publishing mqtt message: mqttMessage must be defined.`);
       return;
     }
 
-    // Multi-attribute payload
-    if ("attributes" in mqttMessage) {
-      const { topic, asset, assetDescription, objectType, objectTypeDescription, objectId } = mqttMessage;
-      for (const attrEntry of mqttMessage.attributes) {
-        const attrDescription = attrEntry.description ?? getAttributeDescription(attrEntry.attribute);
-        const message: IUnsMessage =
-          "message" in attrEntry && attrEntry.message
-            ? attrEntry.message
-            : "data" in attrEntry && attrEntry.data
-              ? { data: attrEntry.data, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
-              : "table" in attrEntry && attrEntry.table
-                ? { table: attrEntry.table, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
-                : (() => { throw new Error("Attribute entry must include exactly one of data/table/message"); })();
-        const packet = await UnsPacket.unsPacketFromUnsMessage(message);
-        const singleMsg: IMqttMessage = {
-          topic,
-          asset,
-          assetDescription,
-          objectType,
-          objectTypeDescription,
-          objectId,
-          attribute: attrEntry.attribute,
-          description: attrDescription,
-          tags: attrEntry.tags,
-          attributeNeedsPersistence: attrEntry.attributeNeedsPersistence,
-          packet,
-        };
-        await this.publishMqttMessage(singleMsg, mode);
+    const attrs = Array.isArray(mqttMessage.attributes)
+      ? mqttMessage.attributes
+      : [mqttMessage.attributes];
+    const { topic, asset, assetDescription, objectType, objectTypeDescription, objectId } = mqttMessage;
+    for (const attrEntry of attrs) {
+      const attrDescription = attrEntry.description ?? getAttributeDescription(attrEntry.attribute);
+      const message: IUnsMessage =
+        "message" in attrEntry && attrEntry.message
+          ? attrEntry.message
+          : "data" in attrEntry && attrEntry.data
+            ? { data: attrEntry.data, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
+            : "table" in attrEntry && attrEntry.table
+              ? { table: attrEntry.table, createdAt: attrEntry.createdAt, expiresAt: attrEntry.expiresAt }
+              : (() => { throw new Error("Attribute entry must include exactly one of data/table/message"); })();
+      const packet = await UnsPacket.unsPacketFromUnsMessage(message);
+      const singleMsg: InternalMqttMessage = {
+        topic,
+        asset,
+        assetDescription,
+        objectType,
+        objectTypeDescription,
+        objectId,
+        attribute: attrEntry.attribute,
+        description: attrDescription,
+        tags: attrEntry.tags,
+        attributeNeedsPersistence: attrEntry.attributeNeedsPersistence,
+        packet,
+      };
+
+      // existing single-attribute flow
+      const baseDescription =
+        singleMsg.description ??
+        getAttributeDescription(singleMsg.attribute) ??
+        singleMsg.attribute;
+      const mqttMessageWithDesc = { ...singleMsg, description: baseDescription };
+
+      const time = UnsPacket.formatToISO8601(new Date());
+      switch (mode) {
+        case MessageMode.Raw: {
+          this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
+          break;
+        }
+        case MessageMode.Delta: {
+          const deltaMessage = { ...mqttMessageWithDesc };
+          deltaMessage.attribute = `${mqttMessageWithDesc.attribute}-delta`;
+          deltaMessage.description = `${baseDescription ?? ""} (delta)`;
+          this.processAndEnqueueMessage(deltaMessage, time, true);
+          break;
+        }
+        case MessageMode.Both: {
+          this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
+          const deltaMessageBoth = { ...mqttMessageWithDesc };
+          deltaMessageBoth.attribute = `${mqttMessageWithDesc.attribute}-delta`;
+          deltaMessageBoth.description = `${baseDescription ?? ""} (delta)`;
+          this.processAndEnqueueMessage(deltaMessageBoth, time, true);
+          break;
+        }
       }
-      return;
     }
-
-    if (!mqttMessage.packet) {
-      const derivedMessage: IUnsMessage | null =
-        mqttMessage.data || mqttMessage.table || mqttMessage.createdAt || mqttMessage.expiresAt
-          ? {
-              ...(mqttMessage.data ? { data: mqttMessage.data } : {}),
-              ...(mqttMessage.table ? { table: mqttMessage.table } : {}),
-              ...(mqttMessage.createdAt ? { createdAt: mqttMessage.createdAt } : {}),
-              ...(mqttMessage.expiresAt ? { expiresAt: mqttMessage.expiresAt } : {}),
-            }
-          : null;
-      if (!derivedMessage) {
-        logger.error(`${this.instanceNameWithSuffix} - Error publishing mqtt message: mqttMessage.packet must be defined.`);
-        return;
-      }
-      mqttMessage.packet = await UnsPacket.unsPacketFromUnsMessage(derivedMessage);
-    }
-
-    const baseDescription =
-      mqttMessage.description ??
-      getAttributeDescription(mqttMessage.attribute) ??
-      mqttMessage.attribute;
-    const mqttMessageWithDesc: IMqttMessage = { ...mqttMessage, description: baseDescription };
-
-    const time = UnsPacket.formatToISO8601(new Date());
-    switch (mode) {
-      case MessageMode.Raw: {
-        this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
-        break;
-      }
-      case MessageMode.Delta: {
-        const deltaMessage = { ...mqttMessageWithDesc };
-        deltaMessage.attribute = `${mqttMessageWithDesc.attribute}-delta`;
-        deltaMessage.description = `${baseDescription ?? ""} (delta)`;
-        this.processAndEnqueueMessage(deltaMessage, time, true);
-        break;
-      }
-      case MessageMode.Both: {
-        this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
-        const deltaMessageBoth = { ...mqttMessageWithDesc };
-        deltaMessageBoth.attribute = `${mqttMessageWithDesc.attribute}-delta`;
-        deltaMessageBoth.description = `${baseDescription ?? ""} (delta)`;
-        this.processAndEnqueueMessage(deltaMessageBoth, time, true);
-        break;
-      }
-    }  
+    return;
   }
 
   /**
@@ -411,7 +410,7 @@ export default class UnsMqttProxy extends UnsProxy {
    * @param time - The timestamp.
    * @param valueIsCumulative - Whether the value is cumulative.
    */
-  private async processAndEnqueueMessage(msg: IMqttMessage, time: string, valueIsCumulative: boolean = false): Promise<void> {
+  private async processAndEnqueueMessage(msg: InternalMqttMessage, time: string, valueIsCumulative: boolean = false): Promise<void> {
     try {
       const attributeType =
         msg.packet.message.data ? UnsAttributeType.Data :

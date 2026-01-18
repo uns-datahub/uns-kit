@@ -1,4 +1,4 @@
-import { IMqttMessage, IMqttMultiMessage, IUnsPacket, IUnsParameters, UnsEvents } from "../uns/uns-interfaces.js";
+import { IMqttPublishRequest, IUnsPacket, IUnsParameters, UnsEvents } from "../uns/uns-interfaces.js";
 import UnsProxy from "../uns/uns-proxy.js";
 export declare enum MessageMode {
     Raw = "raw",// Send only the original message
@@ -72,7 +72,7 @@ export default class UnsMqttProxy extends UnsProxy {
      * @param mqttMessage - The MQTT message object.
      * @param mode - The message mode (Raw, Delta, or Both).
      */
-    publishMqttMessage(mqttMessage: IMqttMessage | IMqttMultiMessage | null, mode?: MessageMode): Promise<void>;
+    publishMqttMessage(mqttMessage: IMqttPublishRequest | null, mode?: MessageMode): Promise<void>;
     /**
      * Publishes a message to a specified topic.
      *
