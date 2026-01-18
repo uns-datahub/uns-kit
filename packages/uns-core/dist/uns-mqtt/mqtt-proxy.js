@@ -236,7 +236,12 @@ export default class MqttProxy {
         return this.mqttClient.subscribeAsync(topic, options);
     }
     async unsubscribeAsync(topic) {
-        return this.mqttClient.unsubscribeAsync(topic);
+        const topics = Array.isArray(topic) ? topic.filter((t) => typeof t === "string" && t.length > 0) : [topic].filter((t) => typeof t === "string" && t.length > 0);
+        if (topics.length === 0) {
+            logger.warn(`${this.instanceName} - unsubscribeAsync called with empty topic list; skipping.`);
+            return Promise.resolve(undefined);
+        }
+        return this.mqttClient.unsubscribeAsync(topics);
     }
     stop() {
         logger.info(`${this.instanceName} - Disconnecting from MQTT broker...`);
