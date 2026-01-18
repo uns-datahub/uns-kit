@@ -116,6 +116,8 @@ export interface IUnsData {
     dataGroup?: string;
     uom?: MeasurementUnit;
     foreignEventKey?: string;
+    intervalStart?: ISO8601;
+    intervalEnd?: ISO8601;
 }
 export interface IUnsTableColumn {
     name: string;
@@ -127,6 +129,8 @@ export interface IUnsTable {
     time: ISO8601;
     dataGroup?: string;
     columns: IUnsTableColumn[];
+    intervalStart?: ISO8601;
+    intervalEnd?: ISO8601;
 }
 export interface IMqttAttributeMessage {
     attribute: UnsAttribute;

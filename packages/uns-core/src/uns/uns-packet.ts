@@ -94,6 +94,12 @@ export class UnsPacket {
         throw new Error(`Time is not defined in data object`);
       if (!isIOS8601Type(data.time))
         throw new Error(`Time is not ISO8601`);
+      if (data.intervalStart && !isIOS8601Type(data.intervalStart)) {
+        throw new Error(`intervalStart is not ISO8601`);
+      }
+      if (data.intervalEnd && !isIOS8601Type(data.intervalEnd)) {
+        throw new Error(`intervalEnd is not ISO8601`);
+      }
     }
 
     // Check table object
@@ -109,6 +115,12 @@ export class UnsPacket {
       }
       if (!isIOS8601Type(table.time)) {
         throw new Error(`Time is not ISO8601`);
+      }
+      if (table.intervalStart && !isIOS8601Type(table.intervalStart)) {
+        throw new Error(`intervalStart is not ISO8601`);
+      }
+      if (table.intervalEnd && !isIOS8601Type(table.intervalEnd)) {
+        throw new Error(`intervalEnd is not ISO8601`);
       }
 
       if (!Array.isArray(table.columns) || table.columns.length === 0) {

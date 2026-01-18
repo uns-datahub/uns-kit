@@ -49,6 +49,8 @@ mqttInput.event.on("input", async (event) => {
       const eventDate = new Date(Number.parseInt(timestampRaw, 10));
       const sensorValue = Number.parseFloat(sensorRaw);
       const time: ISO8601 = eventDate.toISOString() as ISO8601;
+      const intervalStart: ISO8601 = new Date(eventDate.getTime() - 1000).toISOString() as ISO8601;
+      const intervalEnd: ISO8601 = eventDate.toISOString() as ISO8601;
 
       const dataGroup = "sensor";
 
@@ -65,11 +67,11 @@ mqttInput.event.on("input", async (event) => {
         attributes: [
           {
             attribute: GeneratedAttributesByType["energy-resource"]["current"],
-            data: { dataGroup, time, value: numberValue, uom: GeneratedPhysicalMeasurements.Ampere },
+            data: { dataGroup, time, value: numberValue, uom: GeneratedPhysicalMeasurements.Ampere, intervalStart, intervalEnd },
           },
           {
             attribute: GeneratedAttributes["voltage"],
-            data: { dataGroup, time, value: sensorValue, uom: GeneratedPhysicalMeasurements.Volt },
+            data: { dataGroup, time, value: sensorValue, uom: GeneratedPhysicalMeasurements.Volt, intervalStart, intervalEnd },
           },
         ],
       });

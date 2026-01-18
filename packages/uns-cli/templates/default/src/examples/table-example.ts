@@ -56,6 +56,8 @@ mqttInput.event.on("input", async (event) => {
       const sensorValue = Number.parseFloat(sensorRaw);
 
       const time: ISO8601 = eventDate.toISOString() as ISO8601;
+      const intervalStart: ISO8601 = new Date(eventDate.getTime() - 1000).toISOString() as ISO8601;
+      const intervalEnd: ISO8601 = eventDate.toISOString() as ISO8601;
       const dataGroup = "sensor_table";
       const columns: IUnsTableColumn[] = [
         { name: "current", type: "double", value: currentValue, uom: GeneratedPhysicalMeasurements.Ampere },
@@ -77,6 +79,8 @@ mqttInput.event.on("input", async (event) => {
             table: {
               dataGroup,
               time,
+              intervalStart,
+              intervalEnd,
               columns,
             },
           },
