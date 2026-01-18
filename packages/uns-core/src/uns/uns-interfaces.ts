@@ -158,7 +158,11 @@ export interface IMqttMessage {
   objectId: UnsObjectId;
   description?: string;
   tags?: UnsTags[];
-  packet: IUnsPacket;
+  packet?: IUnsPacket;
+  data?: IUnsData;
+  table?: IUnsTable;
+  createdAt?: ISO8601;
+  expiresAt?: ISO8601;
   attributeNeedsPersistence?: boolean | null;
 }
 

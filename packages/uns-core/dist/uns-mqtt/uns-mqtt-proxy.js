@@ -275,8 +275,19 @@ export default class UnsMqttProxy extends UnsProxy {
             return;
         }
         if (!mqttMessage.packet) {
-            logger.error(`${this.instanceNameWithSuffix} - Error publishing mqtt message: mqttMessage.packet must be defined.`);
-            return;
+            const derivedMessage = mqttMessage.data || mqttMessage.table || mqttMessage.createdAt || mqttMessage.expiresAt
+                ? {
+                    ...(mqttMessage.data ? { data: mqttMessage.data } : {}),
+                    ...(mqttMessage.table ? { table: mqttMessage.table } : {}),
+                    ...(mqttMessage.createdAt ? { createdAt: mqttMessage.createdAt } : {}),
+                    ...(mqttMessage.expiresAt ? { expiresAt: mqttMessage.expiresAt } : {}),
+                }
+                : null;
+            if (!derivedMessage) {
+                logger.error(`${this.instanceNameWithSuffix} - Error publishing mqtt message: mqttMessage.packet must be defined.`);
+                return;
+            }
+            mqttMessage.packet = await UnsPacket.unsPacketFromUnsMessage(derivedMessage);
         }
         const baseDescription = mqttMessage.description ??
             getAttributeDescription(mqttMessage.attribute) ??

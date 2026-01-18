@@ -2,9 +2,8 @@
  * Change this file according to your specifications and rename it to index.ts
  */
 
-import { UnsProxyProcess, ConfigFile, logger, type IUnsMessage } from "@uns-kit/core";
+import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
 import { registerAttributeDescriptions, registerObjectTypeDescriptions } from "@uns-kit/core/uns/uns-dictionary-registry.js";
-import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import {
   GeneratedObjectTypes,
@@ -14,6 +13,7 @@ import {
 } from "../uns/uns-dictionary.generated.js";
 import { GeneratedAssets, resolveGeneratedAsset } from "../uns/uns-assets.js";
 import type { IUnsTableColumn } from "@uns-kit/core/uns/uns-interfaces.js";
+import type { ISO8601 } from "@uns-kit/core/uns/uns-interfaces.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 
 /**
@@ -55,33 +55,32 @@ mqttInput.event.on("input", async (event) => {
       const eventDate = new Date(Number.parseInt(timestampRaw, 10));
       const sensorValue = Number.parseFloat(sensorRaw);
 
-      const time = UnsPacket.formatToISO8601(eventDate);
+      const time: ISO8601 = eventDate.toISOString() as ISO8601;
       const dataGroup = "sensor_table";
       const columns: IUnsTableColumn[] = [
         { name: "current", type: "double", value: currentValue, uom: GeneratedPhysicalMeasurements.Ampere },
         { name: "voltage", type: "double", value: sensorValue },
       ];
-      const message: IUnsMessage = {
-        table: {
-          dataGroup,
-          time,
-          columns,
-        },
-      };
       const topic: UnsTopics = "enterprise/site/area/line/";
       const asset = resolveGeneratedAsset("asset");
       const assetDescription = ""; // customize manually
-      const packet = await UnsPacket.unsPacketFromUnsMessage(message);
       mqttOutput.publishMqttMessage({
         topic,
         asset,
         assetDescription,
         objectType: GeneratedObjectTypes["resource-status"],
         objectId: "main",
-        attribute: GeneratedAttributes["status"] ?? "status",
-        description: GeneratedAttributeDescriptions["status"] ?? "Table",
-        tags: [],
-        packet,
+        attributes: [
+          {
+            attribute: GeneratedAttributes["status"] ?? "status",
+            description: GeneratedAttributeDescriptions["status"] ?? "Table",
+            table: {
+              dataGroup,
+              time,
+              columns,
+            },
+          },
+        ],
       });
     }
   } catch (error) {

@@ -4,7 +4,6 @@
 import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
 import { registerAttributeDescriptions, registerObjectTypeDescriptions } from "@uns-kit/core/uns/uns-dictionary-registry.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
-import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import {
   GeneratedObjectTypes,
@@ -13,6 +12,7 @@ import {
   GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
 import { GeneratedAssets, resolveGeneratedAsset } from "../uns/uns-assets.js";
+import type { ISO8601 } from "@uns-kit/core/uns/uns-interfaces.js";
 
 /**
  * Load the configuration from a file.
@@ -48,7 +48,7 @@ mqttInput.event.on("input", async (event) => {
       const numberValue = Number.parseFloat(countRaw);
       const eventDate = new Date(Number.parseInt(timestampRaw, 10));
       const sensorValue = Number.parseFloat(sensorRaw);
-      const time = UnsPacket.formatToISO8601(eventDate);
+      const time: ISO8601 = eventDate.toISOString() as ISO8601;
 
       const dataGroup = "sensor";
 
