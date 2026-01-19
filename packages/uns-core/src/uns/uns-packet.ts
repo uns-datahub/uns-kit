@@ -14,7 +14,7 @@ import {
 } from "./uns-interfaces.js";
 
 // Version of the packet library
-const unsPacketVersion = "1.2.0";
+const unsPacketVersion = "1.3.0";
 
 export class UnsPacket {
   /**
@@ -100,6 +100,18 @@ export class UnsPacket {
       if (data.intervalEnd && !isIOS8601Type(data.intervalEnd)) {
         throw new Error(`intervalEnd is not ISO8601`);
       }
+      if (data.lastSeen && !isIOS8601Type(data.lastSeen)) {
+        throw new Error(`lastSeen is not ISO8601`);
+      }
+      if (data.deletedAt && !isIOS8601Type(data.deletedAt)) {
+        throw new Error(`deletedAt is not ISO8601`);
+      }
+      if (data.eventId && typeof data.eventId !== "string") {
+        throw new Error(`eventId must be a string`);
+      }
+      if (data.deleted !== undefined && typeof data.deleted !== "boolean") {
+        throw new Error(`deleted must be a boolean`);
+      }
     }
 
     // Check table object
@@ -121,6 +133,18 @@ export class UnsPacket {
       }
       if (table.intervalEnd && !isIOS8601Type(table.intervalEnd)) {
         throw new Error(`intervalEnd is not ISO8601`);
+      }
+      if (table.lastSeen && !isIOS8601Type(table.lastSeen)) {
+        throw new Error(`lastSeen is not ISO8601`);
+      }
+      if (table.deletedAt && !isIOS8601Type(table.deletedAt)) {
+        throw new Error(`deletedAt is not ISO8601`);
+      }
+      if (table.eventId && typeof table.eventId !== "string") {
+        throw new Error(`eventId must be a string`);
+      }
+      if (table.deleted !== undefined && typeof table.deleted !== "boolean") {
+        throw new Error(`deleted must be a boolean`);
       }
 
       if (!Array.isArray(table.columns) || table.columns.length === 0) {

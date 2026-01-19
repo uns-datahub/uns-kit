@@ -135,6 +135,10 @@ export interface IUnsData {
   foreignEventKey?: string;
   intervalStart?: ISO8601;
   intervalEnd?: ISO8601;
+  eventId?: string;
+  deleted?: boolean;
+  deletedAt?: ISO8601;
+  lastSeen?: ISO8601;
 }
 
 export interface IUnsTableColumn {
@@ -150,6 +154,10 @@ export interface IUnsTable {
   columns: IUnsTableColumn[];
   intervalStart?: ISO8601;
   intervalEnd?: ISO8601;
+  eventId?: string;
+  deleted?: boolean;
+  deletedAt?: ISO8601;
+  lastSeen?: ISO8601;
 }
 
 export interface IMqttAttributeMessage {
