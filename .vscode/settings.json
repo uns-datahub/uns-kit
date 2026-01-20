@@ -14,7 +14,8 @@
     "update-uns-library",
     "pr",
     "init-python(:.*)?",
-    "typecheck:watch"
+    "typecheck:watch",
+    "core","api","cron","temporal","cli"
   ],
   "python.defaultInterpreterPath": "python/.venv/bin/python",
   "json.schemas": [
