@@ -50,6 +50,7 @@ async for msg in client.resilient_messages("uns-infra/#"):
 ### Examples
 - `examples/publish.py` — publish 5 data packets.
 - `examples/subscribe.py` — resilient subscription with auto-reconnect.
+- `examples/load_test.py` — simple publish burst (configurable via env).
 
 ### Create a new project
 ```bash
@@ -58,6 +59,13 @@ cd my-uns-py-app
 poetry install
 poetry run python src/main.py
 ```
+
+### Create a sandbox app in this repo
+From the monorepo root:
+```bash
+pnpm run py:sandbox
+```
+This creates `sandbox-app-py/` using the default Python template.
 
 ## Notes
 - Default QoS is 0; will message is retained on `<statusTopic>alive`.

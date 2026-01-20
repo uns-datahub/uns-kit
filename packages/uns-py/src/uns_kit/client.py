@@ -5,7 +5,7 @@ import contextlib
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, List, Optional
 
-from asyncio_mqtt import Client, MqttError, Message
+from asyncio_mqtt import Client, MqttError, Message, Will
 
 from .packet import UnsPacket
 from .topic_builder import TopicBuilder
@@ -45,23 +45,34 @@ class UnsMqttClient:
         self._connect_lock = asyncio.Lock()
 
     async def _connect_once(self) -> None:
-        will = {
-            "topic": f"{self.topic_builder.process_status_topic}alive",
-            "payload": b"",
-            "qos": 0,
-            "retain": True,
-        }
-        client = Client(
-            hostname=self.host,
-            port=self.port,
-            username=self.username,
-            password=self.password,
-            client_id=self.client_id,
-            keepalive=self.keepalive,
-            clean_session=self.clean_session,
-            tls=self.tls,
-            will=will,
+        will = Will(
+            topic=f"{self.topic_builder.process_status_topic}alive",
+            payload=b"",
+            qos=0,
+            retain=True,
         )
+        kwargs = {
+            "hostname": self.host,
+            "port": self.port,
+            "username": self.username,
+            "password": self.password,
+            "client_id": self.client_id,
+            "keepalive": self.keepalive,
+            "clean_session": self.clean_session,
+            "will": will,
+        }
+        if self.tls:
+            try:
+                import ssl
+                kwargs["tls_context"] = ssl.create_default_context()
+            except Exception:
+                # Fall back to plain connection if TLS context cannot be created
+                pass
+        try:
+            client = Client(**kwargs)
+        except TypeError:
+            kwargs.pop("tls_context", None)
+            client = Client(**kwargs)
         await client.connect()
         self._client = client
         self._connected.set()

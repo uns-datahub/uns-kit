@@ -26,6 +26,18 @@ class UnsConfig:
     @staticmethod
     def load(path: Path) -> "UnsConfig":
         data = json.loads(path.read_text())
+        mapped = {
+            "client_id": data.pop("clientId", None),
+            "package_name": data.pop("packageName", None),
+            "package_version": data.pop("packageVersion", None),
+            "process_name": data.pop("processName", None),
+            "mqtt_sub_to_topics": data.pop("mqttSubToTopics", None),
+        }
+        # Prefer explicit snake_case values when provided.
+        for key, value in list(mapped.items()):
+            if value is None:
+                mapped.pop(key, None)
+        data.update(mapped)
         return UnsConfig(**data)
 
     def topic_builder(self) -> TopicBuilder:
