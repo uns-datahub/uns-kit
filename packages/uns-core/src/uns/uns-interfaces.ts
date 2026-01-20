@@ -133,12 +133,14 @@ export interface IUnsData {
   dataGroup?: string;
   uom?: MeasurementUnit;
   foreignEventKey?: string;
-  intervalStart?: ISO8601;
-  intervalEnd?: ISO8601;
+  intervalStart?: ISO8601 | number;
+  intervalEnd?: ISO8601 | number;
+  windowStart?: ISO8601 | number;
+  windowEnd?: ISO8601 | number;
   eventId?: string;
   deleted?: boolean;
-  deletedAt?: ISO8601;
-  lastSeen?: ISO8601;
+  deletedAt?: ISO8601 | number;
+  lastSeen?: ISO8601 | number;
 }
 
 export interface IUnsTableColumn {
@@ -152,12 +154,14 @@ export interface IUnsTable {
   time: ISO8601;
   dataGroup?: string;
   columns: IUnsTableColumn[];
-  intervalStart?: ISO8601;
-  intervalEnd?: ISO8601;
+  intervalStart?: ISO8601 | number;
+  intervalEnd?: ISO8601 | number;
+  windowStart?: ISO8601 | number;
+  windowEnd?: ISO8601 | number;
   eventId?: string;
   deleted?: boolean;
-  deletedAt?: ISO8601;
-  lastSeen?: ISO8601;
+  deletedAt?: ISO8601 | number;
+  lastSeen?: ISO8601 | number;
 }
 
 export interface IMqttAttributeMessage {

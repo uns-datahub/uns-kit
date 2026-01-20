@@ -65,6 +65,13 @@ export class UnsPacket {
      * @returns boolean | null
      */
     static validateMessageComponents(data, table) {
+        const isIsoOrEpoch = (value) => {
+            if (value === null || value === undefined)
+                return true;
+            if (typeof value === "number")
+                return Number.isFinite(value);
+            return isIOS8601Type(value);
+        };
         if (data) {
             if (data.dataGroup) {
                 if (!/^[A-Za-z0-9_]+$/.test(data.dataGroup)) {
@@ -75,17 +82,23 @@ export class UnsPacket {
                 throw new Error(`Time is not defined in data object`);
             if (!isIOS8601Type(data.time))
                 throw new Error(`Time is not ISO8601`);
-            if (data.intervalStart && !isIOS8601Type(data.intervalStart)) {
-                throw new Error(`intervalStart is not ISO8601`);
+            if (data.intervalStart !== undefined && !isIsoOrEpoch(data.intervalStart)) {
+                throw new Error(`intervalStart is not ISO8601 or epoch ms`);
             }
-            if (data.intervalEnd && !isIOS8601Type(data.intervalEnd)) {
-                throw new Error(`intervalEnd is not ISO8601`);
+            if (data.intervalEnd !== undefined && !isIsoOrEpoch(data.intervalEnd)) {
+                throw new Error(`intervalEnd is not ISO8601 or epoch ms`);
             }
-            if (data.lastSeen && !isIOS8601Type(data.lastSeen)) {
-                throw new Error(`lastSeen is not ISO8601`);
+            if (data.windowStart !== undefined && !isIsoOrEpoch(data.windowStart)) {
+                throw new Error(`windowStart is not ISO8601 or epoch ms`);
             }
-            if (data.deletedAt && !isIOS8601Type(data.deletedAt)) {
-                throw new Error(`deletedAt is not ISO8601`);
+            if (data.windowEnd !== undefined && !isIsoOrEpoch(data.windowEnd)) {
+                throw new Error(`windowEnd is not ISO8601 or epoch ms`);
+            }
+            if (data.lastSeen !== undefined && !isIsoOrEpoch(data.lastSeen)) {
+                throw new Error(`lastSeen is not ISO8601 or epoch ms`);
+            }
+            if (data.deletedAt !== undefined && !isIsoOrEpoch(data.deletedAt)) {
+                throw new Error(`deletedAt is not ISO8601 or epoch ms`);
             }
             if (data.eventId && typeof data.eventId !== "string") {
                 throw new Error(`eventId must be a string`);
@@ -107,17 +120,23 @@ export class UnsPacket {
             if (!isIOS8601Type(table.time)) {
                 throw new Error(`Time is not ISO8601`);
             }
-            if (table.intervalStart && !isIOS8601Type(table.intervalStart)) {
-                throw new Error(`intervalStart is not ISO8601`);
+            if (table.intervalStart !== undefined && !isIsoOrEpoch(table.intervalStart)) {
+                throw new Error(`intervalStart is not ISO8601 or epoch ms`);
             }
-            if (table.intervalEnd && !isIOS8601Type(table.intervalEnd)) {
-                throw new Error(`intervalEnd is not ISO8601`);
+            if (table.intervalEnd !== undefined && !isIsoOrEpoch(table.intervalEnd)) {
+                throw new Error(`intervalEnd is not ISO8601 or epoch ms`);
             }
-            if (table.lastSeen && !isIOS8601Type(table.lastSeen)) {
-                throw new Error(`lastSeen is not ISO8601`);
+            if (table.windowStart !== undefined && !isIsoOrEpoch(table.windowStart)) {
+                throw new Error(`windowStart is not ISO8601 or epoch ms`);
             }
-            if (table.deletedAt && !isIOS8601Type(table.deletedAt)) {
-                throw new Error(`deletedAt is not ISO8601`);
+            if (table.windowEnd !== undefined && !isIsoOrEpoch(table.windowEnd)) {
+                throw new Error(`windowEnd is not ISO8601 or epoch ms`);
+            }
+            if (table.lastSeen !== undefined && !isIsoOrEpoch(table.lastSeen)) {
+                throw new Error(`lastSeen is not ISO8601 or epoch ms`);
+            }
+            if (table.deletedAt !== undefined && !isIsoOrEpoch(table.deletedAt)) {
+                throw new Error(`deletedAt is not ISO8601 or epoch ms`);
             }
             if (table.eventId && typeof table.eventId !== "string") {
                 throw new Error(`eventId must be a string`);
