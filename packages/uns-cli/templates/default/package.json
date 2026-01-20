@@ -22,6 +22,10 @@
     "build": "pnpm run clean && tsc -p tsconfig.json",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "generate-config-schema": "node ./node_modules/@uns-kit/core/dist/tools/generate-config-schema.js",
     "generate-codegen": "graphql-code-generator --require dotenv/config --config codegen.ts",
     "generate-uns-metadata": "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js",
@@ -33,6 +37,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.19.1",
+    "eslint": "^9.39.2",
+    "prettier": "^3.8.0",
     "rimraf": "^6.1.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
