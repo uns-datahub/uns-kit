@@ -17,7 +17,7 @@ const mqttConnectPropertiesSchema = z.object({
     requestProblemInformation: z.boolean().optional(),
     userProperties: z.record(z.string()).optional(),
 }).strict();
-const mqttChannelSchema = z.object({
+export const mqttChannelSchema = z.object({
     host: hostValueSchema.optional(),
     hosts: z.array(hostValueSchema).optional(),
     servers: z.array(mqttServerSchema).optional(),
