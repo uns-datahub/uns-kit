@@ -31,12 +31,14 @@ export default class UnsApiProxy extends UnsProxy {
   private options: IApiProxyOptions;
   private jwksCache?: { keys: any[]; fetchedAt: number };
   private catchAllRouteRegistered = false;
+  private startedAt: number;
 
   constructor(processName: string, instanceName: string, options: IApiProxyOptions) {
     super();
     this.options = options;
     this.app = new App(0, processName, instanceName);
     this.app.start();
+    this.startedAt = Date.now();
 
     this.instanceName = instanceName;
     this.processName = processName;
@@ -51,6 +53,8 @@ export default class UnsApiProxy extends UnsProxy {
 
     // Concatenate processName with instanceName for the worker identification.
     this.instanceNameWithSuffix = `${processName}-${instanceName}`;
+
+    this.registerHealthEndpoint();
   }
 
   /**
@@ -378,6 +382,34 @@ export default class UnsApiProxy extends UnsProxy {
   public post(..._args: any[]): any {
     // Implement POST logic or route binding here
     return "POST called";
+  }
+
+  private registerHealthEndpoint() {
+    const fullPath = "/status";
+    this.app.router.get(fullPath, (_req: any, res: any) => {
+      res.json({
+        alive: true,
+        processName: this.processName,
+        instanceName: this.instanceName,
+        package: packageJson.name,
+        version: packageJson.version,
+        startedAt: new Date(this.startedAt).toISOString(),
+        uptimeMs: Date.now() - this.startedAt,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    if (this.app.swaggerSpec) {
+      this.app.swaggerSpec.paths = this.app.swaggerSpec.paths || {};
+      this.app.swaggerSpec.paths[`/api${fullPath}`] = {
+        get: {
+          summary: "Health status",
+          responses: {
+            "200": { description: "OK" },
+          },
+        },
+      };
+    }
   }
 
   private extractBearerToken(req: any, res: any): string | undefined {

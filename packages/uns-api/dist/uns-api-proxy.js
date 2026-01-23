@@ -21,11 +21,13 @@ export default class UnsApiProxy extends UnsProxy {
     options;
     jwksCache;
     catchAllRouteRegistered = false;
+    startedAt;
     constructor(processName, instanceName, options) {
         super();
         this.options = options;
         this.app = new App(0, processName, instanceName);
         this.app.start();
+        this.startedAt = Date.now();
         this.instanceName = instanceName;
         this.processName = processName;
         // Create the topic builder using packageJson values and the processName.
@@ -36,6 +38,7 @@ export default class UnsApiProxy extends UnsProxy {
         this.instanceStatusTopic = this.processStatusTopic + instanceName + "/";
         // Concatenate processName with instanceName for the worker identification.
         this.instanceNameWithSuffix = `${processName}-${instanceName}`;
+        this.registerHealthEndpoint();
     }
     /**
      * Unregister endpoint
@@ -311,6 +314,32 @@ export default class UnsApiProxy extends UnsProxy {
     post(..._args) {
         // Implement POST logic or route binding here
         return "POST called";
+    }
+    registerHealthEndpoint() {
+        const fullPath = "/status";
+        this.app.router.get(fullPath, (_req, res) => {
+            res.json({
+                alive: true,
+                processName: this.processName,
+                instanceName: this.instanceName,
+                package: packageJson.name,
+                version: packageJson.version,
+                startedAt: new Date(this.startedAt).toISOString(),
+                uptimeMs: Date.now() - this.startedAt,
+                timestamp: new Date().toISOString(),
+            });
+        });
+        if (this.app.swaggerSpec) {
+            this.app.swaggerSpec.paths = this.app.swaggerSpec.paths || {};
+            this.app.swaggerSpec.paths[`/api${fullPath}`] = {
+                get: {
+                    summary: "Health status",
+                    responses: {
+                        "200": { description: "OK" },
+                    },
+                },
+            };
+        }
     }
     extractBearerToken(req, res) {
         const authHeader = req.headers["authorization"];
