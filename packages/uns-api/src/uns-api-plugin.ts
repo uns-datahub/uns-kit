@@ -2,6 +2,8 @@ import type { IApiProxyOptions } from "@uns-kit/core/uns/uns-interfaces.js";
 import type MqttProxy from "@uns-kit/core/uns-mqtt/mqtt-proxy.js";
 import UnsProxyProcess, { type UnsProxyProcessPlugin } from "@uns-kit/core/uns/uns-proxy-process.js";
 import UnsApiProxy from "./uns-api-proxy.js";
+import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
+import type { IUnsMessage } from "@uns-kit/core/uns/uns-interfaces.js";
 
 const apiProxyRegistry = new WeakMap<UnsProxyProcess, UnsApiProxy[]>();
 
@@ -58,6 +60,17 @@ const unsApiPlugin: UnsProxyProcessPlugin = ({ define }) => {
             properties: { messageExpiryInterval: 120000 },
           },
         );
+      });
+
+      unsApiProxy.event.on("mqttProxyStatus", (event) => {
+        const time = UnsPacket.formatToISO8601(new Date());
+        const unsMessage: IUnsMessage = { data: { time, value: event.value, uom: event.uom } };
+        UnsPacket.unsPacketFromUnsMessage(unsMessage).then((packet) => {
+          internals.processMqttProxy.publish(
+            event.statusTopic,
+            JSON.stringify(packet),
+          );
+        });
       });
 
       internals.unsApiProxies.push(unsApiProxy);
