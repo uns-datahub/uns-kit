@@ -382,8 +382,8 @@ export default class UnsApiProxy extends UnsProxy {
         });
     }
     registerHealthEndpoint() {
-        const fullPath = "/status";
-        this.app.router.get(fullPath, (_req, res) => {
+        const routePath = "/status";
+        this.app.router.get(routePath, (_req, res) => {
             res.json({
                 alive: true,
                 processName: this.processName,
@@ -397,7 +397,8 @@ export default class UnsApiProxy extends UnsProxy {
         });
         if (this.app.swaggerSpec) {
             this.app.swaggerSpec.paths = this.app.swaggerSpec.paths || {};
-            this.app.swaggerSpec.paths[`/api${fullPath}`] = {
+            const swaggerPath = `${this.apiBasePrefix}${routePath}`.replace(/\/{2,}/g, "/");
+            this.app.swaggerSpec.paths[swaggerPath] = {
                 get: {
                     summary: "Health status",
                     responses: {
