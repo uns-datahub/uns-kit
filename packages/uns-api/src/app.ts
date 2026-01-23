@@ -65,9 +65,13 @@ export default class App {
     this.instanceName = instanceName;
     this.apiBasePrefix =
       normalizeBasePrefix(mountConfig?.apiBasePrefix ?? process.env.UNS_API_BASE_PATH) || "/api";
-    this.swaggerBasePrefix =
+    const rawSwaggerBase =
       normalizeBasePrefix(mountConfig?.swaggerBasePrefix ?? process.env.UNS_SWAGGER_BASE_PATH) ||
       this.apiBasePrefix;
+    // If someone passed ".../api" as swagger base, strip that to avoid duplicated segments
+    this.swaggerBasePrefix = rawSwaggerBase.endsWith("/api")
+      ? rawSwaggerBase.replace(/\/api\/?$/, "") || "/"
+      : rawSwaggerBase;
 
     // Add context
     this.expressApplication.use((req: any, _res: Response, next: NextFunction) => {

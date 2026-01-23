@@ -58,8 +58,11 @@ export default class UnsApiProxy extends UnsProxy {
     this.options = options;
     this.apiBasePrefix =
       normalizeBasePrefix(options.apiBasePath ?? process.env.UNS_API_BASE_PATH) || "/api";
-    this.swaggerBasePrefix =
+    const rawSwaggerBase =
       normalizeBasePrefix(options.swaggerBasePath ?? process.env.UNS_SWAGGER_BASE_PATH) || this.apiBasePrefix;
+    this.swaggerBasePrefix = rawSwaggerBase.endsWith("/api")
+      ? rawSwaggerBase.replace(/\/api\/?$/, "") || "/"
+      : rawSwaggerBase;
     this.app = new App(0, processName, instanceName, undefined, {
       apiBasePrefix: this.apiBasePrefix,
       swaggerBasePrefix: this.swaggerBasePrefix,
