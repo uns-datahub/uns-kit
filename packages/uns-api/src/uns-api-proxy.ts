@@ -15,6 +15,7 @@ import { UnsTags } from "@uns-kit/core/uns/uns-tags.js";
 import { UnsTopicMatcher } from "@uns-kit/core/uns/uns-topic-matcher.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import { IApiProxyOptions, IGetEndpointOptions } from "@uns-kit/core/uns/uns-interfaces.js";
+import { DataSizeMeasurements, PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
 import App from "./app.js";
 import { UnsAsset } from "@uns-kit/core/uns/uns-asset.js";
 import { UnsObjectType, UnsObjectId } from "@uns-kit/core/uns/uns-object.js";
@@ -32,6 +33,8 @@ export default class UnsApiProxy extends UnsProxy {
   private jwksCache?: { keys: any[]; fetchedAt: number };
   private catchAllRouteRegistered = false;
   private startedAt: number;
+  private statusInterval: NodeJS.Timeout | null = null;
+  private readonly statusIntervalMs = 10_000;
 
   constructor(processName: string, instanceName: string, options: IApiProxyOptions) {
     super();
@@ -55,6 +58,9 @@ export default class UnsApiProxy extends UnsProxy {
     this.instanceNameWithSuffix = `${processName}-${instanceName}`;
 
     this.registerHealthEndpoint();
+    // Emit once after listeners are attached in the plugin, then on the regular cadence.
+    setTimeout(() => this.emitStatusMetrics(), 0);
+    this.statusInterval = setInterval(() => this.emitStatusMetrics(), this.statusIntervalMs);
   }
 
   /**
@@ -384,6 +390,36 @@ export default class UnsApiProxy extends UnsProxy {
     return "POST called";
   }
 
+  private emitStatusMetrics(): void {
+    const uptimeMinutes = Math.round((Date.now() - this.startedAt) / 60000);
+    // Process-level status
+    this.event.emit("mqttProxyStatus", {
+      event: "uptime",
+      value: uptimeMinutes,
+      uom: PhysicalMeasurements.Minute,
+      statusTopic: this.processStatusTopic + "uptime",
+    });
+    this.event.emit("mqttProxyStatus", {
+      event: "alive",
+      value: 1,
+      uom: DataSizeMeasurements.Bit,
+      statusTopic: this.processStatusTopic + "alive",
+    });
+    // Instance-level status
+    this.event.emit("mqttProxyStatus", {
+      event: "uptime",
+      value: uptimeMinutes,
+      uom: PhysicalMeasurements.Minute,
+      statusTopic: this.instanceStatusTopic + "uptime",
+    });
+    this.event.emit("mqttProxyStatus", {
+      event: "alive",
+      value: 1,
+      uom: DataSizeMeasurements.Bit,
+      statusTopic: this.instanceStatusTopic + "alive",
+    });
+  }
+
   private registerHealthEndpoint() {
     const fullPath = "/status";
     this.app.router.get(fullPath, (_req: any, res: any) => {
@@ -487,5 +523,13 @@ export default class UnsApiProxy extends UnsProxy {
   private certFromX5c(x5cFirst: string): string {
     const pemBody = x5cFirst.match(/.{1,64}/g)?.join("\n") ?? x5cFirst;
     return `-----BEGIN CERTIFICATE-----\n${pemBody}\n-----END CERTIFICATE-----\n`;
+  }
+
+  public async stop(): Promise<void> {
+    if (this.statusInterval) {
+      clearInterval(this.statusInterval);
+      this.statusInterval = null;
+    }
+    await super.stop();
   }
 }

@@ -14,6 +14,8 @@ export default class UnsApiProxy extends UnsProxy {
     private jwksCache?;
     private catchAllRouteRegistered;
     private startedAt;
+    private statusInterval;
+    private readonly statusIntervalMs;
     constructor(processName: string, instanceName: string, options: IApiProxyOptions);
     /**
      * Unregister endpoint
@@ -44,9 +46,11 @@ export default class UnsApiProxy extends UnsProxy {
         queryParams?: IGetEndpointOptions["queryParams"];
     }): Promise<void>;
     post(..._args: any[]): any;
+    private emitStatusMetrics;
     private registerHealthEndpoint;
     private extractBearerToken;
     private getPublicKeyFromJwks;
     private fetchJwksKeys;
     private certFromX5c;
+    stop(): Promise<void>;
 }

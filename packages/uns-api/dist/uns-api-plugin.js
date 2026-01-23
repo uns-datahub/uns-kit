@@ -1,5 +1,6 @@
 import UnsProxyProcess from "@uns-kit/core/uns/uns-proxy-process.js";
 import UnsApiProxy from "./uns-api-proxy.js";
+import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 const apiProxyRegistry = new WeakMap();
 const getApiProxies = (instance) => {
     let proxies = apiProxyRegistry.get(instance);
@@ -31,6 +32,13 @@ const unsApiPlugin = ({ define }) => {
                 internals.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedCatchall), {
                     retain: true,
                     properties: { messageExpiryInterval: 120000 },
+                });
+            });
+            unsApiProxy.event.on("mqttProxyStatus", (event) => {
+                const time = UnsPacket.formatToISO8601(new Date());
+                const unsMessage = { data: { time, value: event.value, uom: event.uom } };
+                UnsPacket.unsPacketFromUnsMessage(unsMessage).then((packet) => {
+                    internals.processMqttProxy.publish(event.statusTopic, JSON.stringify(packet));
                 });
             });
             internals.unsApiProxies.push(unsApiProxy);
