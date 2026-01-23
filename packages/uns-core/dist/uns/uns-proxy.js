@@ -9,7 +9,16 @@ export default class UnsProxy {
     producedTopics = new Map();
     producedApiEndpoints = new Map();
     producedApiCatchall = new Map();
+    controllerNameEnv;
+    controllerHostEnv;
+    controllerPortEnv;
+    controllerPublicBaseEnv;
     constructor() {
+        this.controllerNameEnv = process.env["UNS_CONTROLLER_NAME"];
+        this.controllerHostEnv = process.env["UNS_CONTROLLER_HOST"];
+        this.controllerPortEnv = process.env["UNS_CONTROLLER_PORT"];
+        this.controllerPublicBaseEnv =
+            process.env["UNS_CONTROLLER_PUBLIC_BASE"] ?? process.env["UNS_PUBLIC_BASE"];
         // Set up interval to publish produced topics every 60 seconds.
         this.publishInterval = setInterval(() => {
             this.emitProducedTopics();
@@ -125,7 +134,11 @@ export default class UnsProxy {
                     apiSwaggerEndpoint: apiObject.apiSwaggerEndpoint,
                     asset: apiObject.asset,
                     objectType: apiObject.objectType,
-                    objectId: apiObject.objectId
+                    objectId: apiObject.objectId,
+                    ...(this.controllerNameEnv ? { controllerName: this.controllerNameEnv } : {}),
+                    ...(this.controllerHostEnv ? { controllerHost: this.controllerHostEnv } : {}),
+                    ...(this.controllerPortEnv ? { controllerPort: this.controllerPortEnv } : {}),
+                    ...(this.controllerPublicBaseEnv ? { controllerPublicBase: this.controllerPublicBaseEnv } : {}),
                 });
                 this.emitProducedApiEndpoints();
                 logger.info(`${this.instanceNameWithSuffix} - Registered new api endpoint: /${fullTopic}`);

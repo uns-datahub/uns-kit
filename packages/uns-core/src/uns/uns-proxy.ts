@@ -14,8 +14,17 @@ export default class UnsProxy {
   private producedTopics: Map<string, ITopicObject> = new Map();
   private producedApiEndpoints: Map<string, IApiObject> = new Map();
   private producedApiCatchall: Map<string, IApiCatchallMapping> = new Map();
+  private readonly controllerNameEnv: string | undefined;
+  private readonly controllerHostEnv: string | undefined;
+  private readonly controllerPortEnv: string | undefined;
+  private readonly controllerPublicBaseEnv: string | undefined;
 
   constructor() {
+    this.controllerNameEnv = process.env["UNS_CONTROLLER_NAME"];
+    this.controllerHostEnv = process.env["UNS_CONTROLLER_HOST"];
+    this.controllerPortEnv = process.env["UNS_CONTROLLER_PORT"];
+    this.controllerPublicBaseEnv =
+      process.env["UNS_CONTROLLER_PUBLIC_BASE"] ?? process.env["UNS_PUBLIC_BASE"];
     // Set up interval to publish produced topics every 60 seconds.
     this.publishInterval = setInterval(() => {
       this.emitProducedTopics();
@@ -133,7 +142,11 @@ export default class UnsProxy {
           apiSwaggerEndpoint: apiObject.apiSwaggerEndpoint,
           asset: apiObject.asset,
           objectType: apiObject.objectType,
-          objectId: apiObject.objectId
+          objectId: apiObject.objectId,
+          ...(this.controllerNameEnv ? { controllerName: this.controllerNameEnv } : {}),
+          ...(this.controllerHostEnv ? { controllerHost: this.controllerHostEnv } : {}),
+          ...(this.controllerPortEnv ? { controllerPort: this.controllerPortEnv } : {}),
+          ...(this.controllerPublicBaseEnv ? { controllerPublicBase: this.controllerPublicBaseEnv } : {}),
         });
         this.emitProducedApiEndpoints();
         logger.info(`${this.instanceNameWithSuffix} - Registered new api endpoint: /${fullTopic}`);

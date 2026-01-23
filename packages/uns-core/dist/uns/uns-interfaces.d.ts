@@ -226,6 +226,10 @@ export interface IApiObject {
     asset: UnsAsset;
     objectType: UnsObjectType;
     objectId: UnsObjectId;
+    controllerName?: string;
+    controllerHost?: string;
+    controllerPort?: string;
+    controllerPublicBase?: string;
 }
 export interface IApiCatchallMapping {
     topic: string;

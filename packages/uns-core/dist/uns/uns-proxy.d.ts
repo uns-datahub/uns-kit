@@ -11,6 +11,10 @@ export default class UnsProxy {
     private producedTopics;
     private producedApiEndpoints;
     private producedApiCatchall;
+    private readonly controllerNameEnv;
+    private readonly controllerHostEnv;
+    private readonly controllerPortEnv;
+    private readonly controllerPublicBaseEnv;
     constructor();
     /**
      * Publishes the list of produced topics to the MQTT broker.
