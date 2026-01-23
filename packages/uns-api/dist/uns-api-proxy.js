@@ -22,6 +22,14 @@ const normalizeBasePrefix = (value) => {
     const withLeading = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
     return withLeading.replace(/\/+$/, "");
 };
+const buildSwaggerPath = (base, processName, instanceName) => {
+    const processSegment = `/${processName}`;
+    let baseWithProcess = base || "/";
+    if (!baseWithProcess.endsWith(processSegment)) {
+        baseWithProcess = `${baseWithProcess}${processSegment}`;
+    }
+    return `${baseWithProcess}/${instanceName}/swagger.json`.replace(/\/{2,}/g, "/");
+};
 export default class UnsApiProxy extends UnsProxy {
     instanceName;
     topicBuilder;
@@ -109,7 +117,7 @@ export default class UnsApiProxy extends UnsProxy {
         const time = UnsPacket.formatToISO8601(new Date());
         const fullPath = `/${topic}${attribute}`;
         const apiPath = `${this.apiBasePrefix}${fullPath}`.replace(/\/{2,}/g, "/");
-        const swaggerPath = `${this.swaggerBasePrefix}/${this.processName}/${this.instanceName}/swagger.json`.replace(/\/{2,}/g, "/");
+        const swaggerPath = buildSwaggerPath(this.swaggerBasePrefix, this.processName, this.instanceName);
         try {
             // Get ip and port from environment variables or defaults
             const addressInfo = this.app.server.address();

@@ -22,6 +22,14 @@ const normalizeBasePrefix = (value?: string | null): string => {
   const withLeading = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
   return withLeading.replace(/\/+$/, "");
 };
+const buildSwaggerPath = (base: string, processName: string, instanceName: string): string => {
+  const processSegment = `/${processName}`;
+  let baseWithProcess = base || "/";
+  if (!baseWithProcess.endsWith(processSegment)) {
+    baseWithProcess = `${baseWithProcess}${processSegment}`;
+  }
+  return `${baseWithProcess}/${instanceName}/swagger.json`.replace(/\/{2,}/g, "/");
+};
 
 export default class App {
   private expressApplication: Application;
@@ -175,7 +183,7 @@ export default class App {
       logger.info(
         `API listening on http://${ip}:${port}${this.apiBasePrefix}`
       );
-      const swaggerPath = `${this.swaggerBasePrefix}/${this.processName}/${this.instanceName}/swagger.json`.replace(/\/{2,}/g, "/");
+      const swaggerPath = buildSwaggerPath(this.swaggerBasePrefix, this.processName, this.instanceName);
       logger.info(`Swagger openAPI on http://${ip}:${port}${swaggerPath}`);
 
       this.expressApplication.get(swaggerPath, (req: any, res: any) =>
