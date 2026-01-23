@@ -13,6 +13,15 @@ import { DataSizeMeasurements, PhysicalMeasurements } from "@uns-kit/core/uns/un
 import App from "./app.js";
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+const normalizeBasePrefix = (value) => {
+    if (!value)
+        return "";
+    const trimmed = value.trim();
+    if (!trimmed)
+        return "";
+    const withLeading = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+    return withLeading.replace(/\/+$/, "");
+};
 export default class UnsApiProxy extends UnsProxy {
     instanceName;
     topicBuilder;
@@ -20,6 +29,8 @@ export default class UnsApiProxy extends UnsProxy {
     processStatusTopic;
     app;
     options;
+    apiBasePrefix;
+    swaggerBasePrefix;
     jwksCache;
     catchAllRouteRegistered = false;
     startedAt;
@@ -28,7 +39,15 @@ export default class UnsApiProxy extends UnsProxy {
     constructor(processName, instanceName, options) {
         super();
         this.options = options;
-        this.app = new App(0, processName, instanceName);
+        this.apiBasePrefix =
+            normalizeBasePrefix(options.apiBasePath ?? process.env.UNS_API_BASE_PATH) || "/api";
+        this.swaggerBasePrefix =
+            normalizeBasePrefix(options.swaggerBasePath ?? process.env.UNS_SWAGGER_BASE_PATH) || this.apiBasePrefix;
+        this.app = new App(0, processName, instanceName, undefined, {
+            apiBasePrefix: this.apiBasePrefix,
+            swaggerBasePrefix: this.swaggerBasePrefix,
+            disableDefaultApiMount: options.disableDefaultApiMount ?? false,
+        });
         this.app.start();
         this.startedAt = Date.now();
         this.instanceName = instanceName;
@@ -54,7 +73,7 @@ export default class UnsApiProxy extends UnsProxy {
      */
     async unregister(topic, asset, objectType, objectId, attribute, method) {
         const fullPath = `/${topic}${attribute}`;
-        const apiPath = `/api${fullPath}`;
+        const apiPath = `${this.apiBasePrefix}${fullPath}`.replace(/\/{2,}/g, "/");
         const methodKey = method.toLowerCase(); // Express stores method keys in lowercase
         // Remove route from router
         if (this.app.router?.stack) {
@@ -88,6 +107,9 @@ export default class UnsApiProxy extends UnsProxy {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
         const time = UnsPacket.formatToISO8601(new Date());
+        const fullPath = `/${topic}${attribute}`;
+        const apiPath = `${this.apiBasePrefix}${fullPath}`.replace(/\/{2,}/g, "/");
+        const swaggerPath = `${this.swaggerBasePrefix}/${this.processName}/${this.instanceName}/swagger.json`.replace(/\/{2,}/g, "/");
         try {
             // Get ip and port from environment variables or defaults
             const addressInfo = this.app.server.address();
@@ -106,17 +128,16 @@ export default class UnsApiProxy extends UnsProxy {
                 topic: topic,
                 attribute: attribute,
                 apiHost: `http://${ip}:${port}`,
-                apiEndpoint: `/api/${topic}${attribute}`,
+                apiEndpoint: apiPath,
                 apiMethod: "GET",
                 apiQueryParams: options.queryParams,
                 apiDescription: options?.apiDescription,
                 attributeType: UnsAttributeType.Api,
-                apiSwaggerEndpoint: `/${this.processName}/${this.instanceName}/swagger.json`,
+                apiSwaggerEndpoint: swaggerPath,
                 asset,
                 objectType,
                 objectId
             });
-            const fullPath = `/${topic}${attribute}`;
             const handler = (req, res) => {
                 // Query param validation
                 if (options?.queryParams) {

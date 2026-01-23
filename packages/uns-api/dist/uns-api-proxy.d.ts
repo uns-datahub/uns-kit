@@ -11,6 +11,8 @@ export default class UnsApiProxy extends UnsProxy {
     protected processStatusTopic: string;
     private app;
     private options;
+    private apiBasePrefix;
+    private swaggerBasePrefix;
     private jwksCache?;
     private catchAllRouteRegistered;
     private startedAt;

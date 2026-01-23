@@ -9,6 +9,20 @@ import { basePath } from "@uns-kit/core/base-path.js";
 import logger from "@uns-kit/core/logger.js";
 import os from 'os';
 
+type MountConfig = {
+  apiBasePrefix?: string;
+  swaggerBasePrefix?: string;
+  disableDefaultApiMount?: boolean;
+};
+
+const normalizeBasePrefix = (value?: string | null): string => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const withLeading = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return withLeading.replace(/\/+$/, "");
+};
+
 export default class App {
   private expressApplication: Application;
   public server;
@@ -16,22 +30,36 @@ export default class App {
   public router: Router;
   private processName: string;
   private instanceName: string;
+  private apiBasePrefix: string;
+  private swaggerBasePrefix: string;
   public swaggerSpec: {
     openapi: string;
     info: { title: string; version: string };
     paths: Record<string, any>;
+    servers?: Array<{ url: string }>;
   };
   private swaggerDocs: Map<string, Record<string, unknown>> = new Map();
 
 
 
-  constructor(port: number, processName: string, instanceName: string, appContext?: any) {
+  constructor(
+    port: number,
+    processName: string,
+    instanceName: string,
+    appContext?: any,
+    mountConfig?: MountConfig
+  ) {
     this.router = express.Router();
     this.port = port;
     this.expressApplication = express();
     this.server = http.createServer(this.expressApplication);
     this.processName = processName;
     this.instanceName = instanceName;
+    this.apiBasePrefix =
+      normalizeBasePrefix(mountConfig?.apiBasePrefix ?? process.env.UNS_API_BASE_PATH) || "/api";
+    this.swaggerBasePrefix =
+      normalizeBasePrefix(mountConfig?.swaggerBasePrefix ?? process.env.UNS_SWAGGER_BASE_PATH) ||
+      this.apiBasePrefix;
 
     // Add context
     this.expressApplication.use((req: any, _res: Response, next: NextFunction) => {
@@ -66,7 +94,9 @@ export default class App {
         next();
       }
     );    
-    this.expressApplication.use("/api", this.router);
+    if (!mountConfig?.disableDefaultApiMount) {
+      this.expressApplication.use(this.apiBasePrefix, this.router);
+    }
 
     // Swagger specs
     this.swaggerSpec = {
@@ -76,6 +106,7 @@ export default class App {
         version: "1.0.0",
       },
       paths: {},
+      servers: this.swaggerBasePrefix ? [{ url: this.swaggerBasePrefix }] : undefined,
     };    
   }
 
@@ -141,10 +172,15 @@ export default class App {
         ip = App.getExternalIPv4();
         port = "";
       }
-      logger.info(`API listening on http://${ip}:${port}/api`);
-      logger.info(`Swagger openAPI on http://${ip}:${port}/${this.processName}/${this.instanceName}/swagger.json`);
+      logger.info(
+        `API listening on http://${ip}:${port}${this.apiBasePrefix}`
+      );
+      const swaggerPath = `${this.swaggerBasePrefix}/${this.processName}/${this.instanceName}/swagger.json`.replace(/\/{2,}/g, "/");
+      logger.info(`Swagger openAPI on http://${ip}:${port}${swaggerPath}`);
 
-      this.expressApplication.get(`/${this.processName}/${this.instanceName}/swagger.json`, (req: any, res: any) => res.json(this.getSwaggerSpec()));
+      this.expressApplication.get(swaggerPath, (req: any, res: any) =>
+        res.json(this.getSwaggerSpec())
+      );
     });
   }
 

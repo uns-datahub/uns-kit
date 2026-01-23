@@ -251,6 +251,16 @@ export interface IApiProxyOptions {
         cacheTtlMs?: number;
         algorithms?: ("RS256" | "RS384" | "RS512")[];
     };
+    /**
+     * Optional base prefixes to mount the API and swagger JSON under (e.g. "/archiver-3").
+     * Defaults to "/api" when not provided.
+     */
+    apiBasePath?: string;
+    swaggerBasePath?: string;
+    /**
+     * Skip mounting the default "/api" route. Useful when rebasing entirely under a custom prefix.
+     */
+    disableDefaultApiMount?: boolean;
 }
 export interface IGetEndpointOptions {
     apiDescription?: string;
