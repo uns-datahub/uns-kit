@@ -1,3 +1,4 @@
+import { IClientPublishOptions } from "mqtt";
 export interface IMqttParameters {
     mqttSubToTopics?: string | string[];
     username?: string;
@@ -23,6 +24,7 @@ export interface IMqttParameters {
     statusTopic?: string;
     rejectUnauthorized?: boolean;
 }
+export type IMqttPublishOptions = IClientPublishOptions;
 export type MqttProtocol = "mqtt" | "mqtts" | "ws" | "wss" | "tcp" | "ssl";
 export interface IMqttServerConfig {
     host: string;
@@ -52,5 +54,6 @@ export interface IMqttWorkerData {
     mqttParameters?: IMqttParameters;
     publisherActive: boolean;
     subscriberActive: boolean;
+    defaultPublishOptions?: IMqttPublishOptions;
 }
 //# sourceMappingURL=mqtt-interfaces.d.ts.map

@@ -22,6 +22,7 @@ export class MqttWorker {
     const mqttParameters = workerData.mqttParameters;
     const publisherActive = workerData.publisherActive;
     const subscriberActive = workerData.subscriberActive;
+    const defaultPublishOptions = workerData.defaultPublishOptions;
 
     // Initialize and start the MQTT proxy.
     this.mqttProxy = new MqttProxy(mqttHost, instanceName, mqttParameters, this);
@@ -45,7 +46,8 @@ export class MqttWorker {
 
     // Define the publish function to be used by the ThrottledPublisher.
     const publishFunction = async (topic: string, message: string, id: string, options?: IClientPublishOptions): Promise<void> => {
-      this.mqttProxy.publish(topic, message, options).then(
+      const publishOptions = options ?? defaultPublishOptions;
+      this.mqttProxy.publish(topic, message, publishOptions).then(
         () => {
           parentPort?.postMessage({
             command: "enqueueResult",
@@ -53,7 +55,7 @@ export class MqttWorker {
             status: "success",
             topic,
             message,
-            options,
+            options: publishOptions,
           });
         },
         (reason: any) => {

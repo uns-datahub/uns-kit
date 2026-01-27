@@ -3,7 +3,7 @@ import { MeasurementUnit } from "./uns-measurements.js";
 import { UnsTags } from "./uns-tags.js";
 import type { UnsObjectId, UnsObjectType } from "./uns-object.js";
 import type { UnsAsset } from "./uns-asset.js";
-import type { IMqttConnectProperties, IMqttServerConfig, MqttProtocol } from "../uns-mqtt/mqtt-interfaces.js";
+import type { IMqttConnectProperties, IMqttPublishOptions, IMqttServerConfig, MqttProtocol } from "../uns-mqtt/mqtt-interfaces.js";
 import { UnsTopics } from "./uns-topics.js";
 import { knownUnsAttributes, type KnownUnsAttributeName } from "./uns-attributes.js";
 
@@ -68,6 +68,11 @@ export interface IUnsParameters {
   cert?: string;
   key?: string;
   servername?: string;
+  /**
+   * Default MQTT publish options applied to all outgoing messages
+   * (e.g., qos, retain, messageExpiryInterval).
+   */
+  defaultPublishOptions?: IMqttPublishOptions;
 }
 
 export interface IUnsProcessParameters {

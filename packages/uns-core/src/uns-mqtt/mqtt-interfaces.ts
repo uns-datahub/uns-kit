@@ -1,3 +1,5 @@
+import { IClientPublishOptions } from "mqtt";
+
 export interface IMqttParameters {
   mqttSubToTopics?: string | string[];
   username?: string;
@@ -23,6 +25,9 @@ export interface IMqttParameters {
   statusTopic?: string;
   rejectUnauthorized?: boolean;
 }
+
+// Narrow alias to avoid leaking mqtt dependency details elsewhere.
+export type IMqttPublishOptions = IClientPublishOptions;
 
 export type MqttProtocol = "mqtt" | "mqtts" | "ws" | "wss" | "tcp" | "ssl";
 
@@ -55,4 +60,5 @@ export interface IMqttWorkerData {
   mqttParameters?: IMqttParameters; // Additional parameters for the MQTT client  
   publisherActive: boolean; // Whether the publisher is active
   subscriberActive: boolean; // Whether the subscriber is active
+  defaultPublishOptions?: IMqttPublishOptions; // Default publish options (QoS/retain/etc.)
 }

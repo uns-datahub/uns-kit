@@ -168,7 +168,8 @@ export default class UnsMqttProxy extends UnsProxy {
       instanceNameWithSuffix: instanceNameWithSuffix,
       mqttParameters: mqttParameters,
       publisherActive,
-      subscriberActive
+      subscriberActive,
+      defaultPublishOptions: this.unsParameters.defaultPublishOptions,
     };
 
     this.worker = new Worker(workerScriptPath, { workerData });
@@ -370,8 +371,8 @@ export default class UnsMqttProxy extends UnsProxy {
    * @param message - The message to publish.
    * @returns A promise that resolves when enqueued.
    */
-  public publishMessage(topic: string, message: string): Promise<void> {
-    return this.enqueueMessageToWorkerQueue(topic, message);
+  public publishMessage(topic: string, message: string, options?: IClientPublishOptions): Promise<void> {
+    return this.enqueueMessageToWorkerQueue(topic, message, options);
   }
 
   /**

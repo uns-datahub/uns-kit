@@ -17,6 +17,7 @@ export class MqttWorker {
         const mqttParameters = workerData.mqttParameters;
         const publisherActive = workerData.publisherActive;
         const subscriberActive = workerData.subscriberActive;
+        const defaultPublishOptions = workerData.defaultPublishOptions;
         // Initialize and start the MQTT proxy.
         this.mqttProxy = new MqttProxy(mqttHost, instanceName, mqttParameters, this);
         this.mqttProxy.start();
@@ -36,14 +37,15 @@ export class MqttWorker {
         });
         // Define the publish function to be used by the ThrottledPublisher.
         const publishFunction = async (topic, message, id, options) => {
-            this.mqttProxy.publish(topic, message, options).then(() => {
+            const publishOptions = options ?? defaultPublishOptions;
+            this.mqttProxy.publish(topic, message, publishOptions).then(() => {
                 parentPort?.postMessage({
                     command: "enqueueResult",
                     id,
                     status: "success",
                     topic,
                     message,
-                    options,
+                    options: publishOptions,
                 });
             }, (reason) => {
                 logger.error(`${instanceName} - Error publishing message to topic ${topic}: ${reason.message}`);

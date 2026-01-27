@@ -1,3 +1,4 @@
+import { IClientPublishOptions } from "mqtt";
 import { IMqttPublishRequest, IUnsPacket, IUnsParameters, UnsEvents } from "../uns/uns-interfaces.js";
 import UnsProxy from "../uns/uns-proxy.js";
 export declare enum MessageMode {
@@ -80,7 +81,7 @@ export default class UnsMqttProxy extends UnsProxy {
      * @param message - The message to publish.
      * @returns A promise that resolves when enqueued.
      */
-    publishMessage(topic: string, message: string): Promise<void>;
+    publishMessage(topic: string, message: string, options?: IClientPublishOptions): Promise<void>;
     /**
      * Parses an MQTT packet from a JSON string.
      *

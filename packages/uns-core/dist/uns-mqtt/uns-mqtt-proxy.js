@@ -120,7 +120,8 @@ export default class UnsMqttProxy extends UnsProxy {
             instanceNameWithSuffix: instanceNameWithSuffix,
             mqttParameters: mqttParameters,
             publisherActive,
-            subscriberActive
+            subscriberActive,
+            defaultPublishOptions: this.unsParameters.defaultPublishOptions,
         };
         this.worker = new Worker(workerScriptPath, { workerData });
         this.worker.on("message", (msg) => {
@@ -308,8 +309,8 @@ export default class UnsMqttProxy extends UnsProxy {
      * @param message - The message to publish.
      * @returns A promise that resolves when enqueued.
      */
-    publishMessage(topic, message) {
-        return this.enqueueMessageToWorkerQueue(topic, message);
+    publishMessage(topic, message, options) {
+        return this.enqueueMessageToWorkerQueue(topic, message, options);
     }
     /**
      * Parses an MQTT packet from a JSON string.
