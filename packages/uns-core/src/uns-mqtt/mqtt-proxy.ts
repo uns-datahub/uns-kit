@@ -238,14 +238,24 @@ export default class MqttProxy {
 
   public async publish(topic: string, message: string | Buffer, options?: mqtt.IClientPublishOptions): Promise<void> {
     this.updatePublishTransformationStats(JSON.stringify(message).length);
-    return new Promise((resolve, reject) => {
-      if (!this.mqttClient || !this.mqttClient.connected) {
-        const error = new Error(`${this.instanceName} - MQTT client is not connected.`);
-        logger.error(error.message);
-        return reject(error);
-      }
+    const client = this.mqttClient;
+    if (!client) {
+      logger.warn(`${this.instanceName} - MQTT client missing; dropping publish to ${topic}`);
+      return;
+    }
 
-      this.mqttClient.publish(topic, message, options || {}, (err) => {
+    if (!client.connected) {
+      // Wait briefly for reconnection before giving up.
+      await this.waitForReconnect(client, 5000);
+    }
+
+    if (!client.connected) {
+      logger.warn(`${this.instanceName} - MQTT client still disconnected; dropping publish to ${topic}`);
+      return;
+    }
+
+    return new Promise((resolve, reject) => {
+      client.publish(topic, message, options || {}, (err) => {
         if (err) {
           logger.error(`${this.instanceName} - Error publishing to topic ${topic}: ${err.message}`);
           return reject(err);
@@ -317,6 +327,29 @@ export default class MqttProxy {
   private updateSubscribeTransformationStats(messageSizeIn: number): void {
     this.subscribedMessageCount += 1;
     this.subscribedMessageBytes += messageSizeIn;
+  }
+
+  private waitForReconnect(client: mqtt.MqttClient, timeoutMs: number): Promise<void> {
+    return new Promise((resolve) => {
+      if (client.connected) return resolve();
+      const onConnect = () => {
+        cleanup();
+        resolve();
+      };
+      const onClose = () => {
+        // stay waiting; close is expected during reconnect attempts
+      };
+      const cleanup = () => {
+        client.off("connect", onConnect);
+        client.off("close", onClose);
+      };
+      client.on("connect", onConnect);
+      client.on("close", onClose);
+      setTimeout(() => {
+        cleanup();
+        resolve();
+      }, timeoutMs).unref?.();
+    });
   }
 
   private async emitTransformationStatistics(): Promise<void> {
