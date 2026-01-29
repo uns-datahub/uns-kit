@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "uns-py-app"
+version = "0.1.0"
+description = "Example UNS Python application"
+authors = ["Your Name <you@example.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+uns-kit = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

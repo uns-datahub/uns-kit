@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "uns-kit"
+version = "0.0.4"
+description = "Lightweight Python UNS MQTT client (pub/sub + infra topics)"
+authors = ["Aljoša Vister <aljosa.vister@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "uns_kit", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+asyncio-mqtt = "^0.16.1"
+click = "^8.1.7"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pytest-asyncio = "^0.24.0"
+ruff = "^0.6.9"
+mypy = "^1.11.2"
+
+[tool.poetry.scripts]
+uns-kit-py = "uns_kit.cli:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
