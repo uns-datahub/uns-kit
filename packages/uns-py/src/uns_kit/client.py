@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import AsyncIterator, List, Optional
 
 from asyncio_mqtt import Client, MqttError, Message, Will
@@ -26,6 +27,11 @@ class UnsMqttClient:
         clean_session: bool = True,
         reconnect_interval: float = 2.0,
         max_reconnect_interval: float = 30.0,
+        instance_name: Optional[str] = None,
+        publisher_active: Optional[bool] = None,
+        subscriber_active: Optional[bool] = None,
+        stats_interval: float = 60.0,
+        enable_status: bool = True,
     ):
         self.host = host
         self.port = port
@@ -38,15 +44,30 @@ class UnsMqttClient:
         self.reconnect_interval = reconnect_interval
         self.max_reconnect_interval = max_reconnect_interval
         self.topic_builder = topic_builder
+        self.instance_name = instance_name
+        self.publisher_active = publisher_active
+        self.subscriber_active = subscriber_active
+        self.stats_interval = stats_interval
+        self.enable_status = enable_status
         self._client: Optional[Client] = None
         self._status_task: Optional[asyncio.Task] = None
+        self._stats_task: Optional[asyncio.Task] = None
         self._connected = asyncio.Event()
         self._closing = False
         self._connect_lock = asyncio.Lock()
+        self._published_message_count = 0
+        self._published_message_bytes = 0
+        self._subscribed_message_count = 0
+        self._subscribed_message_bytes = 0
+
+        if self.instance_name:
+            self.status_topic = self.topic_builder.instance_status_topic(self.instance_name)
+        else:
+            self.status_topic = self.topic_builder.process_status_topic
 
     async def _connect_once(self) -> None:
         will = Will(
-            topic=f"{self.topic_builder.process_status_topic}alive",
+            topic=f"{self.status_topic}alive",
             payload=b"",
             qos=0,
             retain=True,
@@ -87,8 +108,11 @@ class UnsMqttClient:
             while not self._closing:
                 try:
                     await self._connect_once()
-                    if not self._status_task or self._status_task.done():
-                        self._status_task = asyncio.create_task(self._publish_status_loop())
+                    if self.enable_status:
+                        if not self._status_task or self._status_task.done():
+                            self._status_task = asyncio.create_task(self._publish_status_loop())
+                        if not self._stats_task or self._stats_task.done():
+                            self._stats_task = asyncio.create_task(self._publish_stats_loop())
                     return
                 except MqttError:
                     await asyncio.sleep(backoff)
@@ -103,6 +127,10 @@ class UnsMqttClient:
             self._status_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._status_task
+        if self._stats_task:
+            self._stats_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._stats_task
         if self._client:
             with contextlib.suppress(Exception):
                 await self._client.disconnect()
@@ -113,6 +141,9 @@ class UnsMqttClient:
         for attempt in range(2):
             try:
                 assert self._client
+                payload_bytes = payload.encode() if isinstance(payload, str) else payload
+                self._published_message_count += 1
+                self._published_message_bytes += len(payload_bytes)
                 await self._client.publish(topic, payload, qos=qos, retain=retain)
                 return
             except MqttError:
@@ -137,7 +168,12 @@ class UnsMqttClient:
             else:
                 for t in topics:
                     await self._client.subscribe(t)
-            yield messages
+            async def wrapped() -> AsyncIterator[Message]:
+                async for msg in messages:
+                    self._subscribed_message_count += 1
+                    self._subscribed_message_bytes += len(msg.payload or b"")
+                    yield msg
+            yield wrapped()
 
     async def resilient_messages(self, topics: str | List[str]) -> AsyncIterator[Message]:
         """
@@ -155,15 +191,58 @@ class UnsMqttClient:
                 continue
 
     async def _publish_status_loop(self) -> None:
-        uptime_topic = f"{self.topic_builder.process_status_topic}uptime"
-        alive_topic = f"{self.topic_builder.process_status_topic}alive"
+        uptime_topic = f"{self.status_topic}uptime"
+        alive_topic = f"{self.status_topic}alive"
+        publisher_topic = f"{self.status_topic}t-publisher-active"
+        subscriber_topic = f"{self.status_topic}t-subscriber-active"
         start = asyncio.get_event_loop().time()
         try:
             while not self._closing:
                 now = asyncio.get_event_loop().time()
                 uptime_minutes = int((now - start) / 60)
-                await self.publish_raw(alive_topic, b"", qos=0, retain=True)
-                await self.publish_raw(uptime_topic, str(uptime_minutes).encode(), qos=0, retain=True)
+                time = datetime.utcnow()
+                alive_packet = UnsPacket.data(value=1, uom="bit", time=time)
+                uptime_packet = UnsPacket.data(value=uptime_minutes, uom="min", time=time)
+                await self.publish_raw(alive_topic, UnsPacket.to_json(alive_packet), qos=0, retain=False)
+                await self.publish_raw(uptime_topic, UnsPacket.to_json(uptime_packet), qos=0, retain=False)
+                if self.publisher_active is not None:
+                    publisher_packet = UnsPacket.data(value=1 if self.publisher_active else 0, uom="bit", time=time)
+                    await self.publish_raw(publisher_topic, UnsPacket.to_json(publisher_packet), qos=0, retain=False)
+                if self.subscriber_active is not None:
+                    subscriber_packet = UnsPacket.data(value=1 if self.subscriber_active else 0, uom="bit", time=time)
+                    await self.publish_raw(subscriber_topic, UnsPacket.to_json(subscriber_packet), qos=0, retain=False)
                 await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            pass
+
+    async def _publish_stats_loop(self) -> None:
+        published_count_topic = f"{self.status_topic}published-message-count"
+        published_bytes_topic = f"{self.status_topic}published-message-bytes"
+        subscribed_count_topic = f"{self.status_topic}subscribed-message-count"
+        subscribed_bytes_topic = f"{self.status_topic}subscribed-message-bytes"
+        try:
+            while not self._closing:
+                time = datetime.utcnow()
+                published_count_packet = UnsPacket.data(value=self._published_message_count, time=time)
+                published_bytes_packet = UnsPacket.data(
+                    value=round(self._published_message_bytes / 1024),
+                    uom="kB",
+                    time=time,
+                )
+                subscribed_count_packet = UnsPacket.data(value=self._subscribed_message_count, time=time)
+                subscribed_bytes_packet = UnsPacket.data(
+                    value=round(self._subscribed_message_bytes / 1024),
+                    uom="kB",
+                    time=time,
+                )
+                await self.publish_raw(published_count_topic, UnsPacket.to_json(published_count_packet), qos=0, retain=False)
+                await self.publish_raw(published_bytes_topic, UnsPacket.to_json(published_bytes_packet), qos=0, retain=False)
+                await self.publish_raw(subscribed_count_topic, UnsPacket.to_json(subscribed_count_packet), qos=0, retain=False)
+                await self.publish_raw(subscribed_bytes_topic, UnsPacket.to_json(subscribed_bytes_packet), qos=0, retain=False)
+                self._published_message_count = 0
+                self._published_message_bytes = 0
+                self._subscribed_message_count = 0
+                self._subscribed_message_bytes = 0
+                await asyncio.sleep(self.stats_interval)
         except asyncio.CancelledError:
             pass

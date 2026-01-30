@@ -72,6 +72,7 @@ async def main() -> None:
         tls=cfg.tls,
         client_id=cfg.client_id,
         topic_builder=tb,
+        instance_name="py-load-test",
         reconnect_interval=1,
     )
     await client.connect()

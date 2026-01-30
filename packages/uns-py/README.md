@@ -3,8 +3,8 @@
 Lightweight UNS MQTT client for Python. Provides:
 - Topic builder compatible with UNS infra topics (`uns-infra/<package>/<version>/<process>/`).
 - Async publish/subscribe via MQTT v5 (using `asyncio-mqtt`).
-- Infra status topics (`alive`, `uptime`) with MQTT will.
-- Minimal UNS packet builder/parser (data/table).
+- Process + instance status topics (active/heap/uptime/alive + stats).
+- Minimal UNS packet builder/parser (data/table) aligned with TS core.
 
 ## Install (editable)
 ```bash
@@ -23,20 +23,21 @@ poetry run uns-kit-py write-config --path config.json
 ## Quick start
 ```python
 import asyncio
-from uns_kit import UnsMqttClient, TopicBuilder, UnsPacket
+from uns_kit import UnsConfig, UnsPacket, UnsProxyProcess
 
 async def main():
-    tb = TopicBuilder(package_name="uns-kit", package_version="0.0.1", process_name="py-demo")
-    client = UnsMqttClient(host="mqtt-broker", topic_builder=tb, reconnect_interval=1)
-    await client.connect()
+    process = UnsProxyProcess("mqtt-broker", config=UnsConfig(host="mqtt-broker"))
+    await process.start()
+    mqtt = await process.create_mqtt_proxy("py")
 
     # Subscribe
-    async with client.messages("uns-infra/#") as messages:
-        await client.publish_packet("raw/data/", UnsPacket.data(value=1, uom="count"))
+    async with mqtt.client.messages("uns-infra/#") as messages:
+        await mqtt.publish_packet("raw/data/", UnsPacket.data(value=1, uom="count"))
         msg = await messages.__anext__()
         print(msg.topic, msg.payload.decode())
 
-    await client.close()
+    await mqtt.close()
+    await process.stop()
 
 asyncio.run(main())
 ```
@@ -50,7 +51,7 @@ async for msg in client.resilient_messages("uns-infra/#"):
 ### Examples
 - `examples/publish.py` — publish 5 data packets.
 - `examples/subscribe.py` — resilient subscription with auto-reconnect.
-- `examples/load_test.py` — simple publish burst (configurable via env).
+- `examples/load_test.py` — interactive publish burst.
 
 ### Create a new project
 ```bash
@@ -68,6 +69,6 @@ pnpm run py:sandbox
 This creates `sandbox-app-py/` using the default Python template.
 
 ## Notes
-- Default QoS is 0; will message is retained on `<statusTopic>alive`.
-- Uptime is published every 10 seconds on `<statusTopic>uptime`.
-- Packet shape mirrors the TypeScript core: `{"version":1,"message":{"data":{...}},"sequenceId":0}`.
+- Default QoS is 0.
+- Instance status topics are published every 10 seconds; stats every 60 seconds.
+- Packet shape mirrors the TypeScript core: `{"version":"1.3.0","message":{"data":{...}},"sequenceId":0}`.

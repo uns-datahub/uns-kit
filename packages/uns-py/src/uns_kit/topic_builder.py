@@ -33,6 +33,16 @@ class TopicBuilder:
     def handover_topic(self) -> str:
         return f"{self._base}handover"
 
+    def wildcard_active_topic(self) -> str:
+        parts = self._base.strip("/").split("/")
+        if len(parts) < 2:
+            raise ValueError("processStatusTopic must follow 'uns-infra/<package>/<version>/<process>/'")
+        return "/".join(parts[:2]) + "/+/+/active"
+
+    def instance_status_topic(self, instance_name: str) -> str:
+        sanitized = self.sanitize_topic_part(instance_name)
+        return f"{self._base}{sanitized}/"
+
     @staticmethod
     def extract_base_topic(full_topic: str) -> str:
         parts = full_topic.split("/")
