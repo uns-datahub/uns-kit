@@ -27,6 +27,7 @@ poetry run run publish --host localhost:1883 --topic raw/data/ --value 1
 poetry run python src/load_test.py
 ```
 The script will prompt for confirmation, iterations, delay, and topic.
+Tip: if you run multiple clients at once, avoid reusing the same MQTT clientId.
 
 ## Status topics
 The default `main.py` uses `UnsProxyProcess` + `UnsMqttProxy`, which publish:

@@ -73,7 +73,7 @@ async def main() -> None:
         username=cfg.username or None,
         password=cfg.password or None,
         tls=cfg.tls,
-        client_id=cfg.client_id,
+        client_id=None,
         topic_builder=tb,
         instance_name="py-load-test",
         reconnect_interval=1,

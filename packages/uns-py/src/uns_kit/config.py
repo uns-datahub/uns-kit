@@ -33,6 +33,12 @@ class UnsConfig:
             "process_name": data.pop("processName", None),
             "mqtt_sub_to_topics": data.pop("mqttSubToTopics", None),
         }
+        if mapped.get("client_id") == "":
+            mapped["client_id"] = None
+        if data.get("username") == "":
+            data["username"] = None
+        if data.get("password") == "":
+            data["password"] = None
         # Prefer explicit snake_case values when provided.
         for key, value in list(mapped.items()):
             if value is None:

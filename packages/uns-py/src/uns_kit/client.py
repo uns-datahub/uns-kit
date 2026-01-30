@@ -8,6 +8,7 @@ import uuid
 from typing import AsyncIterator, List, Optional
 
 from asyncio_mqtt import Client, MqttError, Message, Will, Topic
+from paho.mqtt.client import MQTTv5, MQTTv311
 
 from .packet import UnsPacket
 from .topic_builder import TopicBuilder
@@ -36,8 +37,8 @@ class UnsMqttClient:
     ):
         self.host = host
         self.port = port
-        self.username = username
-        self.password = password
+        self.username = username if username not in ("", None) else None
+        self.password = password if password not in ("", None) else None
         if client_id:
             self.client_id = client_id
         else:
@@ -79,31 +80,45 @@ class UnsMqttClient:
             qos=0,
             retain=True,
         )
-        kwargs = {
+        base_kwargs = {
             "hostname": self.host,
             "port": self.port,
             "username": self.username,
             "password": self.password,
             "client_id": self.client_id,
             "keepalive": self.keepalive,
-            "clean_session": self.clean_session,
             "will": will,
         }
         if self.tls:
             try:
                 import ssl
-                kwargs["tls_context"] = ssl.create_default_context()
+                base_kwargs["tls_context"] = ssl.create_default_context()
             except Exception:
-                # Fall back to plain connection if TLS context cannot be created
                 pass
-        try:
-            client = Client(**kwargs)
-        except TypeError:
-            kwargs.pop("tls_context", None)
-            client = Client(**kwargs)
-        await client.connect()
-        self._client = client
-        self._connected.set()
+
+        last_error: Exception | None = None
+        for protocol in (MQTTv5, MQTTv311):
+            kwargs = dict(base_kwargs)
+            kwargs["protocol"] = protocol
+            if protocol == MQTTv5:
+                kwargs["clean_start"] = self.clean_session
+            else:
+                kwargs["clean_session"] = self.clean_session
+            try:
+                try:
+                    client = Client(**kwargs)
+                except TypeError:
+                    kwargs.pop("tls_context", None)
+                    client = Client(**kwargs)
+                await client.connect()
+                self._client = client
+                self._connected.set()
+                return
+            except Exception as exc:
+                last_error = exc
+                continue
+        if last_error:
+            raise last_error
 
     async def _ensure_connected(self) -> None:
         if self._connected.is_set():
