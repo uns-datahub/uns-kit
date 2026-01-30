@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from .client import UnsMqttClient
@@ -59,6 +59,6 @@ class UnsProxy:
         attribute = topic_object.get("attribute") or ""
         full_topic = f"{topic_object.get('topic', '')}{asset}/{object_type}/{object_id}/{attribute}"
         if full_topic not in self._produced_topics:
-            topic_object.setdefault("timestamp", isoformat(datetime.utcnow()))
+            topic_object.setdefault("timestamp", isoformat(datetime.now(timezone.utc)))
             self._produced_topics[full_topic] = topic_object
             await self._emit_produced_topics()

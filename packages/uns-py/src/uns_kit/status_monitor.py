@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import tracemalloc
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Callable, Optional
 
 from .client import UnsMqttClient
@@ -58,7 +58,7 @@ class StatusMonitor:
         heap_total_topic = f"{topic_base}heap-total"
         while self._running:
             current, peak = tracemalloc.get_traced_memory()
-            time = datetime.utcnow()
+            time = datetime.now(timezone.utc)
             heap_used = round(current / 1048576)
             heap_total = round(peak / 1048576)
             heap_used_packet = UnsPacket.data(
@@ -78,7 +78,7 @@ class StatusMonitor:
     async def _publish_active_loop(self) -> None:
         topic = self._topic_builder.active_topic()
         while self._running:
-            time = datetime.utcnow()
+            time = datetime.now(timezone.utc)
             active_packet = UnsPacket.data(
                 value=1 if self._active_supplier() else 0,
                 uom="bit",

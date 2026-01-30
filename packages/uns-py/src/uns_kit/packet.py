@@ -94,7 +94,7 @@ class UnsPacket:
         **extra: Any,
     ) -> Dict[str, Any]:
         resolved_time = (
-            time if isinstance(time, str) else isoformat(time or datetime.utcnow())
+            time if isinstance(time, str) else isoformat(time or datetime.now(timezone.utc))
         )
         payload = {
             "value": value,
@@ -127,7 +127,7 @@ class UnsPacket:
             if columns is None:
                 raise ValueError("table() requires either table dict or columns list")
             resolved_time = (
-                time if isinstance(time, str) else isoformat(time or datetime.utcnow())
+                time if isinstance(time, str) else isoformat(time or datetime.now(timezone.utc))
             )
             payload = {
                 "time": resolved_time,
@@ -138,7 +138,7 @@ class UnsPacket:
             payload = dict(table)
             if "time" not in payload:
                 payload["time"] = (
-                    time if isinstance(time, str) else isoformat(time or datetime.utcnow())
+                    time if isinstance(time, str) else isoformat(time or datetime.now(timezone.utc))
                 )
             if data_group is not None and "dataGroup" not in payload:
                 payload["dataGroup"] = data_group

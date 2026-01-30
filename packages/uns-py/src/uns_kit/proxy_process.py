@@ -24,13 +24,14 @@ class UnsProxyProcess:
         self.active = False
         self._activate_delay_s = activate_delay_s
         self.topic_builder = TopicBuilder(config.package_name, config.package_version, self.process_name)
+        process_client_id = config.client_id or f"{self.process_name}-{self.process_id}"
         self._client = UnsMqttClient(
             host,
             port=config.port,
             username=config.username or None,
             password=config.password or None,
             tls=config.tls,
-            client_id=config.client_id,
+            client_id=process_client_id,
             keepalive=config.keepalive,
             clean_session=config.clean_session,
             topic_builder=self.topic_builder,
@@ -75,6 +76,7 @@ class UnsProxyProcess:
         tls: Optional[bool] = None,
         client_id: Optional[str] = None,
     ) -> UnsMqttProxy:
+        resolved_client_id = client_id or f"{self.process_name}-{instance_name}-{self.process_id}"
         proxy = UnsMqttProxy(
             host or self.config.host,
             process_name=self.process_name,
@@ -85,7 +87,7 @@ class UnsProxyProcess:
             username=username if username is not None else self.config.username,
             password=password if password is not None else self.config.password,
             tls=tls if tls is not None else self.config.tls,
-            client_id=client_id,
+            client_id=resolved_client_id,
         )
         await proxy.connect()
         self._proxies.append(proxy)

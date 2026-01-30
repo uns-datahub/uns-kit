@@ -6,6 +6,12 @@ poetry install
 poetry run python src/main.py
 ```
 
+## Data example
+```bash
+poetry run python src/data_example.py
+```
+Requires an upstream publisher sending `raw/data` payloads like `count,timestamp,value`.
+
 If you are developing inside the uns-kit monorepo, install the local package first:
 ```bash
 poetry add -e ../packages/uns-py

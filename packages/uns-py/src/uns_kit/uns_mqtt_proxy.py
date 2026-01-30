@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Optional
 
@@ -180,7 +180,7 @@ class UnsMqttProxy(UnsProxy):
 
         await self.register_unique_topic(
             {
-                "timestamp": isoformat(datetime.utcnow()),
+                "timestamp": isoformat(datetime.now(timezone.utc)),
                 "topic": base_topic,
                 "asset": msg.get("asset"),
                 "assetDescription": msg.get("assetDescription"),
