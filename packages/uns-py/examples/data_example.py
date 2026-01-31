@@ -11,8 +11,10 @@ async def main() -> None:
     cfg = UnsConfig.load(cfg_path) if cfg_path.exists() else UnsConfig(host="localhost")
     process = UnsProxyProcess(cfg.host, cfg)
     await process.start()
+    print("[data-example] Process client connected.")
 
     mqtt_output = await process.create_mqtt_proxy("py-output")
+    print("[data-example] Output proxy connected.")
     mqtt_input = UnsMqttClient(
         cfg.host,
         port=cfg.port,
@@ -25,6 +27,7 @@ async def main() -> None:
         subscriber_active=True,
     )
     await mqtt_input.connect()
+    print("[data-example] Input client connected, subscribing to raw/#")
 
     topic = "enterprise/site/area/line/"
     asset = "asset"
@@ -90,6 +93,7 @@ async def main() -> None:
                     ],
                 }
             )
+            print(f"[data-example] Published transformed attributes for ts={time}")
     except KeyboardInterrupt:
         pass
     finally:

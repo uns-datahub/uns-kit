@@ -3,7 +3,7 @@ import math
 from datetime import datetime
 from pathlib import Path
 
-from uns_kit import UnsConfig, UnsMqttClient
+from uns_kit import UnsConfig, UnsMqttClient, TopicBuilder
 
 
 def load_config() -> UnsConfig:
@@ -59,18 +59,20 @@ async def main() -> None:
     count = prompt_int("How many iterations should be run?", 100, "")
     delay_ms = prompt_int("What should be the delay between intervals in milliseconds?", 0, " ms")
     topic = prompt_topic("Topic to publish to", "raw/data")
+    retain = prompt_bool("Retain each published message so late subscribers see the last value?", True)
     delay_s = delay_ms / 1000.0
 
     log_info(f"Starting load test with {count} messages and {delay_ms} ms delay...")
 
-    tb = cfg.topic_builder()
+    # Use a dedicated identity for load testing to avoid clashing with app processes.
+    tb = TopicBuilder(package_name="uns-loadtest", package_version="0.0.0", process_name="load-tester")
     client = UnsMqttClient(
         cfg.host,
         port=cfg.port,
         username=cfg.username or None,
         password=cfg.password or None,
         tls=cfg.tls,
-        client_id=None,
+        client_id="uns-loadtest-client",
         topic_builder=tb,
         instance_name="py-load-test",
         reconnect_interval=1,
@@ -82,7 +84,7 @@ async def main() -> None:
         now = asyncio.get_event_loop().time()
         sensor_value = simulate_sensor_value(i)
         raw_payload = f"{i},{int(now * 1000)},{sensor_value}"
-        await client.publish_raw(topic, raw_payload)
+        await client.publish_raw(topic, raw_payload, retain=retain)
         if delay_s:
             await asyncio.sleep(delay_s)
 

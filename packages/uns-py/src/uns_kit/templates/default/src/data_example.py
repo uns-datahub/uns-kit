@@ -10,90 +10,99 @@ async def main() -> None:
     cfg = UnsConfig.load(Path("config.json"))
     process = UnsProxyProcess(cfg.host, cfg)
     await process.start()
+    print("[data-example] process client connected")
 
-    mqtt_output = await process.create_mqtt_proxy("py-output")
-    mqtt_input = UnsMqttClient(
+    out = await process.create_mqtt_proxy("py-output")
+    print("[data-example] output proxy connected")
+
+    inp = UnsMqttClient(
         cfg.host,
         port=cfg.port,
         username=cfg.username or None,
         password=cfg.password or None,
         tls=cfg.tls,
-        client_id=None,
+        client_id=f"{cfg.process_name}-data-example-in",
         topic_builder=cfg.topic_builder(),
         instance_name="py-input",
         subscriber_active=True,
     )
-    await mqtt_input.connect()
+    await inp.connect()
+    print(f"[data-example] input client connected to {cfg.host}:{cfg.port or 1883}, subscribing to raw/#")
 
     topic = "enterprise/site/area/line/"
     asset = "asset"
     asset_description = "Sample asset"
     object_type = "energy-resource"
     object_id = "main"
+    data_group = "sensor"
 
     try:
-        async for msg in mqtt_input.resilient_messages("raw/#"):
-            if msg.topic != "raw/data":
-                continue
-            payload = msg.payload.decode()
-            values = payload.split(",")
-            if len(values) < 3:
-                print(f"Skipping malformed raw/data payload: {payload}")
-                continue
+        async with inp.messages("raw/#") as messages:
+            now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+            await out.client.publish_raw("raw/data", f"1,{now_ms},220", retain=True)
+            print("[data-example] sent retained self-test raw/data; waiting for raw/data...")
 
-            count_raw, timestamp_raw, sensor_raw = values[:3]
-            try:
-                number_value = float(count_raw)
-                event_time = datetime.fromtimestamp(int(timestamp_raw) / 1000, tz=timezone.utc)
-                sensor_value = float(sensor_raw)
-            except ValueError:
-                print(f"Skipping malformed raw/data payload: {payload}")
-                continue
+            async for msg in messages:
+                payload = msg.payload.decode(errors="replace") if msg.payload else ""
+                if str(msg.topic) != "raw/data":
+                    continue
 
-            interval_start = isoformat(event_time - timedelta(seconds=1))
-            interval_end = isoformat(event_time)
-            time = isoformat(event_time)
+                parts = payload.split(",")
+                if len(parts) < 3:
+                    print(f"[data-example] skip malformed raw/data: {payload}")
+                    continue
+                try:
+                    number_value = float(parts[0])
+                    event_time_ms = int(parts[1])
+                    sensor_value = float(parts[2])
+                except ValueError:
+                    print(f"[data-example] parse error, skip: {payload}")
+                    continue
 
-            await mqtt_output.publish_mqtt_message(
-                {
-                    "topic": topic,
-                    "asset": asset,
-                    "assetDescription": asset_description,
-                    "objectType": object_type,
-                    "objectId": object_id,
-                    "attributes": [
-                        {
-                            "attribute": "current",
-                            "description": "Simulated current sensor value",
-                            "data": {
-                                "dataGroup": "sensor",
-                                "time": time,
-                                "intervalStart": interval_start,
-                                "intervalEnd": interval_end,
-                                "value": number_value,
-                                "uom": "A",
+                event_time = datetime.fromtimestamp(event_time_ms / 1000, tz=timezone.utc)
+                interval_start = isoformat(event_time - timedelta(seconds=1))
+                interval_end = isoformat(event_time)
+                time = isoformat(event_time)
+
+                await out.publish_mqtt_message(
+                    {
+                        "topic": topic,
+                        "asset": asset,
+                        "assetDescription": asset_description,
+                        "objectType": object_type,
+                        "objectId": object_id,
+                        "attributes": [
+                            {
+                                "attribute": "current",
+                                "description": "Simulated current sensor value",
+                                "data": {
+                                    "dataGroup": data_group,
+                                    "time": time,
+                                    "intervalStart": interval_start,
+                                    "intervalEnd": interval_end,
+                                    "value": number_value,
+                                    "uom": "A",
+                                },
                             },
-                        },
-                        {
-                            "attribute": "voltage",
-                            "description": "Simulated voltage sensor value",
-                            "data": {
-                                "dataGroup": "sensor",
-                                "time": time,
-                                "intervalStart": interval_start,
-                                "intervalEnd": interval_end,
-                                "value": sensor_value,
-                                "uom": "V",
+                            {
+                                "attribute": "voltage",
+                                "description": "Simulated voltage sensor value",
+                                "data": {
+                                    "dataGroup": data_group,
+                                    "time": time,
+                                    "intervalStart": interval_start,
+                                    "intervalEnd": interval_end,
+                                    "value": sensor_value,
+                                    "uom": "V",
+                                },
                             },
-                        },
-                    ],
-                }
-            )
-    except KeyboardInterrupt:
-        pass
+                        ],
+                    }
+                )
+                print(f"[data-example] published transform at {time}")
     finally:
-        await mqtt_input.close()
-        await mqtt_output.close()
+        await inp.close()
+        await out.close()
         await process.stop()
 
 

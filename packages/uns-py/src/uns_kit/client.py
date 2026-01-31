@@ -5,6 +5,7 @@ import contextlib
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import uuid
+import socket
 from typing import AsyncIterator, List, Optional
 
 from asyncio_mqtt import Client, MqttError, Message, Will, Topic
@@ -15,6 +16,9 @@ from .topic_builder import TopicBuilder
 
 
 class UnsMqttClient:
+    _exception_handler_installed = False
+    _exception_handler_loop_id: int | None = None
+
     def __init__(
         self,
         host: str,
@@ -73,7 +77,32 @@ class UnsMqttClient:
         else:
             self.status_topic = self.topic_builder.process_status_topic
 
+    def _install_exception_handler(self) -> None:
+        loop = asyncio.get_running_loop()
+        loop_id = id(loop)
+        if UnsMqttClient._exception_handler_installed and UnsMqttClient._exception_handler_loop_id == loop_id:
+            return
+        original = loop.get_exception_handler()
+
+        def handler(loop: asyncio.AbstractEventLoop, context: dict) -> None:
+            exc = context.get("exception")
+            message = context.get("message", "")
+            if isinstance(exc, MqttError) and "Unexpected disconnect" in str(exc):
+                # Swallow noisy disconnect futures; reconnect logic handles it.
+                return
+            if isinstance(exc, MqttError) and "Future exception was never retrieved" in message:
+                return
+            if original:
+                original(loop, context)
+            else:
+                loop.default_exception_handler(context)
+
+        loop.set_exception_handler(handler)
+        UnsMqttClient._exception_handler_installed = True
+        UnsMqttClient._exception_handler_loop_id = loop_id
+
     async def _connect_once(self) -> None:
+        await self._probe_socket()
         will = Will(
             topic=f"{self.status_topic}alive",
             payload=b"",
@@ -97,13 +126,17 @@ class UnsMqttClient:
                 pass
 
         last_error: Exception | None = None
-        for protocol in (MQTTv5, MQTTv311):
+        # Prefer MQTT 3.1.1 for widest broker compatibility (some brokers
+        # allow connect with MQTTv5 but then drop subscriptions unexpectedly).
+        for protocol in (MQTTv311, MQTTv5):
             kwargs = dict(base_kwargs)
             kwargs["protocol"] = protocol
             if protocol == MQTTv5:
                 kwargs["clean_start"] = self.clean_session
+                kwargs.pop("clean_session", None)
             else:
                 kwargs["clean_session"] = self.clean_session
+                kwargs.pop("clean_start", None)
             try:
                 try:
                     client = Client(**kwargs)
@@ -120,12 +153,23 @@ class UnsMqttClient:
         if last_error:
             raise last_error
 
+    async def _probe_socket(self) -> None:
+        try:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                lambda: socket.create_connection((self.host, self.port or 1883), timeout=2),
+            )
+        except Exception as exc:
+            raise MqttError(f"Cannot reach MQTT broker at {self.host}:{self.port or 1883}") from exc
+
     async def _ensure_connected(self) -> None:
         if self._connected.is_set():
             return
         async with self._connect_lock:
             if self._connected.is_set():
                 return
+            self._install_exception_handler()
             backoff = self.reconnect_interval
             while not self._closing:
                 try:
@@ -197,11 +241,9 @@ class UnsMqttClient:
             try:
                 if isinstance(topics, str):
                     await self._client.subscribe(topics)
-                    matchers = [Topic(topics)]
                 else:
                     for t in topics:
                         await self._client.subscribe(t)
-                    matchers = [Topic(t) for t in topics]
             except MqttError:
                 self._connected.clear()
                 raise
@@ -209,8 +251,6 @@ class UnsMqttClient:
             async def wrapped() -> AsyncIterator[Message]:
                 try:
                     async for msg in messages:
-                        if matchers and not any(m.matches(msg.topic) for m in matchers):
-                            continue
                         self._subscribed_message_count += 1
                         self._subscribed_message_bytes += len(msg.payload or b"")
                         yield msg
