@@ -38,9 +38,9 @@ async def main() -> None:
 
     try:
         async with inp.messages("raw/#") as messages:
-            now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
-            await out.client.publish_raw("raw/data", f"1,{now_ms},220", retain=True)
-            print("[data-example] sent retained self-test raw/data; waiting for raw/data...")
+            # Clean any old retained self-test and avoid adding a new one.
+            await out.client.publish_raw("raw/data", "", retain=True)
+            print("[data-example] cleared retained raw/data; waiting for incoming raw/data...")
 
             async for msg in messages:
                 payload = msg.payload.decode(errors="replace") if msg.payload else ""
