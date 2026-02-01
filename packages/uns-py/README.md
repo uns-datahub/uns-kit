@@ -75,7 +75,7 @@ This creates `sandbox-app-py/` using the default Python template.
 
 ## TODO (parity with TS core)
 - Handover manager (cross-version active detection + handover_* messages).
-- Publish throttling/queue and delta mode parity with TS `MessageMode`.
+- Publish throttling/queue.
 - Status parity (publisher/subscriber active flags everywhere, richer metrics).
 - API endpoints registry (to mirror @uns-kit/api produced endpoints).
 - Optional: dictionary/measurement helpers + CLI wrapper.

@@ -5,6 +5,7 @@ from .config import UnsConfig
 from .status_monitor import StatusMonitor
 from .uns_mqtt_proxy import UnsMqttProxy, MessageMode
 from .proxy_process import UnsProxyProcess
+from .version import __version__
 
 __all__ = [
     "TopicBuilder",
@@ -17,4 +18,5 @@ __all__ = [
     "UnsMqttProxy",
     "MessageMode",
     "UnsProxyProcess",
+    "__version__",
 ]
