@@ -35,6 +35,20 @@ The goal is to give teams a consistent, tested foundation for the Unified Namesp
 
 Each package is published independently to npm and can be consumed à la carte.
 
+## Workspace scripts (root `package.json`)
+
+Use these when hacking on the monorepo itself:
+
+- `ts:version:patch` – bump patch version for all `@uns-kit/*` packages (pnpm recursive).
+- `ts:build` – build all TS packages in the workspace.
+- `ts:publish` – publish all `@uns-kit/*` packages (expects npm auth).
+- `ts:sandbox:*` – run sandbox TypeScript examples from `sandbox-app` (`data`, `load-test`, `table`, `api`, `cron`, `uns-gateway-cli`).
+- `ts:configure:*` – run CLI configure commands against `sandbox-app` (devops, vscode, codegen, api, cron, templates, temporal, python, uns-reference).
+- `ts:core:pull-request` – build core then run the PR helper script.
+- `ts:core:generate-uns-topics-tags` – build core then refresh UNS topics/tags.
+- `py:sandbox:data-example` / `py:sandbox:load-test` – run the Python sandbox example and load test (installs local `uns-py` in editable mode).
+- `py:build` / `py:publish` – build or publish the Python package.
+
 ## uns-kit/cli Quickstart
 
 - Scaffold a new UNS app with the CLI (no global install required):
