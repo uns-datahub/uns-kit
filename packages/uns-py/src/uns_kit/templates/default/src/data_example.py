@@ -10,10 +10,11 @@ async def main() -> None:
     cfg = UnsConfig.load(Path("config.json"))
     process = UnsProxyProcess(cfg.host, cfg)
     await process.start()
-    print("[data-example] process client connected")
+    print(f"[data-example] process client connected to {cfg.host}:{cfg.port or 1883}")
 
     out = await process.create_mqtt_proxy("py-output")
-    print("[data-example] output proxy connected")
+    out.client.publisher_active = True
+    print(f"[data-example] output proxy connected to {cfg.host}:{cfg.port or 1883}")
 
     inp = UnsMqttClient(
         cfg.host,
@@ -38,9 +39,8 @@ async def main() -> None:
 
     try:
         async with inp.messages("raw/#") as messages:
-            # Clean any old retained self-test and avoid adding a new one.
             await out.client.publish_raw("raw/data", "", retain=True)
-            print("[data-example] cleared retained raw/data; waiting for incoming raw/data...")
+            print("[data-example] cleared retained raw/data; subscribed to 1 topic (raw/#); waiting for incoming raw/data...")
 
             async for msg in messages:
                 payload = msg.payload.decode(errors="replace") if msg.payload else ""
