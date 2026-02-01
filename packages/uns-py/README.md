@@ -72,3 +72,10 @@ This creates `sandbox-app-py/` using the default Python template.
 - Default QoS is 0.
 - Instance status topics are published every 10 seconds; stats every 60 seconds.
 - Packet shape mirrors the TypeScript core: `{"version":"1.3.0","message":{"data":{...}},"sequenceId":0}`.
+
+## TODO (parity with TS core)
+- Handover manager (cross-version active detection + handover_* messages).
+- Publish throttling/queue and delta mode parity with TS `MessageMode`.
+- Status parity (publisher/subscriber active flags everywhere, richer metrics).
+- API endpoints registry (to mirror @uns-kit/api produced endpoints).
+- Optional: dictionary/measurement helpers + CLI wrapper.

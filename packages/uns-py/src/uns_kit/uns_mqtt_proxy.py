@@ -220,15 +220,15 @@ class UnsMqttProxy(UnsProxy):
             if last:
                 interval_ms = int((current_time - last.timestamp).total_seconds() * 1000)
                 packet["interval"] = interval_ms
-                self._last_values[publish_topic] = LastValueEntry(new_value, new_uom, current_time)
                 if value_is_cumulative and isinstance(new_value, (int, float)) and isinstance(last.value, (int, float)):
-                    if new_value == 0:
-                        return
                     delta = new_value - last.value
-                    data["value"] = new_value if delta < 0 else delta
+                    data["value"] = delta
+                    data["time"] = isoformat(current_time)
+                self._last_values[publish_topic] = LastValueEntry(new_value, new_uom, current_time)
                 await self.client.publish_raw(publish_topic, UnsPacket.to_json(packet))
             else:
                 self._last_values[publish_topic] = LastValueEntry(new_value, new_uom, current_time)
+                # For delta mode with no previous value, skip to avoid bogus delta; otherwise publish.
                 if not value_is_cumulative:
                     await self.client.publish_raw(publish_topic, UnsPacket.to_json(packet))
         elif isinstance(table, dict):
