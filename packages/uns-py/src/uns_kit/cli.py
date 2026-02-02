@@ -128,6 +128,8 @@ async def _run_subscribe(
 def create(dest: str):
     template_root = importlib.resources.files("uns_kit").joinpath("templates/default")
     dest_path = os.path.abspath(dest)
+    project_name = Path(dest_path).name
+    package_version = "0.0.0"
     if os.path.exists(dest_path):
         raise click.ClickException(f"Destination already exists: {dest_path}")
     shutil.copytree(template_root, dest_path)
@@ -136,9 +138,18 @@ def create(dest: str):
     if config_path.exists():
         try:
             data = json.loads(config_path.read_text())
-            project_name = Path(dest_path).name
-            data.setdefault("uns", {})["packageName"] = project_name
+            data.setdefault("uns", {})  # keep structure for processName, etc.
             config_path.write_text(json.dumps(data, indent=2))
+        except Exception:
+            pass
+    # personalize package.json for PM2 metadata
+    pkg_path = Path(dest_path) / "package.json"
+    if pkg_path.exists():
+        try:
+            pkg_data = json.loads(pkg_path.read_text())
+            pkg_data["name"] = project_name
+            pkg_data["version"] = package_version
+            pkg_path.write_text(json.dumps(pkg_data, indent=2))
         except Exception:
             pass
     click.echo(f"Created UNS Python app at {dest_path}")
@@ -166,8 +177,6 @@ def write_config(path: str):
             "clean": True
         },
         "uns": {
-            "packageName": project_name,
-            "packageVersion": "0.0.1",
             "processName": "uns-process"
         }
     }

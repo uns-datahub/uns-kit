@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from .topic_builder import TopicBuilder
 from .version import __version__
@@ -34,6 +34,7 @@ class UnsConfig:
 
         infra = data.get("infra", {}) or {}
         uns_section = data.get("uns", {}) or {}
+        pkg_name, pkg_version = _read_package_metadata(path)
 
         proto = (infra.get("protocol") or "").lower()
         tls = proto in ("mqtts", "ssl", "wss")
@@ -52,8 +53,8 @@ class UnsConfig:
             mqtt_sub_to_topics=infra.get("mqttSubToTopics"),
             keepalive=infra.get("keepalive", 60),
             clean_session=infra.get("clean", True),
-            package_name=uns_section.get("packageName", "uns-kit"),
-            package_version=uns_section.get("packageVersion") or __version__,
+            package_name=uns_section.get("packageName") or pkg_name or "uns-kit",
+            package_version=uns_section.get("packageVersion") or pkg_version or __version__,
             process_name=uns_section.get("processName", "uns-process"),
         )
 
@@ -88,3 +89,20 @@ class UnsConfig:
 
 def _none_if_empty(value: Optional[str]) -> Optional[str]:
     return None if value == "" else value
+
+
+def _read_package_metadata(config_path: Path) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Read name/version from the nearest package.json beside the config (if present).
+    Falls back to None when not available or invalid.
+    """
+    pkg_path = config_path.parent / "package.json"
+    if not pkg_path.exists():
+        return None, None
+    try:
+        pkg = json.loads(pkg_path.read_text())
+        name = pkg.get("name")
+        version = pkg.get("version")
+        return (name if isinstance(name, str) else None, version if isinstance(version, str) else None)
+    except Exception:
+        return None, None
