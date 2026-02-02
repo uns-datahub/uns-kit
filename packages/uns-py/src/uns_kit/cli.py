@@ -131,6 +131,16 @@ def create(dest: str):
     if os.path.exists(dest_path):
         raise click.ClickException(f"Destination already exists: {dest_path}")
     shutil.copytree(template_root, dest_path)
+    # personalize config with project name
+    config_path = Path(dest_path) / "config.json"
+    if config_path.exists():
+        try:
+            data = json.loads(config_path.read_text())
+            project_name = Path(dest_path).name
+            data.setdefault("uns", {})["packageName"] = project_name
+            config_path.write_text(json.dumps(data, indent=2))
+        except Exception:
+            pass
     click.echo(f"Created UNS Python app at {dest_path}")
     click.echo("Next steps:")
     click.echo(f"  1) cd {dest_path}")
@@ -142,6 +152,7 @@ def create(dest: str):
 @cli.command("write-config", help="Write a minimal config.json scaffold.")
 @click.option("--path", default="config.json", show_default=True)
 def write_config(path: str):
+    project_name = Path(path).resolve().parent.name
     data = {
         "infra": {
             "host": "localhost",
@@ -155,7 +166,7 @@ def write_config(path: str):
             "clean": True
         },
         "uns": {
-            "packageName": "uns-kit",
+            "packageName": project_name,
             "packageVersion": "0.0.1",
             "processName": "uns-process"
         }
