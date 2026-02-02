@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import os
+import re
 import shutil
 import importlib.resources
 from pathlib import Path
-from typing import Optional
+import subprocess
+import urllib.error
+import urllib.request
+from typing import Any, Dict, Optional, Tuple
 
 import click
 
@@ -129,26 +134,49 @@ def create(dest: str):
     template_root = importlib.resources.files("uns_kit").joinpath("templates/default")
     dest_path = os.path.abspath(dest)
     project_name = Path(dest_path).name
-    package_version = "0.0.0"
+    initial_app_version = "0.1.0"
     if os.path.exists(dest_path):
         raise click.ClickException(f"Destination already exists: {dest_path}")
     shutil.copytree(template_root, dest_path)
-    # personalize config with project name
+    pyproject_path = Path(dest_path) / "pyproject.toml"
+    if pyproject_path.exists():
+        try:
+            initial_app_version = _read_poetry_version(pyproject_path)
+        except Exception:
+            pass
+    # Personalize config.json with project identity (TS-style nested config).
     config_path = Path(dest_path) / "config.json"
     if config_path.exists():
         try:
             data = json.loads(config_path.read_text())
-            data.setdefault("uns", {})  # keep structure for processName, etc.
+            infra = data.setdefault("infra", {})
+            uns_cfg = data.setdefault("uns", {})
+
+            sanitized = TopicBuilder.sanitize_topic_part(project_name)
+            # Keep a human-readable packageName; the TopicBuilder will sanitize for MQTT.
+            uns_cfg["packageName"] = project_name
+            # Use sanitized processName to avoid invalid topic parts.
+            uns_cfg["processName"] = sanitized
+            # Set an initial packageVersion (controller/deploy tags may override later).
+            uns_cfg["packageVersion"] = initial_app_version
+
+            infra["clientId"] = sanitized
             config_path.write_text(json.dumps(data, indent=2))
         except Exception:
             pass
-    # personalize package.json for PM2 metadata
+    # Personalize pyproject.toml so pip/poetry builds succeed with a project-specific name/module.
+    if pyproject_path.exists():
+        try:
+            _personalize_pyproject(pyproject_path, project_name)
+        except Exception:
+            pass
+    # Personalize package.json for PM2 metadata (optional; controller also writes this for python RTT nodes).
     pkg_path = Path(dest_path) / "package.json"
     if pkg_path.exists():
         try:
             pkg_data = json.loads(pkg_path.read_text())
             pkg_data["name"] = project_name
-            pkg_data["version"] = package_version
+            pkg_data["version"] = initial_app_version
             pkg_path.write_text(json.dumps(pkg_data, indent=2))
         except Exception:
             pass
@@ -156,7 +184,7 @@ def create(dest: str):
     click.echo("Next steps:")
     click.echo(f"  1) cd {dest_path}")
     click.echo("  2) poetry install")
-    click.echo("  3) poetry run python src/main.py")
+    click.echo("  3) poetry run python main.py")
     click.echo("  4) Edit config.json with your MQTT host/credentials")
 
 
@@ -164,6 +192,7 @@ def create(dest: str):
 @click.option("--path", default="config.json", show_default=True)
 def write_config(path: str):
     project_name = Path(path).resolve().parent.name
+    sanitized = TopicBuilder.sanitize_topic_part(project_name)
     data = {
         "infra": {
             "host": "localhost",
@@ -171,17 +200,305 @@ def write_config(path: str):
             "username": "",
             "password": "",
             "tls": False,
-            "clientId": "uns-py",
+            "clientId": sanitized,
             "mqttSubToTopics": [],
             "keepalive": 60,
             "clean": True
         },
         "uns": {
-            "processName": "uns-process"
+            "packageName": project_name,
+            "packageVersion": "0.1.0",
+            "processName": sanitized
         }
     }
     Path(path).write_text(json.dumps(data, indent=2))
     click.echo(f"Wrote {path}")
+
+
+@cli.command("configure-devops", help="Add Azure DevOps settings and pipeline to a project.")
+@click.argument("dest", required=False, default=".")
+@click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing azure-pipelines.yml")
+def configure_devops(dest: str, overwrite: bool):
+    dest_path = Path(dest).resolve()
+    config_path = dest_path / "config.json"
+    if not config_path.exists():
+        click.echo(f"config.json not found at {config_path}, generating default.")
+        write_config(str(config_path))
+
+    config = json.loads(config_path.read_text())
+    org, project = _prompt_devops(config)
+    config.setdefault("devops", {})
+    config["devops"]["provider"] = "azure-devops"
+    config["devops"]["organization"] = org
+    config["devops"]["project"] = project
+    config_path.write_text(json.dumps(config, indent=2))
+    click.echo(f"Updated devops settings in {config_path}")
+
+    pipeline_template = importlib.resources.files("uns_kit").joinpath("templates/azure-pipelines.yml")
+    pipeline_target = dest_path / "azure-pipelines.yml"
+    if pipeline_target.exists() and not overwrite:
+        click.echo("azure-pipelines.yml already exists (skipped). Use --overwrite to replace.")
+    else:
+        shutil.copyfile(pipeline_template, pipeline_target)
+        click.echo(f"Wrote {pipeline_target}")
+
+    click.echo("DevOps configuration complete. Next steps:")
+    click.echo("  1) Commit config.json and azure-pipelines.yml")
+    click.echo("  2) Set AZURE_PAT in your CI or local env for pipeline access")
+
+
+def _prompt_devops(config: dict) -> Tuple[str, str]:
+    default_org = (config.get("devops") or {}).get("organization") or os.environ.get("AZURE_ORG") or ""
+    default_proj = (config.get("devops") or {}).get("project") or os.environ.get("AZURE_PROJECT") or ""
+    org = click.prompt("Azure DevOps organization", default=default_org or None, type=str)
+    project = click.prompt("Azure DevOps project", default=default_proj or None, type=str)
+    return org.strip(), project.strip()
+
+
+@cli.command("pull-request", help="Create an Azure DevOps pull request for a Python project (bumps version, commits, pushes, opens PR).")
+@click.argument("dest", required=False, default=".")
+def pull_request(dest: str):
+    dest_path = Path(dest).resolve()
+
+    # Require a git repo and clean tree (mirrors TS behavior).
+    _assert_git_clean(dest_path)
+    current_branch = _git_output(dest_path, ["rev-parse", "--abbrev-ref", "HEAD"]).strip()
+
+    config = _load_json(dest_path / "config.json")
+    devops = (config.get("devops") if isinstance(config, dict) else {}) or {}
+    org = (devops.get("organization") or "").strip()
+    project = (devops.get("project") or "").strip()
+    if not org or not project:
+        raise click.ClickException("Missing devops.organization/devops.project in config.json. Run `uns-kit-py configure-devops` first.")
+
+    token = (os.environ.get("AZURE_PAT") or "").strip()
+    if not token:
+        token = click.prompt(
+            f"Azure DevOps PAT (create one at https://dev.azure.com/{org}/_usersSettings/tokens)",
+            hide_input=True,
+            type=str,
+        ).strip()
+    if len(token) < 10:
+        raise click.ClickException("AZURE_PAT token looks too short.")
+
+    repo_name = _infer_repo_name(dest_path)
+    repo = _azure_get_repo(org, project, repo_name, token)
+    default_branch_ref = (repo.get("defaultBranch") or "refs/heads/master").strip()
+    default_branch = default_branch_ref.replace("refs/heads/", "")
+    if default_branch and current_branch == default_branch:
+        raise click.ClickException(f"Refusing to create PR from default branch ({default_branch}). Create a feature branch first.")
+
+    pyproject_path = dest_path / "pyproject.toml"
+    current_version = _read_poetry_version(pyproject_path)
+    new_version = click.prompt("Version tag for this PR", default=current_version, type=str).strip()
+    if not new_version:
+        raise click.ClickException("Version is required.")
+    _assert_version_tag_unique(dest_path, new_version)
+
+    _write_poetry_version(pyproject_path, new_version)
+    _git(dest_path, ["add", "pyproject.toml"])
+    _git(dest_path, ["commit", "-m", f"Set new production version: {new_version}"])
+    _git(dest_path, ["push", "origin", current_branch])
+
+    title = click.prompt("Title for the pull request", type=str).strip()
+    description = click.prompt("Description for the pull request", default="", type=str)
+
+    pr = _azure_create_pr(
+        org=org,
+        project=project,
+        repo_id=str(repo.get("id") or ""),
+        token=token,
+        source_branch=current_branch,
+        target_ref=default_branch_ref,
+        title=title,
+        description=description,
+        label=new_version,
+    )
+    pr_id = pr.get("pullRequestId")
+    pr_url = pr.get("url") or f"https://dev.azure.com/{org}/{project}/_git/{repo_name}/pullrequest/{pr_id}"
+    click.echo(f"Pull request created: {pr_url}")
+
+
+def _load_json(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        raise click.ClickException(f"Missing {path}.")
+    try:
+        data = json.loads(path.read_text())
+        if not isinstance(data, dict):
+            raise ValueError("not a JSON object")
+        return data
+    except Exception as exc:
+        raise click.ClickException(f"Failed to read {path}: {exc}")
+
+
+def _git(cwd: Path, args: list[str]) -> None:
+    subprocess.run(["git", *args], cwd=str(cwd), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+
+def _git_output(cwd: Path, args: list[str]) -> str:
+    out = subprocess.check_output(["git", *args], cwd=str(cwd), stderr=subprocess.STDOUT)
+    return out.decode("utf-8", errors="replace")
+
+
+def _assert_git_clean(cwd: Path) -> None:
+    status = _git_output(cwd, ["status", "--porcelain"]).strip()
+    if status:
+        raise click.ClickException("Repository needs to be clean. Please commit or stash changes before creating a PR.")
+
+
+def _infer_repo_name(cwd: Path) -> str:
+    # Prefer parsing origin remote; fallback to folder name.
+    try:
+        remote = _git_output(cwd, ["remote", "get-url", "origin"]).strip()
+    except Exception:
+        remote = ""
+
+    if remote:
+        # https://dev.azure.com/org/project/_git/repo
+        m = re.search(r"/_git/([^/]+?)(?:\\.git)?$", remote)
+        if m:
+            return m.group(1)
+        # git@ssh.dev.azure.com:v3/org/project/repo
+        m = re.search(r":v3/[^/]+/[^/]+/([^/]+?)(?:\\.git)?$", remote)
+        if m:
+            return m.group(1)
+        # fallback last path segment
+        tail = remote.rstrip("/").split("/")[-1]
+        if tail:
+            return tail.replace(".git", "")
+
+    return cwd.name
+
+
+def _read_poetry_version(pyproject_path: Path) -> str:
+    text = pyproject_path.read_text()
+    in_section = False
+    for line in text.splitlines():
+        if line.strip() == "[tool.poetry]":
+            in_section = True
+            continue
+        if in_section and line.startswith("[") and line.strip().endswith("]"):
+            break
+        if in_section:
+            m = re.match(r'^version\\s*=\\s*\"([^\"]+)\"', line.strip())
+            if m:
+                return m.group(1)
+    raise click.ClickException(f"Could not find tool.poetry version in {pyproject_path}")
+
+
+def _write_poetry_version(pyproject_path: Path, new_version: str) -> None:
+    lines = pyproject_path.read_text().splitlines()
+    out: list[str] = []
+    in_section = False
+    changed = False
+    for line in lines:
+        if line.strip() == "[tool.poetry]":
+            in_section = True
+            out.append(line)
+            continue
+        if in_section and line.startswith("[") and line.strip().endswith("]"):
+            in_section = False
+        if in_section and not changed and re.match(r"^version\\s*=", line.strip()):
+            out.append(f'version = "{new_version}"')
+            changed = True
+        else:
+            out.append(line)
+    if not changed:
+        raise click.ClickException(f"Could not update version in {pyproject_path} (tool.poetry section missing?)")
+    pyproject_path.write_text("\n".join(out) + "\n")
+
+
+def _assert_version_tag_unique(cwd: Path, version: str) -> None:
+    try:
+        tags = _git_output(cwd, ["ls-remote", "--tags", "origin"])
+    except Exception as exc:
+        raise click.ClickException(f"Failed to list remote tags: {exc}")
+    if f"refs/tags/{version}" in tags:
+        raise click.ClickException(f"Version tag {version} already exists on the remote. Choose another version.")
+
+
+def _azure_request(method: str, url: str, token: str, data: Optional[dict] = None) -> dict:
+    raw = None if data is None else json.dumps(data).encode("utf-8")
+    auth = base64.b64encode(f":{token}".encode("utf-8")).decode("ascii")
+    req = urllib.request.Request(url, data=raw, method=method)
+    req.add_header("Authorization", f"Basic {auth}")
+    req.add_header("Accept", "application/json")
+    if raw is not None:
+        req.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(req) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+            return json.loads(body) if body else {}
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace") if hasattr(e, "read") else str(e)
+        raise click.ClickException(f"Azure DevOps API error {e.code}: {body}")
+
+
+def _azure_get_repo(org: str, project: str, repo_name: str, token: str) -> dict:
+    url = f"https://dev.azure.com/{org}/{project}/_apis/git/repositories/{repo_name}?api-version=7.1-preview.1"
+    return _azure_request("GET", url, token)
+
+
+def _azure_create_pr(
+    *,
+    org: str,
+    project: str,
+    repo_id: str,
+    token: str,
+    source_branch: str,
+    target_ref: str,
+    title: str,
+    description: str,
+    label: str,
+) -> dict:
+    if not repo_id:
+        raise click.ClickException("Azure repository id missing; cannot create PR.")
+    url = f"https://dev.azure.com/{org}/{project}/_apis/git/repositories/{repo_id}/pullrequests?api-version=7.1-preview.1"
+    payload = {
+        "sourceRefName": f"refs/heads/{source_branch}",
+        "targetRefName": target_ref,
+        "title": title,
+        "description": description,
+        "labels": [{"name": label}],
+    }
+    return _azure_request("POST", url, token, payload)
+
+
+def _to_distribution_name(name: str) -> str:
+    # PyPI distribution name: keep it readable and normalized.
+    value = re.sub(r"[^a-zA-Z0-9_-]+", "-", name).strip("-").lower()
+    value = re.sub(r"-{2,}", "-", value)
+    return value or "uns-py-app"
+
+
+def _to_module_name(name: str) -> str:
+    value = re.sub(r"[^a-zA-Z0-9_]+", "_", name).strip("_").lower()
+    value = re.sub(r"_{2,}", "_", value)
+    if not value:
+        value = "uns_py_app"
+    if value[0].isdigit():
+        value = f"app_{value}"
+    return value
+
+
+def _personalize_pyproject(pyproject_path: Path, project_name: str) -> None:
+    dist_name = _to_distribution_name(project_name)
+    module_name = _to_module_name(project_name)
+
+    text = pyproject_path.read_text()
+    text = re.sub(r'(?m)^name\\s*=\\s*\"[^\"]+\"\\s*$', f'name = \"{dist_name}\"', text)
+    text = re.sub(
+        r'(?m)^packages\\s*=\\s*\\[\\s*\\{\\s*include\\s*=\\s*\"[^\"]+\"\\s*\\}\\s*\\]\\s*$',
+        f'packages = [{{ include = \"{module_name}\" }}]',
+        text,
+    )
+    pyproject_path.write_text(text)
+
+    # Rename the placeholder package folder to match the configured include (if present).
+    pkg_dir = pyproject_path.parent / "uns_py_app"
+    target_dir = pyproject_path.parent / module_name
+    if pkg_dir.exists() and module_name != "uns_py_app" and not target_dir.exists():
+        pkg_dir.rename(target_dir)
 
 
 def main():

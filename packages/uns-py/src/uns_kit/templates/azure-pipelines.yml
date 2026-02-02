@@ -1,0 +1,31 @@
+trigger:
+  branches:
+    include:
+      - master
+      - main
+
+pool:
+  vmImage: "ubuntu-latest"
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.12"
+
+  - script: |
+      python -m pip install --upgrade pip
+      pip install poetry
+    displayName: "Install Poetry"
+
+  - script: |
+      poetry install
+    displayName: "Install dependencies"
+
+  - script: |
+      poetry run pytest
+    displayName: "Run tests"
+
+  - script: |
+      poetry build
+    displayName: "Build package"
+
