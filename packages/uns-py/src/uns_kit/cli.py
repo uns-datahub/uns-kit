@@ -143,15 +143,22 @@ def create(dest: str):
 @click.option("--path", default="config.json", show_default=True)
 def write_config(path: str):
     data = {
-        "host": "localhost",
-        "port": 1883,
-        "username": "",
-        "password": "",
-        "tls": False,
-        "clientId": "uns-py",
-        "packageName": "uns-kit",
-        "packageVersion": "0.0.1",
-        "processName": "uns-process",
+        "infra": {
+            "host": "localhost",
+            "port": 1883,
+            "username": "",
+            "password": "",
+            "tls": False,
+            "clientId": "uns-py",
+            "mqttSubToTopics": [],
+            "keepalive": 60,
+            "clean": True
+        },
+        "uns": {
+            "packageName": "uns-kit",
+            "packageVersion": "0.0.1",
+            "processName": "uns-process"
+        }
     }
     Path(path).write_text(json.dumps(data, indent=2))
     click.echo(f"Wrote {path}")

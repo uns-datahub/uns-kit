@@ -8,9 +8,7 @@ from uns_kit import UnsConfig, UnsMqttClient, TopicBuilder
 
 def load_config() -> UnsConfig:
     cfg_path = Path("config.json")
-    if cfg_path.exists():
-        return UnsConfig.load(cfg_path)
-    return UnsConfig(host="localhost")
+    return UnsConfig.load(cfg_path)
 
 
 def simulate_sensor_value(step: int) -> float:

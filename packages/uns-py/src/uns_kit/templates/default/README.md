@@ -36,4 +36,4 @@ The default `main.py` uses `UnsProxyProcess` + `UnsMqttProxy`, which publish:
 - transformation stats (`.../<instance>/published-message-*`, `.../<instance>/subscribed-message-*`) every 60s
 
 ## Config
-Edit `config.json` with your MQTT host/auth.
+Edit `config.json` with your MQTT host/auth (TS-style nested infra/uns structure).
