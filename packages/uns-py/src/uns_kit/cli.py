@@ -154,24 +154,7 @@ def create(dest: str):
             pass
     # Personalize config.json with project identity (TS-style nested config).
     config_path = Path(dest_path) / "config.json"
-    if config_path.exists():
-        try:
-            data = json.loads(config_path.read_text())
-            infra = data.setdefault("infra", {})
-            uns_cfg = data.setdefault("uns", {})
-
-            sanitized = TopicBuilder.sanitize_topic_part(project_name)
-            # Keep a human-readable packageName; the TopicBuilder will sanitize for MQTT.
-            uns_cfg["packageName"] = project_name
-            # Use sanitized processName to avoid invalid topic parts.
-            uns_cfg["processName"] = sanitized
-            # Set an initial packageVersion (controller/deploy tags may override later).
-            uns_cfg["packageVersion"] = initial_app_version
-
-            infra["clientId"] = sanitized
-            config_path.write_text(json.dumps(data, indent=2))
-        except Exception:
-            pass
+    _write_config_file(config_path, project_name, initial_app_version)
     # Personalize pyproject.toml so pip/poetry builds succeed with a project-specific name/module.
     if pyproject_path.exists():
         try:
@@ -197,13 +180,6 @@ def create(dest: str):
     click.echo("  4) Edit config.json with your MQTT host/credentials")
     if initialized_git:
         click.echo("  5) git status  # verify the new repository")
-
-
-@cli.command("write-config", help="Write a minimal config.json scaffold.")
-@click.option("--path", default="config.json", show_default=True)
-def write_config(path: str):
-    _write_config_file(Path(path))
-    click.echo(f"Wrote {path}")
 
 
 @cli.command("configure-devops", help="Add Azure DevOps settings and pipeline to a project.")
@@ -280,8 +256,8 @@ def _prompt_devops(config: dict) -> Tuple[str, str]:
     return org.strip(), project.strip()
 
 
-def _write_config_file(path: Path) -> None:
-    project_name = path.resolve().parent.name
+def _write_config_file(path: Path, project_name: Optional[str] = None, package_version: str = "0.1.0") -> None:
+    project_name = project_name or path.resolve().parent.name
     sanitized = TopicBuilder.sanitize_topic_part(project_name)
     data = {
         "infra": {
@@ -297,7 +273,7 @@ def _write_config_file(path: Path) -> None:
         },
         "uns": {
             "packageName": project_name,
-            "packageVersion": "0.1.0",
+            "packageVersion": package_version,
             "processName": sanitized,
         },
     }
