@@ -15,10 +15,6 @@ asyncio-mqtt = "0.16.2"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
 
-[tool.poetry.scripts]
-dev = "uns_kit.cli:main"
-run = "uns_kit.cli:main"
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

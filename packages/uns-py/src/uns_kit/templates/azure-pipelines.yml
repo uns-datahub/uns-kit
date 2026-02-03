@@ -4,10 +4,20 @@ trigger:
       - master
       - main
 
+pr:
+  branches:
+    include:
+      - master
+      - main
+
 pool:
   vmImage: "ubuntu-latest"
 
 steps:
+  - checkout: self
+    persistCredentials: true
+    clean: true
+
   - task: UsePythonVersion@0
     inputs:
       versionSpec: "3.12"
@@ -29,3 +39,15 @@ steps:
       poetry build
     displayName: "Build package"
 
+  - script: |
+      set -euo pipefail
+      version="$(poetry version -s)"
+      echo "Version: $version"
+      if git ls-remote --tags origin "refs/tags/$version" | grep -q "refs/tags/$version"; then
+        echo "Tag already exists on remote: $version"
+        exit 0
+      fi
+      git tag "$version"
+      git push origin "$version"
+    displayName: "Add version tag from pyproject.toml"
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
