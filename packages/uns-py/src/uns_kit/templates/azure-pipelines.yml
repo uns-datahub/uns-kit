@@ -1,31 +1,21 @@
+variables:
+  privatePool: 'Azure private pool'
+
 trigger:
-  branches:
-    include:
-      - master
-      - main
+- master
 
-pool:
-  vmImage: "ubuntu-latest"
-
-steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: "3.12"
-
-  - script: |
-      python -m pip install --upgrade pip
-      pip install poetry
-    displayName: "Install Poetry"
-
-  - script: |
-      poetry install
-    displayName: "Install dependencies"
-
-  - script: |
-      poetry run pytest
-    displayName: "Run tests"
-
-  - script: |
-      poetry build
-    displayName: "Build package"
-
+stages:
+- stage: version_tag
+  displayName: Add Version Tag
+  pool: $(privatePool)
+  jobs:
+  - job: add_tags
+    steps:
+    - checkout: self
+      persistCredentials: true
+      clean: true
+    - script: |
+        tag=$(node -pe "require('./package.json').version")
+        git tag $tag
+        git push origin $tag
+      displayName: "Add version tag from package.json"
