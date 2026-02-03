@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.venv*/
+
+# Packaging / build
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+.wheels/
+
+# Test / coverage
+.pytest_cache/
+.coverage*
+htmlcov/
+.hypothesis/
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Project config (generated per-env)
+config.json
+config-*.json
+
+# MQTT captures / temp
+*.pcap
+/tmp/

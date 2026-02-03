@@ -1,53 +1,21 @@
+variables:
+  privatePool: 'Azure private pool'
+
 trigger:
-  branches:
-    include:
-      - master
-      - main
+- master
 
-pr:
-  branches:
-    include:
-      - master
-      - main
-
-pool:
-  vmImage: "ubuntu-latest"
-
-steps:
-  - checkout: self
-    persistCredentials: true
-    clean: true
-
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: "3.12"
-
-  - script: |
-      python -m pip install --upgrade pip
-      pip install poetry
-    displayName: "Install Poetry"
-
-  - script: |
-      poetry install
-    displayName: "Install dependencies"
-
-  - script: |
-      poetry run pytest
-    displayName: "Run tests"
-
-  - script: |
-      poetry build
-    displayName: "Build package"
-
-  - script: |
-      set -euo pipefail
-      version="$(poetry version -s)"
-      echo "Version: $version"
-      if git ls-remote --tags origin "refs/tags/$version" | grep -q "refs/tags/$version"; then
-        echo "Tag already exists on remote: $version"
-        exit 0
-      fi
-      git tag "$version"
-      git push origin "$version"
-    displayName: "Add version tag from pyproject.toml"
-    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+stages:
+- stage: version_tag
+  displayName: Add Version Tag
+  pool: $(privatePool)
+  jobs:
+  - job: add_tags
+    steps:
+    - checkout: self
+      persistCredentials: true
+      clean: true
+    - script: |
+        tag=$(node -pe "require('./package.json').version")
+        git tag $tag
+        git push origin $tag
+      displayName: "Add version tag from package.json"
