@@ -180,7 +180,6 @@ function printHelp(): void {
     "  create <name>           Scaffold a new UNS application\n" +
     "  configure [dir] [features...] Configure multiple templates (--all, --overwrite)\n" +
     "  configure-templates [dir] [templates...] Copy any template directory (--all, --overwrite)\n" +
-    "  configure-config [dir]  Copy configuration example files\n" +
     "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n" +
     "  configure-vscode [dir]  Add VS Code workspace configuration files\n" +
     "  configure-codegen [dir] Copy GraphQL codegen template and dependencies\n" +
@@ -199,6 +198,8 @@ async function createProject(projectName: string): Promise<void> {
 
   const templateDir = path.resolve(__dirname, "../templates/default");
   await copyTemplateDirectory(templateDir, targetDir, targetDir);
+  // Seed config examples automatically (previously required configure-config).
+  await configureConfigFiles(targetDir, { overwrite: false });
 
   const pkgName = normalizePackageName(projectName);
   await patchPackageJson(targetDir, pkgName);
@@ -702,7 +703,6 @@ type ConfigureFeatureHandler = (targetPath?: string, options?: ConfigureTemplate
 const configureFeatureHandlers = {
   devops: configureDevops,
   vscode: configureVscode,
-  config: configureConfigFiles,
   codegen: configureCodegen,
   api: configureApi,
   cron: configureCron,
@@ -718,7 +718,6 @@ const AVAILABLE_CONFIGURE_FEATURES = Object.keys(configureFeatureHandlers) as Co
 const configureFeatureLabels: Record<ConfigureFeatureName, string> = {
   devops: "Azure DevOps tooling",
   vscode: "VS Code workspace",
-  config: "Configuration example files",
   codegen: "GraphQL codegen tooling",
   api: "UNS API resources",
   cron: "UNS cron resources",
@@ -967,8 +966,6 @@ const configureFeatureAliases: Record<string, ConfigureFeatureName> = {
   "configure-devops": "devops",
   vscode: "vscode",
   "configure-vscode": "vscode",
-  config: "config",
-  "configure-config": "config",
   codegen: "codegen",
   "configure-codegen": "codegen",
   api: "api",
