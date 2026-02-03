@@ -255,6 +255,26 @@ def _prompt_devops(config: dict) -> Tuple[str, str]:
     return org.strip(), project.strip()
 
 
+@cli.command("configure-vscode", help="Add VS Code settings for Python development.")
+@click.argument("dest", required=False, default=".")
+@click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing .vscode files")
+def configure_vscode(dest: str, overwrite: bool):
+    dest_path = Path(dest).resolve()
+    vscode_dir = dest_path / ".vscode"
+    vscode_dir.mkdir(parents=True, exist_ok=True)
+
+    template_root = importlib.resources.files("uns_kit").joinpath("templates/vscode")
+    for filename in ("settings.json", "launch.json", "extensions.json"):
+        src = template_root / filename
+        dst = vscode_dir / filename
+        if dst.exists() and not overwrite:
+            click.echo(f"{dst} already exists (skipped). Use --overwrite to replace.")
+            continue
+        shutil.copyfile(src, dst)
+        click.echo(f"Wrote {dst}")
+
+    click.echo("VS Code configuration complete.")
+
 @cli.command("pull-request", help="Create an Azure DevOps pull request for a Python project (bumps version, commits, pushes, opens PR).")
 @click.argument("dest", required=False, default=".")
 def pull_request(dest: str):
