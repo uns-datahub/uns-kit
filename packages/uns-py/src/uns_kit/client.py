@@ -126,7 +126,8 @@ class UnsMqttClient:
             "port": self.port,
             "username": self.username,
             "password": self.password,
-            "client_id": self.client_id,
+            # aiomqtt uses `identifier` for MQTT clientId.
+            "identifier": self.client_id,
             "keepalive": self.keepalive,
             "will": will,
         }
@@ -210,7 +211,7 @@ class UnsMqttClient:
                 payload_bytes = payload.encode() if isinstance(payload, str) else payload
                 self._published_message_count += 1
                 self._published_message_bytes += len(payload_bytes)
-                await self._client.publish(topic, payload, qos=qos, retain=retain)
+                await self._client.publish(topic, payload_bytes, qos=qos, retain=retain)
                 return
             except aiomqtt.MqttError:
                 self._connected.clear()
