@@ -136,12 +136,15 @@ class UnsMqttClient:
         # aiomqtt v2.x supports clean_session; keep a fallback for API changes.
         kwargs["clean_session"] = self.clean_session
         try:
-            self._client = aiomqtt.Client(**kwargs)
+            client = aiomqtt.Client(**kwargs)
         except TypeError:
             kwargs.pop("clean_session", None)
-            self._client = aiomqtt.Client(**kwargs)
+            client = aiomqtt.Client(**kwargs)
 
-        await self._client.connect()
+        # aiomqtt does not expose connect()/disconnect() methods; the client is
+        # an async context manager.
+        await client.__aenter__()
+        self._client = client
         self._connected.set()
 
     async def _probe_socket(self) -> None:
@@ -200,7 +203,7 @@ class UnsMqttClient:
                 await self._stats_task
         if self._client:
             with contextlib.suppress(Exception):
-                await self._client.disconnect()
+                await self._client.__aexit__(None, None, None)
         self._connected.clear()
 
     async def publish_raw(self, topic: str, payload: str | bytes, *, qos: int = 0, retain: bool = False) -> None:
