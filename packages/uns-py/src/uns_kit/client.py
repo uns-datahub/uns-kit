@@ -231,16 +231,16 @@ class UnsMqttClient:
     async def messages(self, topics: str | List[str]) -> AsyncIterator[AsyncIterator[aiomqtt.Message]]:
         await self._ensure_connected()
         assert self._client
-        async with self._client.messages() as messages:
-            try:
-                if isinstance(topics, str):
-                    await self._client.subscribe(topics)
-                else:
-                    for t in topics:
-                        await self._client.subscribe(t)
-            except aiomqtt.MqttError:
-                self._connected.clear()
-                raise
+        # aiomqtt exposes a single async iterator at `client.messages` (not a context manager).
+        # Messages yielded are already filtered by the active subscriptions.
+        messages = self._client.messages
+
+        try:
+            if isinstance(topics, str):
+                await self._client.subscribe(topics)
+            else:
+                for t in topics:
+                    await self._client.subscribe(t)
 
             async def wrapped() -> AsyncIterator[aiomqtt.Message]:
                 try:
@@ -255,6 +255,13 @@ class UnsMqttClient:
                     return
 
             yield wrapped()
+        except aiomqtt.MqttError:
+            self._connected.clear()
+            raise
+        finally:
+            # Best-effort unsubscribe; failure isn't fatal (e.g. disconnect while shutting down).
+            with contextlib.suppress(Exception):
+                await self._client.unsubscribe(topics)
 
     async def resilient_messages(self, topics: str | List[str]) -> AsyncIterator[aiomqtt.Message]:
         """
