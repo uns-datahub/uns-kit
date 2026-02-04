@@ -21,13 +21,13 @@ class UnsMqttClient:
     _exception_handler_loop_id: int | None = None
 
 
-# Windows default (Proactor) loop lacks add_reader, which asyncio-mqtt needs.
-# Switch to Selector loop policy early when running on Windows.
-if sys.platform.startswith("win"):
-    try:
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    except Exception:
-        pass
+    # Windows default (Proactor) loop lacks add_reader, which asyncio-mqtt needs.
+    # Switch to Selector loop policy early when running on Windows.
+    if sys.platform.startswith("win"):
+        try:
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        except Exception:
+            pass
 
     def __init__(
         self,
