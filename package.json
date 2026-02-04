@@ -20,7 +20,7 @@
     "py:configure:workspace": "cd packages/uns-py && poetry run uns-kit-py configure-workspace ../../sandbox-app-py",
     "py:configure": "cd packages/uns-py && poetry run uns-kit-py configure-devops ../../sandbox-app-py && poetry run uns-kit-py configure-vscode ../../sandbox-app-py && poetry run uns-kit-py configure-workspace ../../sandbox-app-py",
     "py:pull-request": "cd packages/uns-py && poetry run uns-kit-py pull-request ../../sandbox-app-py",
-    "ts:version:patch": "pnpm -r --filter \"@uns-kit/*\" version patch",
+    "ts:version:patch": "pnpm -r --filter \"@uns-kit/*\" exec pnpm version patch",
     "ts:build": "pnpm -r --filter \"@uns-kit/*\" run build",
     "ts:publish": "pnpm -r --filter \"@uns-kit/*\" publish --access public",
     "ts:sandbox:create": "pnpm exec tsx packages/uns-cli/src/index.ts create sandbox-app",
