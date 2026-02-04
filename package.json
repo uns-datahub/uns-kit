@@ -11,6 +11,7 @@
     "py:version:patch": "cd packages/uns-py && poetry version patch",
     "py:build": "cd packages/uns-py && poetry build",
     "py:publish": "cd packages/uns-py && PYPI_TOKEN=${PYPI_TOKEN} poetry publish --username __token__ --password $PYPI_TOKEN",
+    "py:publish-win": "cd packages/uns-py && poetry publish --username __token__ --password $env:PYPI_TOKEN",
     "py:sandbox": "cd packages/uns-py && poetry install && poetry run uns-kit-py create ../../sandbox-app-py",
     "py:sandbox:load-test": "cd sandbox-app-py && POETRY_VIRTUALENVS_IN_PROJECT=true poetry install && poetry add -e ../packages/uns-py && poetry run python src/load_test.py",
     "py:sandbox:data-example": "cd sandbox-app-py && POETRY_VIRTUALENVS_IN_PROJECT=true poetry install && poetry add -e ../packages/uns-py && poetry run python src/data_example.py",
