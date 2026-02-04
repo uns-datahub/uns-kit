@@ -62,7 +62,7 @@ class UnsMqttClient:
         self.subscriber_active = subscriber_active
         self.stats_interval = stats_interval
         self.enable_status = enable_status
-        self._client: Optional[Client] = None
+        self._client: Optional[aiomqtt.Client] = None
         self._status_task: Optional[asyncio.Task] = None
         self._stats_task: Optional[asyncio.Task] = None
         self._connected = asyncio.Event()
