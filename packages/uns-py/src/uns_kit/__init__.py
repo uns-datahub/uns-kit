@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from importlib import import_module
 from typing import TYPE_CHECKING
 
@@ -7,6 +8,17 @@ from .config import UnsConfig
 from .packet import DataPayload, TablePayload, UnsPacket
 from .topic_builder import TopicBuilder
 from .version import __version__
+
+if sys.platform.startswith("win"):
+    # aiomqtt (and many asyncio socket integrations) rely on add_reader/add_writer,
+    # which are not implemented by the default Proactor loop on Windows.
+    # Setting the selector policy early fixes this for asyncio.run().
+    try:
+        import asyncio
+
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:  # pragma: no cover
+        pass
 
 if TYPE_CHECKING:
     from .proxy_process import UnsProxyProcess

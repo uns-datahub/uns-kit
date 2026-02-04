@@ -73,6 +73,7 @@ This creates `sandbox-app-py/` using the default Python template.
 - Default QoS is 0.
 - Instance status topics are published every 10 seconds; stats every 60 seconds.
 - Packet shape mirrors the TypeScript core: `{"version":"1.3.0","message":{"data":{...}},"sequenceId":0}`.
+- Windows: the library sets `WindowsSelectorEventLoopPolicy()` to avoid `add_reader/add_writer` `NotImplementedError`.
 
 ## TODO (parity with TS core)
 - Handover manager (cross-version active detection + handover_* messages).
