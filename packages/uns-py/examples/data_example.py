@@ -37,7 +37,7 @@ async def main() -> None:
 
     try:
         async for msg in mqtt_input.resilient_messages("raw/#"):
-            if msg.topic != "raw/data":
+            if msg.topic.value != "raw/data":
                 continue
             payload = msg.payload.decode()
             values = payload.split(",")
