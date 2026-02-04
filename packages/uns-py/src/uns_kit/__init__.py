@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from importlib import import_module
 from typing import TYPE_CHECKING
 
@@ -8,14 +9,21 @@ from .packet import DataPayload, TablePayload, UnsPacket
 from .topic_builder import TopicBuilder
 from .version import __version__
 
+# Windows default (Proactor) loop lacks add_reader, which asyncio-mqtt needs.
+# Switch to Selector loop policy early when running on Windows.
+if sys.platform.startswith("win"):
+    try:
+        import asyncio
+
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:  # pragma: no cover
+        pass
+
 if TYPE_CHECKING:
-    # These import optional runtime deps (asyncio-mqtt/paho). Keep them lazy at runtime
-    # so non-MQTT CLI commands (create/configure-devops/pull-request) don't print warnings
-    # or fail import when MQTT deps are missing.
-    from .client import UnsMqttClient
     from .proxy_process import UnsProxyProcess
     from .status_monitor import StatusMonitor
     from .uns_mqtt_proxy import MessageMode, UnsMqttProxy
+    from .client import UnsMqttClient
 
 __all__ = [
     "TopicBuilder",
@@ -29,8 +37,8 @@ __all__ = [
     "UnsMqttProxy",
     "MessageMode",
     "UnsProxyProcess",
+    "client",  # for backward compatibility
 ]
-
 
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "UnsMqttClient": ("uns_kit.client", "UnsMqttClient"),
