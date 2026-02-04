@@ -14,7 +14,7 @@
  *   pnpm exec tsx src/examples/table-window-load-test.ts
  *
  * Optional args:
- *   --run=all|1|2|3
+ *   --run=all|1|2|3|4
  *   --mode=window_replace|dedup|append
  *   --bucketMinutes=30
  *   --windowHours=2
@@ -43,8 +43,9 @@ import {
 import { resolveGeneratedAsset } from "../uns/uns-assets.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 
-type RunSelection = "all" | "1" | "2" | "3";
+type RunSelection = "all" | "1" | "2" | "3" | "4";
 type IngestMode = "append" | "dedup" | "window_replace";
+type IterationIndex = 1 | 2 | 3 | 4;
 
 type CliArgs = {
   run: RunSelection;
@@ -100,7 +101,7 @@ function parseArgs(argv: string[]): Partial<CliArgs> {
   const pause = map.get("pause");
 
   const parsed: Partial<CliArgs> = {};
-  if (run && (run === "all" || run === "1" || run === "2" || run === "3")) parsed.run = run;
+  if (run && (run === "all" || run === "1" || run === "2" || run === "3" || run === "4")) parsed.run = run;
   if (mode && (mode === "append" || mode === "dedup" || mode === "window_replace")) parsed.mode = mode;
   if (bucketMinutes) parsed.bucketMinutes = Number(bucketMinutes);
   if (windowHours) parsed.windowHours = Number(windowHours);
@@ -128,16 +129,24 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function buildIterations(anchorEnd: Date, windowHours: number, stepHours: number): Array<{ idx: 1 | 2 | 3; startMs: number; endMs: number }> {
+function buildIterations(
+  anchorEnd: Date,
+  windowHours: number,
+  stepHours: number,
+): Array<{ idx: IterationIndex; startMs: number; endMs: number }> {
   const stepMs = stepHours * 60 * 60 * 1000;
   const windowMs = windowHours * 60 * 60 * 1000;
   const end3 = anchorEnd.getTime();
   const end2 = end3 - stepMs;
   const end1 = end3 - 2 * stepMs;
+  const start1 = end1 - windowMs;
   return [
-    { idx: 1, startMs: end1 - windowMs, endMs: end1 },
+    { idx: 1, startMs: start1, endMs: end1 },
     { idx: 2, startMs: end2 - windowMs, endMs: end2 },
     { idx: 3, startMs: end3 - windowMs, endMs: end3 },
+    // Iteration 4: refresh the full timeframe from the earliest bucket of iteration 1
+    // to the latest bucket of iteration 3, with a simulated delete of one bucket.
+    { idx: 4, startMs: start1, endMs: end3 },
   ];
 }
 
@@ -160,7 +169,13 @@ function simulateScrapKg(producedKg: number, bucketIndex: number, iteration: num
   return Number(value.toFixed(3));
 }
 
-function isMissingBucket(iteration: 1 | 2 | 3, bucketStartMs: number, windowStartMs: number, windowEndMs: number, bucketMs: number): boolean {
+function isMissingBucket(
+  iteration: Exclude<IterationIndex, 4>,
+  bucketStartMs: number,
+  windowStartMs: number,
+  windowEndMs: number,
+  bucketMs: number,
+): boolean {
   const oneHourMs = 60 * 60 * 1000;
   const bucketIndex = Math.floor(bucketStartMs / bucketMs);
   const inLastHour = bucketStartMs >= windowEndMs - oneHourMs;
@@ -251,18 +266,40 @@ async function main() {
     const bucketMs = cli.bucketMinutes * 60 * 1000;
     const iterations = buildIterations(cli.anchorEnd, cli.windowHours, cli.stepHours);
 
-    const selected = cli.run === "all" ? new Set([1, 2, 3]) : new Set([Number(cli.run)]);
+    const selected = cli.run === "all" ? new Set<IterationIndex>([1, 2, 3, 4]) : new Set<IterationIndex>([Number(cli.run) as IterationIndex]);
     const selectedIterations = iterations.filter((it) => selected.has(it.idx));
     const firstIteration = selectedIterations[0]?.idx ?? 1;
     logger.info(
       `Publishing iterations=${Array.from(selected).join(",")} mode=${cli.mode} bucket=${cli.bucketMinutes}min window=${cli.windowHours}h step=${cli.stepHours}h anchorEnd=${cli.anchorEnd.toISOString()} dataGroup=${cli.dataGroup} pause=${shouldPause}`,
     );
+    if (cli.mode === "window_replace") {
+      logger.info(
+        "NOTE: mode=window_replace marks missing buckets in [windowStart, windowEnd) as deleted=true (soft delete) and refreshes published buckets (deleted=false).",
+      );
+    } else if (cli.mode === "dedup") {
+      logger.info(
+        "NOTE: mode=dedup upserts by keys; missing buckets are NOT removed unless you publish tombstones (deleted=true) for those buckets.",
+      );
+    }
+
+    const fullRefresh = iterations.find((it) => it.idx === 4);
+    const deleteBucketStartMs =
+      fullRefresh ? fullRefresh.startMs + bucketMs : iterations[0]!.startMs + bucketMs;
 
     for (const it of iterations) {
       if (!selected.has(it.idx)) continue;
 
       const windowStartIso = UnsPacket.formatToISO8601(new Date(it.startMs)) as ISO8601;
       const windowEndIso = UnsPacket.formatToISO8601(new Date(it.endMs)) as ISO8601;
+      if (it.idx === 4) {
+        const deleteBucketIso = UnsPacket.formatToISO8601(new Date(deleteBucketStartMs)) as ISO8601;
+        logger.info(
+          `Iteration 4 plan: refresh full timeframe and simulate one deleted bucket at time='${deleteBucketIso}'. ` +
+            (cli.mode === "window_replace"
+              ? "Delete is simulated by OMITTING the bucket from the snapshot (archiver soft-deletes it: deleted=true)."
+              : "Delete is simulated by publishing a tombstone (deleted=true) for that bucket."),
+        );
+      }
 
       if (shouldPause && it.idx !== firstIteration) {
         await rl.question(
@@ -287,13 +324,47 @@ async function main() {
       let published = 0;
       let skipped = 0;
       let tombstones = 0;
+      let simulatedDeletes = 0;
 
       for (let startMs = it.startMs; startMs < it.endMs; startMs += bucketMs) {
         const endMs = startMs + bucketMs;
         const bucketStartIso = UnsPacket.formatToISO8601(new Date(startMs)) as ISO8601;
         const bucketEndIso = UnsPacket.formatToISO8601(new Date(endMs)) as ISO8601;
 
-        const missing = isMissingBucket(it.idx, startMs, it.startMs, it.endMs, bucketMs);
+        const isIteration4 = it.idx === 4;
+        const missing = !isIteration4 && isMissingBucket(it.idx as Exclude<IterationIndex, 4>, startMs, it.startMs, it.endMs, bucketMs);
+
+        if (isIteration4 && startMs === deleteBucketStartMs) {
+          // Simulate delete of one bucket.
+          if (cli.mode === "window_replace") {
+            // For window_replace, omit the bucket from the snapshot (it disappears after window delete).
+            simulatedDeletes++;
+            skipped++;
+            continue;
+          }
+
+          const bucketIndex = Math.floor(startMs / bucketMs);
+          const producedKg = simulateProducedKg(bucketIndex, it.idx);
+          const scrapKg = simulateScrapKg(producedKg, bucketIndex, it.idx);
+          attrs.push({
+            attribute,
+            table: {
+              dataGroup: cli.dataGroup,
+              time: bucketStartIso,
+              intervalStart: bucketStartIso,
+              intervalEnd: bucketEndIso,
+              windowStart: windowStartIso,
+              windowEnd: windowEndIso,
+              deleted: true,
+              columns: buildColumns(producedKg, scrapKg),
+            },
+          });
+          simulatedDeletes++;
+          tombstones++;
+          published++;
+          continue;
+        }
+
         if (missing) {
           if (it.idx === 3 && cli.mode === "dedup") {
             const bucketIndex = Math.floor(startMs / bucketMs);
@@ -339,7 +410,7 @@ async function main() {
       }
 
       logger.info(
-        `Iteration ${it.idx}: window=[${windowStartIso}, ${windowEndIso}) publish=${published} skipped=${skipped} tombstones=${tombstones}`,
+        `Iteration ${it.idx}: window=[${windowStartIso}, ${windowEndIso}) publish=${published} skipped=${skipped} tombstones=${tombstones} deletes=${simulatedDeletes}`,
       );
 
       await mqttOutput.publishMqttMessage(
