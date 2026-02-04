@@ -23,6 +23,7 @@
     "ts:version:patch": "pnpm -r --filter \"@uns-kit/*\" version patch",
     "ts:build": "pnpm -r --filter \"@uns-kit/*\" run build",
     "ts:publish": "pnpm -r --filter \"@uns-kit/*\" publish --access public",
+    "ts:sandbox:create": "pnpm exec tsx packages/uns-cli/src/index.ts create sandbox-app",
     "ts:sandbox:data": "cd sandbox-app && pnpm exec tsx src/examples/data-example.ts",
     "ts:sandbox:load-test": "cd sandbox-app && pnpm exec tsx src/examples/load-test-data.ts",
     "ts:sandbox:table": "cd sandbox-app && pnpm exec tsx src/examples/table-example.ts",
