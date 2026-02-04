@@ -41,7 +41,6 @@ Thumbs.db
 
 # Project config (generated per-env)
 config.json
-config-*.json
 
 # MQTT captures / temp
 *.pcap
