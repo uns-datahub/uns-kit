@@ -6,11 +6,11 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import uuid
 import socket
-import sys
 from typing import AsyncIterator, List, Optional
 
-from asyncio_mqtt import Client, MqttError, Message, Will, Topic
-from paho.mqtt.client import MQTTv5, MQTTv311
+import aiomqtt
+
+MqttError = aiomqtt.MqttError
 
 from .packet import UnsPacket
 from .topic_builder import TopicBuilder
@@ -104,13 +104,24 @@ class UnsMqttClient:
 
     async def _connect_once(self) -> None:
         await self._probe_socket()
-        will = Will(
+        will = aiomqtt.Will(
             topic=f"{self.status_topic}alive",
             payload=b"",
             qos=0,
             retain=True,
         )
-        base_kwargs = {
+
+        tls_context = None
+        if self.tls:
+            try:
+                import ssl
+
+                tls_context = ssl.create_default_context()
+            except Exception:
+                tls_context = None
+
+        # aiomqtt supports async connect/disconnect directly.
+        kwargs = {
             "hostname": self.host,
             "port": self.port,
             "username": self.username,
@@ -119,40 +130,18 @@ class UnsMqttClient:
             "keepalive": self.keepalive,
             "will": will,
         }
-        if self.tls:
-            try:
-                import ssl
-                base_kwargs["tls_context"] = ssl.create_default_context()
-            except Exception:
-                pass
+        if tls_context is not None:
+            kwargs["tls_context"] = tls_context
+        # aiomqtt v2.x supports clean_session; keep a fallback for API changes.
+        kwargs["clean_session"] = self.clean_session
+        try:
+            self._client = aiomqtt.Client(**kwargs)
+        except TypeError:
+            kwargs.pop("clean_session", None)
+            self._client = aiomqtt.Client(**kwargs)
 
-        last_error: Exception | None = None
-        # Prefer MQTT 3.1.1 for widest broker compatibility (some brokers
-        # allow connect with MQTTv5 but then drop subscriptions unexpectedly).
-        for protocol in (MQTTv311, MQTTv5):
-            kwargs = dict(base_kwargs)
-            kwargs["protocol"] = protocol
-            if protocol == MQTTv5:
-                kwargs["clean_start"] = self.clean_session
-                kwargs.pop("clean_session", None)
-            else:
-                kwargs["clean_session"] = self.clean_session
-                kwargs.pop("clean_start", None)
-            try:
-                try:
-                    client = Client(**kwargs)
-                except TypeError:
-                    kwargs.pop("tls_context", None)
-                    client = Client(**kwargs)
-                await client.connect()
-                self._client = client
-                self._connected.set()
-                return
-            except Exception as exc:
-                last_error = exc
-                continue
-        if last_error:
-            raise last_error
+        await self._client.connect()
+        self._connected.set()
 
     async def _probe_socket(self) -> None:
         try:
@@ -162,7 +151,7 @@ class UnsMqttClient:
                 lambda: socket.create_connection((self.host, self.port or 1883), timeout=2),
             )
         except Exception as exc:
-            raise MqttError(f"Cannot reach MQTT broker at {self.host}:{self.port or 1883}") from exc
+            raise aiomqtt.MqttError(f"Cannot reach MQTT broker at {self.host}:{self.port or 1883}") from exc
 
     async def _ensure_connected(self) -> None:
         if self._connected.is_set():
@@ -183,7 +172,7 @@ class UnsMqttClient:
                             self._stats_task = asyncio.create_task(self._publish_stats_loop())
                             self._stats_task.add_done_callback(self._handle_task_error)
                     return
-                except MqttError:
+                except aiomqtt.MqttError:
                     await asyncio.sleep(backoff)
                     backoff = min(backoff * 2, self.max_reconnect_interval)
 
@@ -223,7 +212,7 @@ class UnsMqttClient:
                 self._published_message_bytes += len(payload_bytes)
                 await self._client.publish(topic, payload, qos=qos, retain=retain)
                 return
-            except MqttError:
+            except aiomqtt.MqttError:
                 self._connected.clear()
                 if attempt == 0:
                     await self._ensure_connected()
@@ -235,7 +224,7 @@ class UnsMqttClient:
         await self.publish_raw(topic, payload, qos=qos, retain=retain)
 
     @asynccontextmanager
-    async def messages(self, topics: str | List[str]) -> AsyncIterator[AsyncIterator[Message]]:
+    async def messages(self, topics: str | List[str]) -> AsyncIterator[AsyncIterator[aiomqtt.Message]]:
         await self._ensure_connected()
         assert self._client
         async with self._client.messages() as messages:
@@ -245,17 +234,17 @@ class UnsMqttClient:
                 else:
                     for t in topics:
                         await self._client.subscribe(t)
-            except MqttError:
+            except aiomqtt.MqttError:
                 self._connected.clear()
                 raise
 
-            async def wrapped() -> AsyncIterator[Message]:
+            async def wrapped() -> AsyncIterator[aiomqtt.Message]:
                 try:
                     async for msg in messages:
                         self._subscribed_message_count += 1
                         self._subscribed_message_bytes += len(msg.payload or b"")
                         yield msg
-                except MqttError:
+                except aiomqtt.MqttError:
                     self._connected.clear()
                     return
                 except asyncio.CancelledError:
@@ -263,7 +252,7 @@ class UnsMqttClient:
 
             yield wrapped()
 
-    async def resilient_messages(self, topics: str | List[str]) -> AsyncIterator[Message]:
+    async def resilient_messages(self, topics: str | List[str]) -> AsyncIterator[aiomqtt.Message]:
         """
         Async generator that keeps the subscription alive across disconnects.
         """
@@ -273,7 +262,7 @@ class UnsMqttClient:
                 async with self.messages(topics) as msgs:
                     async for msg in msgs:
                         yield msg
-            except MqttError:
+            except aiomqtt.MqttError:
                 self._connected.clear()
                 await asyncio.sleep(self.reconnect_interval)
                 continue
@@ -304,7 +293,7 @@ class UnsMqttClient:
                     if self.subscriber_active is not None:
                         subscriber_packet = UnsPacket.data(value=1 if self.subscriber_active else 0, uom="bit", time=time)
                         await self.publish_raw(subscriber_topic, UnsPacket.to_json(subscriber_packet), qos=0, retain=False)
-                except MqttError:
+                except aiomqtt.MqttError:
                     self._connected.clear()
                 except Exception:
                     self._connected.clear()
@@ -341,7 +330,7 @@ class UnsMqttClient:
                     self._published_message_bytes = 0
                     self._subscribed_message_count = 0
                     self._subscribed_message_bytes = 0
-                except MqttError:
+                except aiomqtt.MqttError:
                     self._connected.clear()
                 except Exception:
                     self._connected.clear()

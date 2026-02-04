@@ -8,9 +8,7 @@ packages = [{ include = "uns_py_app" }]
 [tool.poetry.dependencies]
 python = "^3.10"
 uns-kit = "*"
-# Pin MQTT libs to versions compatible with asyncio-mqtt 0.16.x
-paho-mqtt = "<2"
-asyncio-mqtt = "0.16.2"
+aiomqtt = "^2.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"

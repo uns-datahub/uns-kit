@@ -2,7 +2,7 @@
 
 Lightweight UNS MQTT client for Python. Provides:
 - Topic builder compatible with UNS infra topics (`uns-infra/<package>/<version>/<process>/`).
-- Async publish/subscribe via MQTT v5 (using `asyncio-mqtt`).
+- Async publish/subscribe via MQTT (using `aiomqtt`).
 - Process + instance status topics (active/heap/uptime/alive + stats).
 - Minimal UNS packet builder/parser (data/table) aligned with TS core.
 
@@ -17,16 +17,17 @@ After `poetry install`, an `uns-kit-py` command is available (renamed to avoid c
 ```bash
 poetry run uns-kit-py publish --host localhost:1883 --topic raw/data/ --value 1
 poetry run uns-kit-py subscribe --host localhost:1883 --topic 'uns-infra/#'
-poetry run uns-kit-py write-config --path config.json
 ```
 
 ## Quick start
 ```python
 import asyncio
+from pathlib import Path
 from uns_kit import UnsConfig, UnsPacket, UnsProxyProcess
 
 async def main():
-    process = UnsProxyProcess("mqtt-broker", config=UnsConfig(host="mqtt-broker"))
+    config = UnsConfig.load(Path("config.json"))
+    process = UnsProxyProcess(config.infra_host, config=config)
     await process.start()
     mqtt = await process.create_mqtt_proxy("py")
 

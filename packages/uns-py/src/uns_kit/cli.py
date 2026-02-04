@@ -69,7 +69,7 @@ async def _run_publish(
     retain: bool,
 ):
     # Local import so non-MQTT commands (create/configure/pull-request) don't
-    # import asyncio-mqtt (it prints a deprecation warning to stdout).
+    # import MQTT client libraries.
     from .client import UnsMqttClient
     from .packet import UnsPacket
 
@@ -113,7 +113,7 @@ async def _run_subscribe(
     topic_filter: str,
 ):
     # Local import so non-MQTT commands (create/configure/pull-request) don't
-    # import asyncio-mqtt (it prints a deprecation warning to stdout).
+    # import MQTT client libraries.
     from .client import UnsMqttClient
 
     tb = TopicBuilder(package_name, package_version, process_name)

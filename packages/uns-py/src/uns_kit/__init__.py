@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from importlib import import_module
 from typing import TYPE_CHECKING
 
@@ -8,16 +7,6 @@ from .config import UnsConfig
 from .packet import DataPayload, TablePayload, UnsPacket
 from .topic_builder import TopicBuilder
 from .version import __version__
-
-# Windows default (Proactor) loop lacks add_reader, which asyncio-mqtt needs.
-# Switch to Selector loop policy early when running on Windows.
-if sys.platform.startswith("win"):
-    try:
-        import asyncio
-
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    except Exception:  # pragma: no cover
-        pass
 
 if TYPE_CHECKING:
     from .proxy_process import UnsProxyProcess
@@ -50,6 +39,11 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
 
 
 def __getattr__(name: str):
+    if name == "client":
+        # Backward compatibility: some code expects `uns_kit.client`.
+        module = import_module("uns_kit.client")
+        globals()[name] = module
+        return module
     target = _LAZY_EXPORTS.get(name)
     if not target:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
