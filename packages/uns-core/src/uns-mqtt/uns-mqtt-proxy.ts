@@ -196,11 +196,21 @@ export default class UnsMqttProxy extends UnsProxy {
 
     this.worker.on("error", (err) => {
       logger.error("Error in worker:", err);
+      const reason = err instanceof Error ? err : new Error(String(err));
+      for (const pending of this.pendingEnqueues.values()) {
+        pending.reject(reason);
+      }
+      this.pendingEnqueues.clear();
     });
 
     this.worker.on("exit", (code) => {
       if (code !== 0) {
         logger.error(`Worker exited with code ${code}`);
+        const reason = new Error(`MQTT worker exited with code ${code}`);
+        for (const pending of this.pendingEnqueues.values()) {
+          pending.reject(reason);
+        }
+        this.pendingEnqueues.clear();
       }
     });
   }
@@ -341,22 +351,22 @@ export default class UnsMqttProxy extends UnsProxy {
       const time = UnsPacket.formatToISO8601(new Date());
       switch (mode) {
         case MessageMode.Raw: {
-          this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
+          await this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
           break;
         }
         case MessageMode.Delta: {
           const deltaMessage = { ...mqttMessageWithDesc };
           deltaMessage.attribute = `${mqttMessageWithDesc.attribute}-delta`;
           deltaMessage.description = `${baseDescription ?? ""} (delta)`;
-          this.processAndEnqueueMessage(deltaMessage, time, true);
+          await this.processAndEnqueueMessage(deltaMessage, time, true);
           break;
         }
         case MessageMode.Both: {
-          this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
+          await this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
           const deltaMessageBoth = { ...mqttMessageWithDesc };
           deltaMessageBoth.attribute = `${mqttMessageWithDesc.attribute}-delta`;
           deltaMessageBoth.description = `${baseDescription ?? ""} (delta)`;
-          this.processAndEnqueueMessage(deltaMessageBoth, time, true);
+          await this.processAndEnqueueMessage(deltaMessageBoth, time, true);
           break;
         }
       }

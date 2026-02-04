@@ -25,6 +25,7 @@ export default class MqttProxy {
   private mqttWorker: MqttWorker;
   public isConnected = false;
   private rejectUnauthorized: boolean;
+  private pendingReconnectWait: Promise<void> | null = null;
 
   constructor(mqttHost: string, instanceName: string, mqttParameters: IMqttParameters, mqttWorker?: MqttWorker) {
     this.mqttSSL = mqttParameters?.mqttSSL ?? false;
@@ -330,8 +331,17 @@ export default class MqttProxy {
   }
 
   private waitForReconnect(client: mqtt.MqttClient, timeoutMs: number): Promise<void> {
-    return new Promise((resolve) => {
+    if (client.connected) {
+      return Promise.resolve();
+    }
+
+    if (this.pendingReconnectWait) {
+      return this.pendingReconnectWait;
+    }
+
+    this.pendingReconnectWait = new Promise<void>((resolve) => {
       if (client.connected) return resolve();
+
       const onConnect = () => {
         cleanup();
         resolve();
@@ -343,13 +353,19 @@ export default class MqttProxy {
         client.off("connect", onConnect);
         client.off("close", onClose);
       };
+
       client.on("connect", onConnect);
       client.on("close", onClose);
+
       setTimeout(() => {
         cleanup();
         resolve();
       }, timeoutMs).unref?.();
+    }).finally(() => {
+      this.pendingReconnectWait = null;
     });
+
+    return this.pendingReconnectWait;
   }
 
   private async emitTransformationStatistics(): Promise<void> {

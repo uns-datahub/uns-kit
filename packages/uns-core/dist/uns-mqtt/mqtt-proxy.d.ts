@@ -22,6 +22,7 @@ export default class MqttProxy {
     private mqttWorker;
     isConnected: boolean;
     private rejectUnauthorized;
+    private pendingReconnectWait;
     constructor(mqttHost: string, instanceName: string, mqttParameters: IMqttParameters, mqttWorker?: MqttWorker);
     private resolveProtocol;
     private resolveDefaultPort;

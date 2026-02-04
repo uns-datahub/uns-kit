@@ -27,6 +27,7 @@
     "ts:sandbox:data": "cd sandbox-app && pnpm exec tsx src/examples/data-example.ts",
     "ts:sandbox:load-test": "cd sandbox-app && pnpm exec tsx src/examples/load-test-data.ts",
     "ts:sandbox:table": "cd sandbox-app && pnpm exec tsx src/examples/table-example.ts",
+    "ts:sandbox:table-window": "cd sandbox-app && pnpm exec tsx src/examples/table-window-load-test.ts",
     "ts:sandbox:api": "cd sandbox-app && pnpm exec tsx src/examples/api-example.ts",
     "ts:sandbox:cron": "cd sandbox-app && pnpm exec tsx src/examples/cron-example.ts",
     "ts:sandbox:uns-gateway-cli": "cd sandbox-app && pnpm exec tsx src/examples/uns-gateway-cli.ts",
