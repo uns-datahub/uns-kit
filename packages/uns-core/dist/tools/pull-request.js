@@ -11,11 +11,6 @@ import { CleanOptions, simpleGit } from "simple-git";
 import util from "util";
 import { ConfigFile } from "../config-file.js";
 import { basePath } from "../base-path.js";
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-});
-const question = util.promisify(rl.question).bind(rl);
 process.env.GIT_TERMINAL_PROMPT = process.env.GIT_TERMINAL_PROMPT ?? "0";
 const git = simpleGit("./").clean(CleanOptions.FORCE);
 const packageJsonPath = path.join(basePath, "package.json");
@@ -47,71 +42,139 @@ const gitStatus = await git.status();
 let token = "";
 let gitApi;
 let gitWithAuth;
+function parseCliArgs(argv = process.argv.slice(2)) {
+    const { values } = util.parseArgs({
+        args: argv,
+        options: {
+            version: { type: "string" },
+            title: { type: "string" },
+            description: { type: "string" },
+            help: { type: "boolean" },
+        },
+        strict: false,
+        allowPositionals: true,
+    });
+    const versionArg = typeof values.version === "string" ? values.version.trim() : "";
+    const titleArg = typeof values.title === "string" ? values.title.trim() : "";
+    const descriptionArg = typeof values.description === "string" ? values.description.trim() : "";
+    return {
+        version: versionArg || undefined,
+        title: titleArg || undefined,
+        description: descriptionArg || undefined,
+        help: values.help === true,
+    };
+}
+function formatUsage() {
+    return [
+        "Usage: pull-request [--version <version>] [--title <title>] [--description <description>]",
+        "",
+        "Non-interactive mode (stdin is not a TTY):",
+        "  You must provide --version, --title, and --description (and set AZURE_PAT).",
+        "",
+        "Environment:",
+        "  AZURE_PAT   Azure DevOps Personal Access Token (PAT)",
+    ].join("\n");
+}
+function createPrompter() {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+    const question = util.promisify(rl.question).bind(rl);
+    return { question, close: () => rl.close() };
+}
+const cliArgs = parseCliArgs();
+if (cliArgs.help) {
+    console.log(formatUsage());
+    process.exit(0);
+}
+let prompter;
 try {
-    await main();
-    rl.close();
+    await main(cliArgs);
 }
 catch (error) {
     console.log(chalk.red.bold(`\n${error}`));
-    rl.close();
 }
-async function main() {
+finally {
+    prompter?.close();
+}
+async function main(cli) {
+    const stdinIsTty = process.stdin.isTTY === true;
+    const missingRequiredFlags = !cli.version || !cli.title || !cli.description;
+    if (missingRequiredFlags && !stdinIsTty) {
+        throw new Error(`Non-interactive mode detected (stdin is not a TTY). Provide --version, --title, and --description, or run interactively.\n\n${formatUsage()}`);
+    }
     if (!gitStatus.isClean()) {
         throw new Error(`Repository needs to be clean. Please commit or stash the changes.`);
     }
-    else {
-        const envPat = process.env.AZURE_PAT;
-        while (!token) {
-            if (envPat && envPat.length > 10) {
-                token = envPat;
-                const authHandler = azdev.getPersonalAccessTokenHandler(token);
-                const connection = new azdev.WebApi(orgUrl, authHandler);
-                try {
-                    console.log("Using PAT from your AZURE_PAT environment");
-                    await connection.connect();
-                    gitApi = await connection.getGitApi();
-                }
-                catch (error) {
-                    console.log("The provided PAT is invalid or expired. Please provide a valid PAT.");
-                    token = "";
-                }
+    const envPat = process.env.AZURE_PAT?.trim() || "";
+    if (!envPat && !stdinIsTty) {
+        throw new Error(`AZURE_PAT is not set and stdin is not a TTY, so an interactive prompt is not possible. Set AZURE_PAT or run interactively.`);
+    }
+    while (!token) {
+        if (envPat && envPat.length > 10) {
+            token = envPat;
+            const authHandler = azdev.getPersonalAccessTokenHandler(token);
+            const connection = new azdev.WebApi(orgUrl, authHandler);
+            try {
+                console.log("Using PAT from your AZURE_PAT environment");
+                await connection.connect();
+                gitApi = await connection.getGitApi();
             }
-            if (!token) {
-                token = await question(`Please enter your PAT, you can create one at ` + chalk.green.bold(`[${tokensUrl}]: `));
-                const authHandler = azdev.getPersonalAccessTokenHandler(token);
-                const connection = new azdev.WebApi(orgUrl, authHandler);
-                try {
-                    await connection.connect();
-                    gitApi = await connection.getGitApi();
-                }
-                catch (error) {
-                    console.log("The provided PAT is invalid or expired. Please provide a valid PAT.");
-                    token = "";
-                }
+            catch (error) {
+                console.log("The provided PAT is invalid or expired. Please provide a valid PAT.");
+                token = "";
             }
         }
-        const authHeader = buildGitAuthorizationHeader(token);
-        gitWithAuth = simpleGit({
-            baseDir: "./",
-            config: [`http.extraheader=${authHeader}`],
-        }).clean(CleanOptions.FORCE);
-        await assertNotDefaultBranch();
-        const version = await getVersion();
-        await setVersion(version);
-        await commitChanges(version);
-        await pushChanges();
-        await createPullRequest(version);
+        if (!token) {
+            prompter ??= createPrompter();
+            token =
+                (await prompter.question(`Please enter your PAT, you can create one at ` + chalk.green.bold(`[${tokensUrl}]: `))) || "";
+            token = token.trim();
+            const authHandler = azdev.getPersonalAccessTokenHandler(token);
+            const connection = new azdev.WebApi(orgUrl, authHandler);
+            try {
+                await connection.connect();
+                gitApi = await connection.getGitApi();
+            }
+            catch (error) {
+                console.log("The provided PAT is invalid or expired. Please provide a valid PAT.");
+                token = "";
+            }
+        }
     }
+    const authHeader = buildGitAuthorizationHeader(token);
+    gitWithAuth = simpleGit({
+        baseDir: "./",
+        config: [`http.extraheader=${authHeader}`],
+    }).clean(CleanOptions.FORCE);
+    await assertNotDefaultBranch();
+    const resolvedVersion = await getVersion(cli.version);
+    const resolvedTitle = await getTitle(cli.title);
+    const resolvedDescription = await getDescription(cli.description);
+    await setVersion(resolvedVersion);
+    await commitChanges(resolvedVersion);
+    await pushChanges();
+    await createPullRequest(resolvedVersion, resolvedTitle, resolvedDescription);
 }
-async function getVersion() {
+async function getVersion(versionArg) {
     const authenticatedGit = requireGitWithAuth();
     let versionExists = true;
-    let newVersion = version;
+    let newVersion = versionArg ?? "";
     while (versionExists) {
-        newVersion = await question(`Every PR needs a unique version, please accept current version or enter a new one [${version}]: `) || version;
+        if (!newVersion) {
+            prompter ??= createPrompter();
+            newVersion =
+                (await prompter.question(`Every PR needs a unique version, please accept current version or enter a new one [${version}]: `)) || version;
+            newVersion = newVersion.trim() || version;
+        }
         const remoteTags = await authenticatedGit.listRemote(["--tags"]);
-        if (remoteTags.indexOf(`refs/tags/${newVersion}`) > 0) {
+        if (remoteTags.indexOf(`refs/tags/${newVersion}`) >= 0) {
             console.log(chalk.bold.red(`Version ${newVersion} already exists on the server`));
+            if (versionArg && process.stdin.isTTY !== true) {
+                throw new Error(`Version ${newVersion} already exists on the server. Provide a unique --version or run interactively.`);
+            }
+            newVersion = "";
         }
         else {
             console.log(`Using version ${newVersion}`);
@@ -119,6 +182,34 @@ async function getVersion() {
         }
     }
     return newVersion;
+}
+async function getTitle(titleArg) {
+    if (titleArg) {
+        return titleArg;
+    }
+    if (process.stdin.isTTY !== true) {
+        throw new Error(`Non-interactive mode detected (stdin is not a TTY). Provide --title, or run interactively.\n\n${formatUsage()}`);
+    }
+    prompter ??= createPrompter();
+    const title = (await prompter.question(`Title for the pull request: `)).trim();
+    if (!title) {
+        throw new Error("Pull request title can not be empty.");
+    }
+    return title;
+}
+async function getDescription(descriptionArg) {
+    if (descriptionArg) {
+        return descriptionArg;
+    }
+    if (process.stdin.isTTY !== true) {
+        throw new Error(`Non-interactive mode detected (stdin is not a TTY). Provide --description, or run interactively.\n\n${formatUsage()}`);
+    }
+    prompter ??= createPrompter();
+    const description = (await prompter.question(`Description for the pull request: `)).trim();
+    if (!description) {
+        throw new Error("Pull request description can not be empty.");
+    }
+    return description;
 }
 async function runMake() {
     execSync("npm run make");
@@ -142,9 +233,7 @@ async function setVersion(newVersion) {
     });
     fs.writeFileSync("package.json", docString, "utf8");
 }
-async function createPullRequest(tag) {
-    const title = await question(`Title for the pull request: `);
-    const description = await question(`Description for the pull request: `);
+async function createPullRequest(tag, title, description) {
     process.stdout.write(`Create new pull request from ${currentBranch} to master `);
     if (!gitApi) {
         const authHandler = azdev.getPersonalAccessTokenHandler(token);
@@ -161,7 +250,7 @@ async function createPullRequest(tag) {
         description,
         labels: [{ active: true, name: tag }]
     };
-    gitApi.createPullRequest(gitPullRequestToCreate, repoId, project);
+    await gitApi.createPullRequest(gitPullRequestToCreate, repoId, project);
     console.log(chalk.green.bold(` ... OK`));
     console.log(`Pull request created at ` + chalk.green.bold(`[${orgBaseUrl}/${project}/_git/${repoName}/pullrequests]`));
 }
