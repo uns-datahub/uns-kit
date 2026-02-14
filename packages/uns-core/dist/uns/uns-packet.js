@@ -1,7 +1,7 @@
 import * as crypto from "crypto";
 import * as zlib from "zlib";
 import logger from '../logger.js';
-import { isIOS8601Type } from "./uns-interfaces.js";
+import { isIOS8601Type, isQuestDbType, valueTypes } from "./uns-interfaces.js";
 // Version of the packet library
 const unsPacketVersion = "1.3.0";
 export class UnsPacket {
@@ -82,6 +82,12 @@ export class UnsPacket {
                 throw new Error(`Time is not defined in data object`);
             if (!isIOS8601Type(data.time))
                 throw new Error(`Time is not ISO8601`);
+            if (data.value === undefined) {
+                throw new Error(`Value is not defined in data object`);
+            }
+            if (!valueTypes.includes(typeof data.value)) {
+                throw new Error(`Value in data object must be string or number`);
+            }
             if (data.intervalStart !== undefined && !isIsoOrEpoch(data.intervalStart)) {
                 throw new Error(`intervalStart is not ISO8601 or epoch ms`);
             }
@@ -154,11 +160,15 @@ export class UnsPacket {
                 if (!column.type) {
                     throw new Error(`Column '${column.name}' is missing a QuestDB type`);
                 }
+                if (!isQuestDbType(column.type)) {
+                    throw new Error(`Column '${column.name}' has invalid QuestDB type '${column.type}'`);
+                }
                 const value = column.value;
                 if (typeof value !== "number" &&
                     typeof value !== "string" &&
+                    typeof value !== "boolean" &&
                     value !== null) {
-                    throw new Error(`Value for column '${column.name}' must be number, string, or null`);
+                    throw new Error(`Value for column '${column.name}' must be number, string, boolean, or null`);
                 }
             });
         }
@@ -180,9 +190,13 @@ export class UnsPacket {
                 // };
                 let data = undefined;
                 if (message.data && message.data.value !== undefined) {
+                    const valueType = typeof message.data.value;
+                    if (!valueTypes.includes(valueType)) {
+                        throw new Error(`Value in data object must be string or number`);
+                    }
                     data = {
                         ...message.data,
-                        valueType: typeof message.data.value
+                        valueType: valueType
                     };
                 }
                 ;

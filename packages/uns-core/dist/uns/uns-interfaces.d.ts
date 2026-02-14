@@ -9,10 +9,13 @@ import { type KnownUnsAttributeName } from "./uns-attributes.js";
 export type ISO8601 = `${number}-${string}-${string}T${string}:${string}:${string}.${string}Z`;
 export declare function isIOS8601Type(value: string): value is ISO8601;
 export type UnsAttribute = KnownUnsAttributeName | (string & {});
-export declare const valueTypes: string[];
-export type ValueTypeString = typeof valueTypes[number];
+export declare const valueTypes: readonly ["string", "number"];
+export type ValueTypeString = (typeof valueTypes)[number];
 export type ValueType = string | number;
-export type QuestDbType = "boolean" | "ipv4" | "byte" | "short" | "char" | "int" | "float" | "symbol" | "varchar" | "string" | "long" | "date" | "timestamp" | "timestamp_ns" | "double" | "uuid" | "binary" | "long256" | `geohash(${number}${"b" | "c"})` | `decimal(${number},${number})` | `array<${string}>`;
+export declare const questDbPrimitiveTypes: readonly ["boolean", "ipv4", "byte", "short", "char", "int", "float", "symbol", "varchar", "string", "long", "date", "timestamp", "timestamp_ns", "double", "uuid", "binary", "long256"];
+export type QuestDbPrimitiveType = (typeof questDbPrimitiveTypes)[number];
+export type QuestDbType = QuestDbPrimitiveType | `geohash(${number}${"b" | "c"})` | `decimal(${number},${number})` | `array<${string}>`;
+export declare function isQuestDbType(value: unknown): value is QuestDbType;
 export interface IUnsParameters {
     mqttSubToTopics?: string | string[];
     username?: string;
@@ -133,7 +136,7 @@ export interface IUnsData {
 export interface IUnsTableColumn {
     name: string;
     type: QuestDbType;
-    value: string | number | null;
+    value: string | number | boolean | null;
     uom?: MeasurementUnit;
 }
 export interface IUnsTable {

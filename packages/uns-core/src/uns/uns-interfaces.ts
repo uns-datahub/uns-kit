@@ -15,33 +15,58 @@ export function isIOS8601Type(value: string): value is ISO8601 {
 // Known attribute names (with IntelliSense) while still allowing arbitrary strings.
 export type UnsAttribute = KnownUnsAttributeName | (string & {});
 
-export const valueTypes = ["string", "number"];
-export type ValueTypeString = typeof valueTypes[number];
+export const valueTypes = ["string", "number"] as const;
+export type ValueTypeString = (typeof valueTypes)[number];
 export type ValueType = string | number;
+
+export const questDbPrimitiveTypes = [
+  "boolean",
+  "ipv4",
+  "byte",
+  "short",
+  "char",
+  "int",
+  "float",
+  "symbol",
+  "varchar",
+  "string",
+  "long",
+  "date",
+  "timestamp",
+  "timestamp_ns",
+  "double",
+  "uuid",
+  "binary",
+  "long256",
+] as const;
+
+const questDbPrimitiveTypeSet = new Set<string>(questDbPrimitiveTypes);
+const questDbGeohashRegex = /^geohash\(\d+[bc]\)$/;
+const questDbDecimalRegex = /^decimal\(\d+,\d+\)$/;
+const questDbArrayRegex = /^array<[^>]+>$/;
+
+export type QuestDbPrimitiveType = (typeof questDbPrimitiveTypes)[number];
 
 // Supported QuestDB column types for UNS tables.
 export type QuestDbType =
-  | "boolean"
-  | "ipv4"
-  | "byte"
-  | "short"
-  | "char"
-  | "int"
-  | "float"
-  | "symbol"
-  | "varchar"
-  | "string"
-  | "long"
-  | "date"
-  | "timestamp"
-  | "timestamp_ns"
-  | "double"
-  | "uuid"
-  | "binary"
-  | "long256"
+  | QuestDbPrimitiveType
   | `geohash(${number}${"b" | "c"})`
   | `decimal(${number},${number})`
   | `array<${string}>`;
+
+export function isQuestDbType(value: unknown): value is QuestDbType {
+  if (typeof value !== "string") {
+    return false;
+  }
+  if (questDbPrimitiveTypeSet.has(value)) {
+    return true;
+  }
+  return (
+    questDbGeohashRegex.test(value) ||
+    questDbDecimalRegex.test(value) ||
+    questDbArrayRegex.test(value)
+  );
+}
 
 export interface IUnsParameters {
   mqttSubToTopics?: string | string[];
@@ -151,7 +176,7 @@ export interface IUnsData {
 export interface IUnsTableColumn {
   name: string;
   type: QuestDbType;
-  value: string | number | null;
+  value: string | number | boolean | null;
   uom?: MeasurementUnit;
 }
 
