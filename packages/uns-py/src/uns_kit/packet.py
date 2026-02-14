@@ -2,8 +2,56 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+import re
+from typing import Any, Dict, Literal, Optional, TypeAlias
 import json
+
+DataValue: TypeAlias = str | int | float
+TableValue: TypeAlias = DataValue | bool | None
+QuestDbPrimitiveType: TypeAlias = Literal[
+    "boolean",
+    "ipv4",
+    "byte",
+    "short",
+    "char",
+    "int",
+    "float",
+    "symbol",
+    "varchar",
+    "string",
+    "long",
+    "date",
+    "timestamp",
+    "timestamp_ns",
+    "double",
+    "uuid",
+    "binary",
+    "long256",
+]
+
+QUESTDB_PRIMITIVE_TYPES: set[str] = {
+    "boolean",
+    "ipv4",
+    "byte",
+    "short",
+    "char",
+    "int",
+    "float",
+    "symbol",
+    "varchar",
+    "string",
+    "long",
+    "date",
+    "timestamp",
+    "timestamp_ns",
+    "double",
+    "uuid",
+    "binary",
+    "long256",
+}
+QUESTDB_GEOHASH_RE = re.compile(r"^geohash\(\d+[bc]\)$")
+QUESTDB_DECIMAL_RE = re.compile(r"^decimal\(\d+,\d+\)$")
+QUESTDB_ARRAY_RE = re.compile(r"^array<[^>]+>$")
 
 
 def isoformat(dt: datetime) -> str:
@@ -15,7 +63,7 @@ def isoformat(dt: datetime) -> str:
 
 @dataclass
 class DataPayload:
-    value: Any
+    value: DataValue
     uom: Optional[str] = None
     time: Optional[str] = None
     dataGroup: Optional[str] = None
@@ -31,9 +79,17 @@ class DataPayload:
 
 
 @dataclass
+class TableColumnPayload:
+    name: str
+    type: str
+    value: TableValue
+    uom: Optional[str] = None
+
+
+@dataclass
 class TablePayload:
     time: str
-    columns: Any
+    columns: list[TableColumnPayload | Dict[str, Any]]
     dataGroup: Optional[str] = None
     intervalStart: Optional[str | int] = None
     intervalEnd: Optional[str | int] = None
@@ -45,16 +101,75 @@ class TablePayload:
     lastSeen: Optional[str | int] = None
 
 
-def _value_type(value: Any) -> str:
-    if value is None:
-        return "null"
+def _is_data_value(value: Any) -> bool:
     if isinstance(value, bool):
-        return "boolean"
-    if isinstance(value, (int, float)):
-        return "number"
+        return False
+    return isinstance(value, (str, int, float))
+
+
+def _is_table_value(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, bool):
+        return True
+    return isinstance(value, (str, int, float))
+
+
+def is_questdb_type(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    if value in QUESTDB_PRIMITIVE_TYPES:
+        return True
+    return bool(
+        QUESTDB_GEOHASH_RE.fullmatch(value)
+        or QUESTDB_DECIMAL_RE.fullmatch(value)
+        or QUESTDB_ARRAY_RE.fullmatch(value)
+    )
+
+
+def _value_type(value: DataValue) -> str:
     if isinstance(value, str):
         return "string"
-    return "object"
+    if isinstance(value, bool):
+        raise ValueError("data.value must be string or number, not boolean")
+    if isinstance(value, (int, float)):
+        return "number"
+    raise ValueError("data.value must be string or number")
+
+
+def _validate_data_payload(payload: Dict[str, Any]) -> None:
+    if "value" not in payload:
+        raise ValueError("data payload must include 'value'")
+    value = payload["value"]
+    if not _is_data_value(value):
+        raise ValueError("data.value must be string or number")
+
+
+def _validate_table_payload(payload: Dict[str, Any]) -> None:
+    columns = payload.get("columns")
+    if not isinstance(columns, list) or len(columns) == 0:
+        raise ValueError("table.columns must be a non-empty list")
+
+    for index, column in enumerate(columns):
+        if not isinstance(column, dict):
+            raise ValueError(f"table.columns[{index}] must be an object")
+
+        name = column.get("name")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"table.columns[{index}].name must be a non-empty string")
+
+        column_type = column.get("type")
+        if not is_questdb_type(column_type):
+            raise ValueError(
+                f"table.columns[{index}].type must be a valid QuestDB type literal"
+            )
+
+        if "value" not in column:
+            raise ValueError(f"table.columns[{index}].value is required")
+        if not _is_table_value(column["value"]):
+            raise ValueError(
+                f"table.columns[{index}].value must be string, number, boolean, or null"
+            )
 
 
 def _normalize_payload_fields(payload: Dict[str, Any], extra: Dict[str, Any]) -> None:
@@ -85,7 +200,7 @@ class UnsPacket:
 
     @staticmethod
     def data(
-        value: Any,
+        value: DataValue,
         uom: Optional[str] = None,
         time: Optional[datetime | str] = None,
         data_group: Optional[str] = None,
@@ -101,10 +216,11 @@ class UnsPacket:
             "uom": uom,
             "time": resolved_time,
             "dataGroup": data_group,
-            "valueType": _value_type(value),
         }
         _normalize_payload_fields(payload, extra)
         _prune_none(payload)
+        _validate_data_payload(payload)
+        payload["valueType"] = _value_type(payload["value"])
         message: Dict[str, Any] = {"data": payload}
         if created_at is not None:
             message["createdAt"] = created_at if isinstance(created_at, str) else isoformat(created_at)
@@ -116,7 +232,7 @@ class UnsPacket:
     def table(
         table: Optional[Dict[str, Any]] = None,
         *,
-        columns: Optional[Any] = None,
+        columns: Optional[list[TableColumnPayload | Dict[str, Any]]] = None,
         time: Optional[datetime | str] = None,
         data_group: Optional[str] = None,
         created_at: Optional[datetime | str] = None,
@@ -145,6 +261,7 @@ class UnsPacket:
 
         _normalize_payload_fields(payload, extra)
         _prune_none(payload)
+        _validate_table_payload(payload)
         message: Dict[str, Any] = {"table": payload}
         if created_at is not None:
             message["createdAt"] = created_at if isinstance(created_at, str) else isoformat(created_at)
@@ -168,8 +285,18 @@ class UnsPacket:
         msg = dict(message)
         data = msg.get("data")
         if isinstance(data, dict):
-            if "valueType" not in data and "value" in data:
-                data = dict(data)
-                data["valueType"] = _value_type(data.get("value"))
-                msg["data"] = data
+            data = dict(data)
+            _validate_data_payload(data)
+            data["valueType"] = _value_type(data["value"])
+            msg["data"] = data
+        elif data is not None:
+            raise ValueError("message.data must be an object when provided")
+
+        table = msg.get("table")
+        if isinstance(table, dict):
+            table = dict(table)
+            _validate_table_payload(table)
+            msg["table"] = table
+        elif table is not None:
+            raise ValueError("message.table must be an object when provided")
         return {"version": UnsPacket.version, "message": msg}
