@@ -277,18 +277,50 @@ export default class UnsApiProxy extends UnsProxy {
       }
 
       if (this.app.swaggerSpec) {
+        const queryParams = options?.queryParams || [];
+        const canonicalParams = queryParams.reduce((acc, param) => {
+          if (typeof param.chatCanonical === "string" && param.chatCanonical.trim().length) {
+            acc[param.chatCanonical.trim()] = param.name;
+          }
+          return acc;
+        }, {} as Record<string, string>);
+        const chatDefaults: Record<string, string | number | boolean> = {};
+        for (const param of queryParams) {
+          if (param.defaultValue !== undefined) {
+            chatDefaults[param.name] = param.defaultValue;
+          }
+        }
+        const optionDefaults = options?.chatDefaults ?? {};
+        for (const [key, value] of Object.entries(optionDefaults)) {
+          if (value !== undefined) {
+            chatDefaults[key] = value;
+          }
+        }
+        const unsChatMeta =
+          Object.keys(canonicalParams).length || Object.keys(chatDefaults).length
+            ? {
+                canonicalParams,
+                defaults: chatDefaults,
+              }
+            : null;
+
         this.app.swaggerSpec.paths = this.app.swaggerSpec.paths || {};
-        this.app.swaggerSpec.paths[`/api${fullPath}`] = {
+        this.app.swaggerSpec.paths[apiPath] = {
           get: {
             summary: options?.apiDescription || "No description",
             tags: options?.tags || [],
-            parameters: (options?.queryParams || []).map((p) => ({
+            parameters: queryParams.map((p) => ({
               name: p.name,
               in: "query",
               required: !!p.required,
-              schema: { type: p.type },
+              schema: {
+                type: p.type,
+                ...(p.defaultValue !== undefined ? { default: p.defaultValue } : {}),
+              },
               description: p.description,
+              ...(p.chatCanonical ? { "x-uns-chat-canonical": p.chatCanonical } : {}),
             })),
+            ...(unsChatMeta ? { "x-uns-chat": unsChatMeta } : {}),
             responses: {
               "200": { description: "OK" },
               "400": { description: "Bad Request" },

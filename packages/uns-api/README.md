@@ -42,6 +42,14 @@ async function main() {
   api.get("factory/", "status", {
     apiDescription: "Factory status endpoint",
     tags: ["status"],
+    queryParams: [
+      { name: "from", type: "string", chatCanonical: "from" },
+      { name: "to", type: "string", chatCanonical: "to" },
+      { name: "limit", type: "number", chatCanonical: "limit", defaultValue: 200 },
+    ],
+    chatDefaults: {
+      limit: 200,
+    },
   });
 
   api.event.on("apiGetEvent", (event) => {
@@ -51,6 +59,9 @@ async function main() {
 
 void main();
 ```
+
+`queryParams[].chatCanonical`, `queryParams[].defaultValue`, and `chatDefaults` are optional.
+When provided, they are published into OpenAPI vendor metadata (`x-uns-chat`) so assistant tooling can map canonical chat inputs (`from`, `to`, `limit`, `topic`, ...) to endpoint-specific query parameters.
 
 ## Scripts
 

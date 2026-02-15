@@ -250,6 +250,24 @@ export interface QueryParamDef {
     type: "string" | "number" | "boolean";
     required?: boolean;
     description?: string;
+    /**
+     * Optional canonical chat alias used by assistant tooling.
+     * Typical values: from, to, limit, topic, timezone, summaryOnly.
+     */
+    chatCanonical?: string;
+    /**
+     * Optional default query value. Included in generated OpenAPI metadata.
+     */
+    defaultValue?: string | number | boolean;
+}
+export interface ApiChatDefaults {
+    from?: string;
+    to?: string;
+    limit?: number;
+    topic?: string;
+    timezone?: string;
+    summaryOnly?: boolean;
+    [key: string]: string | number | boolean | undefined;
 }
 export interface IApiProxyOptions {
     jwtSecret?: string;
@@ -274,6 +292,10 @@ export interface IGetEndpointOptions {
     apiDescription?: string;
     tags?: string[];
     queryParams?: QueryParamDef[];
+    /**
+     * Optional defaults consumed by chat tooling (published as OpenAPI vendor extension x-uns-chat.defaults).
+     */
+    chatDefaults?: ApiChatDefaults;
 }
 export {};
 //# sourceMappingURL=uns-interfaces.d.ts.map
