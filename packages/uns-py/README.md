@@ -50,9 +50,9 @@ asyncio.run(main())
 
 ## Config placeholders (env + Infisical)
 `uns-py` now resolves config placeholders in the same style as `uns-core`.
-For Infisical placeholders, install the SDK in your app environment:
+For Infisical placeholders, install the optional extra:
 ```bash
-pip install infisicalsdk
+pip install "uns-kit[infisical]"
 ```
 
 Example `config.json`:
