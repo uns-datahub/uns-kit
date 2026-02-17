@@ -154,7 +154,7 @@ def create(dest: str):
             pass
     # Personalize config.json with project identity (TS-style nested config).
     config_path = Path(dest_path) / "config.json"
-    _write_config_file(config_path, project_name, initial_app_version)
+    _write_config_file(config_path, project_name)
     # Personalize pyproject.toml so pip/poetry builds succeed with a project-specific name/module.
     if pyproject_path.exists():
         try:
@@ -257,7 +257,7 @@ def _prompt_devops(config: dict) -> Tuple[str, str]:
     return org.strip(), project.strip()
 
 
-def _write_config_file(path: Path, project_name: Optional[str] = None, package_version: str = "0.1.0") -> None:
+def _write_config_file(path: Path, project_name: Optional[str] = None) -> None:
     project_name = project_name or path.resolve().parent.name
     sanitized = TopicBuilder.sanitize_topic_part(project_name)
     data = {
@@ -273,8 +273,6 @@ def _write_config_file(path: Path, project_name: Optional[str] = None, package_v
             "clean": True,
         },
         "uns": {
-            "packageName": project_name,
-            "packageVersion": package_version,
             "processName": sanitized,
         },
     }
