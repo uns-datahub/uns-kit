@@ -3,12 +3,12 @@ import math
 from datetime import datetime
 from pathlib import Path
 
-from uns_kit import UnsConfig, UnsMqttClient, TopicBuilder
+from uns_kit import ConfigFile, TopicBuilder, UnsMqttClient
 
 
-def load_config() -> UnsConfig:
+def load_config() -> dict:
     cfg_path = Path("config.json")
-    return UnsConfig.load(cfg_path)
+    return ConfigFile.load_config(cfg_path)
 
 
 def simulate_sensor_value(step: int) -> float:
@@ -48,7 +48,10 @@ def log_info(message: str) -> None:
 
 async def main() -> None:
     cfg = load_config()
-    host = f"{cfg.host}:{cfg.port}" if cfg.port else cfg.host
+    infra = cfg.get("infra") or {}
+    host_name = infra.get("host") or "localhost"
+    host_port = infra.get("port")
+    host = f"{host_name}:{host_port}" if host_port else host_name
 
     if not prompt_bool(f"Would you like to continue with load-test on {host}?"):
         print("Load test aborted.")
@@ -65,11 +68,11 @@ async def main() -> None:
     # Use a dedicated identity for load testing to avoid clashing with app processes.
     tb = TopicBuilder(package_name="uns-loadtest", package_version="0.0.0", process_name="load-tester")
     client = UnsMqttClient(
-        cfg.host,
-        port=cfg.port,
-        username=cfg.username or None,
-        password=cfg.password or None,
-        tls=cfg.tls,
+        host_name,
+        port=host_port,
+        username=infra.get("username") or None,
+        password=infra.get("password") or None,
+        tls=bool(infra.get("tls")),
         client_id="uns-loadtest-client",
         topic_builder=tb,
         instance_name="py-load-test",

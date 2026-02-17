@@ -159,6 +159,7 @@ def create(dest: str):
     if pyproject_path.exists():
         try:
             _personalize_pyproject(pyproject_path, project_name)
+            _configure_local_uns_kit_dependency(pyproject_path)
         except Exception:
             pass
     # Personalize package.json for PM2 metadata (optional; controller also writes this for python RTT nodes).
@@ -703,6 +704,25 @@ def _personalize_pyproject(pyproject_path: Path, project_name: str) -> None:
     target_dir = pyproject_path.parent / module_name
     if pkg_dir.exists() and module_name != "uns_py_app" and not target_dir.exists():
         pkg_dir.rename(target_dir)
+
+
+def _configure_local_uns_kit_dependency(pyproject_path: Path) -> None:
+    """
+    For monorepo sandbox apps, prefer a local editable dependency on packages/uns-py.
+    Falls back to the template default (`uns-kit = "*"`) when the local package path
+    is not available.
+    """
+    local_uns_py = (pyproject_path.parent / "../packages/uns-py").resolve()
+    if not local_uns_py.exists():
+        return
+
+    text = pyproject_path.read_text()
+    text = re.sub(
+        r'(?m)^uns-kit\s*=\s*".*"\s*$',
+        'uns-kit = { path = "../packages/uns-py", develop = true }',
+        text,
+    )
+    pyproject_path.write_text(text)
 
 
 def main():

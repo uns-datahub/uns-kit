@@ -23,11 +23,16 @@ poetry run uns-kit-py subscribe --host localhost:1883 --topic 'uns-infra/#'
 ```python
 import asyncio
 from pathlib import Path
-from uns_kit import UnsConfig, UnsPacket, UnsProxyProcess
+from uns_kit import ConfigFile, UnsPacket, UnsProcessParameters, UnsProxyProcess
 
 async def main():
-    config = UnsConfig.load(Path("config.json"))
-    process = UnsProxyProcess(config.infra_host, config=config)
+    config = ConfigFile.load_config(Path("config.json"))
+    infra = config["infra"]
+    uns = config["uns"]
+    process = UnsProxyProcess(
+        infra["host"],
+        UnsProcessParameters(process_name=uns.get("processName", "uns-process")),
+    )
     await process.start()
     mqtt = await process.create_mqtt_proxy("py")
 
@@ -114,6 +119,8 @@ From the monorepo root:
 pnpm run py:sandbox
 ```
 This creates `sandbox-app-py/` using the default Python template.
+When created inside this monorepo, `pyproject.toml` is automatically set to use local editable `uns-kit`:
+`uns-kit = { path = "../packages/uns-py", develop = true }`.
 
 ## Notes
 - Default QoS is 0.

@@ -2,33 +2,41 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from uns_kit import UnsConfig, UnsMqttClient, UnsProxyProcess
+from uns_kit import ConfigFile, TopicBuilder, UnsMqttClient, UnsProcessParameters, UnsProxyProcess
 from uns_kit.packet import isoformat
 
 
 async def main() -> None:
-    cfg = UnsConfig.load(Path("config.json"))
-    process = UnsProxyProcess(cfg.host, cfg)
+    cfg = ConfigFile.load_config(Path("config.json"))
+    infra = cfg.get("infra") or {}
+    uns = cfg.get("uns") or {}
+    host = infra.get("host") or "localhost"
+    process_name = uns.get("processName") or "uns-process"
+    process = UnsProxyProcess(host, UnsProcessParameters(process_name=process_name))
     await process.start()
-    print(f"[data-example] process client connected to {cfg.host}:{cfg.port or 1883}")
+    print(f"[data-example] process client connected to {host}:{infra.get('port') or 1883}")
 
     out = await process.create_mqtt_proxy("py-output")
     out.client.publisher_active = True
-    print(f"[data-example] output proxy connected to {cfg.host}:{cfg.port or 1883}")
+    print(f"[data-example] output proxy connected to {host}:{infra.get('port') or 1883}")
 
     inp = UnsMqttClient(
-        cfg.host,
-        port=cfg.port,
-        username=cfg.username or None,
-        password=cfg.password or None,
-        tls=cfg.tls,
-        client_id=f"{cfg.process_name}-data-example-in",
-        topic_builder=cfg.topic_builder(),
+        host,
+        port=infra.get("port"),
+        username=infra.get("username") or None,
+        password=infra.get("password") or None,
+        tls=bool(infra.get("tls")),
+        client_id=f"{process_name}-data-example-in",
+        topic_builder=TopicBuilder(
+            uns.get("packageName") or "uns-kit",
+            uns.get("packageVersion") or "0.1.0",
+            process_name,
+        ),
         instance_name="py-input",
         subscriber_active=True,
     )
     await inp.connect()
-    print(f"[data-example] input client connected to {cfg.host}:{cfg.port or 1883}, subscribing to raw/#")
+    print(f"[data-example] input client connected to {host}:{infra.get('port') or 1883}, subscribing to raw/#")
 
     topic = "enterprise/site/area/line/"
     asset = "asset"
