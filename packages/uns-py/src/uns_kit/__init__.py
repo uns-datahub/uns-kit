@@ -5,7 +5,14 @@ from importlib import import_module
 from typing import TYPE_CHECKING
 
 from .config import UnsConfig
+from .config_file import ConfigFile
 from .packet import DataPayload, TablePayload, UnsPacket
+from .secret_resolver import (
+    HostResolverOptions,
+    InfisicalResolverOptions,
+    SecretResolverOptions,
+    resolve_infisical_config,
+)
 from .topic_builder import TopicBuilder
 from .version import __version__
 
@@ -32,6 +39,11 @@ __all__ = [
     "DataPayload",
     "TablePayload",
     "UnsConfig",
+    "ConfigFile",
+    "SecretResolverOptions",
+    "InfisicalResolverOptions",
+    "HostResolverOptions",
+    "resolve_infisical_config",
     "__version__",
     "UnsMqttClient",
     "StatusMonitor",

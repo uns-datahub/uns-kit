@@ -3,8 +3,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
+from .config_file import ConfigFile
+from .secret_resolver import SecretResolverOptions
 from .topic_builder import TopicBuilder
 from .version import __version__
 
@@ -26,15 +28,20 @@ class UnsConfig:
     process_name: str = "uns-process"
 
     @staticmethod
-    def load(path: Path) -> "UnsConfig":
-        data = json.loads(path.read_text())
+    def load(path: Path, options: Optional[SecretResolverOptions] = None) -> "UnsConfig":
+        data = ConfigFile.load_config(path, options)
+        return UnsConfig.from_dict(data, config_path=path)
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any], config_path: Optional[Path] = None) -> "UnsConfig":
+        config_anchor = config_path if config_path is not None else (Path.cwd() / "config.json")
 
         if "infra" not in data or "uns" not in data:
             raise ValueError("config.json must include 'infra' and 'uns' sections (TS-style config)")
 
         infra = data.get("infra", {}) or {}
         uns_section = data.get("uns", {}) or {}
-        pkg_name, pkg_version = _read_package_metadata(path)
+        pkg_name, pkg_version = _read_package_metadata(config_anchor)
 
         proto = (infra.get("protocol") or "").lower()
         tls = proto in ("mqtts", "ssl", "wss")
@@ -53,8 +60,8 @@ class UnsConfig:
             mqtt_sub_to_topics=infra.get("mqttSubToTopics"),
             keepalive=infra.get("keepalive", 60),
             clean_session=infra.get("clean", True),
-            package_name=uns_section.get("packageName") or pkg_name or "uns-kit",
-            package_version=uns_section.get("packageVersion") or pkg_version or __version__,
+            package_name=_none_if_empty(uns_section.get("packageName")) or pkg_name or "uns-kit",
+            package_version=_none_if_empty(uns_section.get("packageVersion")) or pkg_version or __version__,
             process_name=uns_section.get("processName", "uns-process"),
         )
 
@@ -87,7 +94,11 @@ class UnsConfig:
         return self.infra_tls
 
 
-def _none_if_empty(value: Optional[str]) -> Optional[str]:
+def _none_if_empty(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return str(value)
     return None if value == "" else value
 
 

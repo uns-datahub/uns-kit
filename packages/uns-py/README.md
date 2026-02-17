@@ -43,6 +43,52 @@ async def main():
 asyncio.run(main())
 ```
 
+## Config placeholders (env + Infisical)
+`uns-py` now resolves config placeholders in the same style as `uns-core`.
+For Infisical placeholders, install the SDK in your app environment:
+```bash
+pip install infisicalsdk
+```
+
+Example `config.json`:
+```json
+{
+  "uns": {
+    "graphql": "https://example/graphql",
+    "rest": "https://example/rest",
+    "email": "service@example.com",
+    "password": { "provider": "env", "key": "UNS_PASSWORD" },
+    "processName": "my-process"
+  },
+  "infra": {
+    "host": "mqtt.example.local",
+    "port": 1883,
+    "username": "mqtt-user",
+    "password": {
+      "provider": "infisical",
+      "path": "/mqtt",
+      "key": "password",
+      "environment": "dev"
+    }
+  }
+}
+```
+
+Load resolved config with cache semantics:
+```python
+from uns_kit import ConfigFile, SecretResolverOptions, InfisicalResolverOptions
+
+resolved = ConfigFile.load_config(
+    "config.json",
+    SecretResolverOptions(
+        infisical=InfisicalResolverOptions(
+            environment="dev",
+            project_id="your-project-id"
+        )
+    )
+)
+```
+
 ### Resilient subscriber
 ```python
 async for msg in client.resilient_messages("uns-infra/#"):
