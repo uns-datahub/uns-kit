@@ -2,27 +2,32 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from uns_kit import UnsConfig, UnsMqttClient, UnsProxyProcess
+from uns_kit import ConfigFile, TopicBuilder, UnsMqttClient, UnsProcessParameters, UnsProxyProcess
 from uns_kit.packet import isoformat
 
 
 async def main() -> None:
     cfg_path = Path("config.json")
-    cfg = UnsConfig.load(cfg_path) if cfg_path.exists() else UnsConfig(host="localhost")
-    process = UnsProxyProcess(cfg.host, cfg)
+    cfg = ConfigFile.load_config(cfg_path) if cfg_path.exists() else {"infra": {"host": "localhost"}, "uns": {"processName": "uns-process"}}
+    infra = cfg.get("infra") or {}
+    uns = cfg.get("uns") or {}
+    host = infra.get("host") or "localhost"
+    port = infra.get("port")
+    process_name = uns.get("processName") or "uns-process"
+    process = UnsProxyProcess(host, UnsProcessParameters(process_name=process_name))
     await process.start()
     print("[data-example] Process client connected.")
 
     mqtt_output = await process.create_mqtt_proxy("py-output")
     print("[data-example] Output proxy connected.")
     mqtt_input = UnsMqttClient(
-        cfg.host,
-        port=cfg.port,
-        username=cfg.username or None,
-        password=cfg.password or None,
-        tls=cfg.tls,
+        host,
+        port=port,
+        username=infra.get("username") or None,
+        password=infra.get("password") or None,
+        tls=bool(infra.get("tls")),
         client_id=None,
-        topic_builder=cfg.topic_builder(),
+        topic_builder=TopicBuilder(process_name=process_name),
         instance_name="py-input",
         subscriber_active=True,
     )

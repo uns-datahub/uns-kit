@@ -23,11 +23,16 @@ poetry run uns-kit-py subscribe --host localhost:1883 --topic 'uns-infra/#'
 ```python
 import asyncio
 from pathlib import Path
-from uns_kit import UnsConfig, UnsPacket, UnsProxyProcess
+from uns_kit import ConfigFile, UnsPacket, UnsProcessParameters, UnsProxyProcess
 
 async def main():
-    config = UnsConfig.load(Path("config.json"))
-    process = UnsProxyProcess(config.infra_host, config=config)
+    config = ConfigFile.load_config(Path("config.json"))
+    infra = config["infra"]
+    uns = config["uns"]
+    process = UnsProxyProcess(
+        infra["host"],
+        UnsProcessParameters(process_name=uns.get("processName", "uns-process")),
+    )
     await process.start()
     mqtt = await process.create_mqtt_proxy("py")
 
@@ -41,6 +46,52 @@ async def main():
     await process.stop()
 
 asyncio.run(main())
+```
+
+## Config placeholders (env + Infisical)
+`uns-py` now resolves config placeholders in the same style as `uns-core`.
+For Infisical placeholders, install the SDK in your app environment:
+```bash
+pip install infisicalsdk
+```
+
+Example `config.json`:
+```json
+{
+  "uns": {
+    "graphql": "https://example/graphql",
+    "rest": "https://example/rest",
+    "email": "service@example.com",
+    "password": { "provider": "env", "key": "UNS_PASSWORD" },
+    "processName": "my-process"
+  },
+  "infra": {
+    "host": "mqtt.example.local",
+    "port": 1883,
+    "username": "mqtt-user",
+    "password": {
+      "provider": "infisical",
+      "path": "/mqtt",
+      "key": "password",
+      "environment": "dev"
+    }
+  }
+}
+```
+
+Load resolved config with cache semantics:
+```python
+from uns_kit import ConfigFile, SecretResolverOptions, InfisicalResolverOptions
+
+resolved = ConfigFile.load_config(
+    "config.json",
+    SecretResolverOptions(
+        infisical=InfisicalResolverOptions(
+            environment="dev",
+            project_id="your-project-id"
+        )
+    )
+)
 ```
 
 ### Resilient subscriber
@@ -68,6 +119,8 @@ From the monorepo root:
 pnpm run py:sandbox
 ```
 This creates `sandbox-app-py/` using the default Python template.
+When created inside this monorepo, `pyproject.toml` is automatically set to use local editable `uns-kit`:
+`uns-kit = { path = "../packages/uns-py", develop = true }`.
 
 ## Notes
 - Default QoS is 0.

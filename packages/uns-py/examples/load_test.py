@@ -3,14 +3,14 @@ import math
 from datetime import datetime
 from pathlib import Path
 
-from uns_kit import UnsMqttClient, UnsConfig
+from uns_kit import ConfigFile, TopicBuilder, UnsMqttClient
 
 
-def load_config() -> UnsConfig:
+def load_config() -> dict:
     cfg_path = Path("config.json")
     if cfg_path.exists():
-        return UnsConfig.load(cfg_path)
-    return UnsConfig(host="localhost")
+        return ConfigFile.load_config(cfg_path)
+    return {"infra": {"host": "localhost"}, "uns": {"processName": "uns-process"}}
 
 
 def prompt_bool(prompt: str, default_yes: bool = True) -> bool:
@@ -53,7 +53,11 @@ def simulate_sensor_value(step: int) -> float:
 
 async def main() -> None:
     cfg = load_config()
-    host = f"{cfg.host}:{cfg.port}" if cfg.port else cfg.host
+    infra = cfg.get("infra") or {}
+    uns = cfg.get("uns") or {}
+    host_name = infra.get("host") or "localhost"
+    host_port = infra.get("port")
+    host = f"{host_name}:{host_port}" if host_port else host_name
 
     if not prompt_bool(f"Would you like to continue with load-test on {host}?"):
         print("Load test aborted.")
@@ -66,13 +70,15 @@ async def main() -> None:
 
     log_info(f"Starting load test with {count} messages and {delay_ms} ms delay...")
 
-    tb = cfg.topic_builder()
+    tb = TopicBuilder(
+        uns.get("processName") or "uns-process",
+    )
     client = UnsMqttClient(
-        cfg.host,
-        port=cfg.port,
-        username=cfg.username or None,
-        password=cfg.password or None,
-        tls=cfg.tls,
+        host_name,
+        port=host_port,
+        username=infra.get("username") or None,
+        password=infra.get("password") or None,
+        tls=bool(infra.get("tls")),
         client_id=None,
         topic_builder=tb,
         instance_name="py-load-test",

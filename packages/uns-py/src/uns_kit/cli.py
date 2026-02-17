@@ -154,11 +154,12 @@ def create(dest: str):
             pass
     # Personalize config.json with project identity (TS-style nested config).
     config_path = Path(dest_path) / "config.json"
-    _write_config_file(config_path, project_name, initial_app_version)
+    _write_config_file(config_path, project_name)
     # Personalize pyproject.toml so pip/poetry builds succeed with a project-specific name/module.
     if pyproject_path.exists():
         try:
             _personalize_pyproject(pyproject_path, project_name)
+            _configure_local_uns_kit_dependency(pyproject_path)
         except Exception:
             pass
     # Personalize package.json for PM2 metadata (optional; controller also writes this for python RTT nodes).
@@ -256,7 +257,7 @@ def _prompt_devops(config: dict) -> Tuple[str, str]:
     return org.strip(), project.strip()
 
 
-def _write_config_file(path: Path, project_name: Optional[str] = None, package_version: str = "0.1.0") -> None:
+def _write_config_file(path: Path, project_name: Optional[str] = None) -> None:
     project_name = project_name or path.resolve().parent.name
     sanitized = TopicBuilder.sanitize_topic_part(project_name)
     data = {
@@ -272,8 +273,6 @@ def _write_config_file(path: Path, project_name: Optional[str] = None, package_v
             "clean": True,
         },
         "uns": {
-            "packageName": project_name,
-            "packageVersion": package_version,
             "processName": sanitized,
         },
     }
@@ -703,6 +702,25 @@ def _personalize_pyproject(pyproject_path: Path, project_name: str) -> None:
     target_dir = pyproject_path.parent / module_name
     if pkg_dir.exists() and module_name != "uns_py_app" and not target_dir.exists():
         pkg_dir.rename(target_dir)
+
+
+def _configure_local_uns_kit_dependency(pyproject_path: Path) -> None:
+    """
+    For monorepo sandbox apps, prefer a local editable dependency on packages/uns-py.
+    Falls back to the template default (`uns-kit = "*"`) when the local package path
+    is not available.
+    """
+    local_uns_py = (pyproject_path.parent / "../packages/uns-py").resolve()
+    if not local_uns_py.exists():
+        return
+
+    text = pyproject_path.read_text()
+    text = re.sub(
+        r'(?m)^uns-kit\s*=\s*".*"\s*$',
+        'uns-kit = { path = "../packages/uns-py", develop = true }',
+        text,
+    )
+    pyproject_path.write_text(text)
 
 
 def main():

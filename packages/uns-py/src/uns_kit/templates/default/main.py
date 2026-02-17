@@ -1,22 +1,24 @@
 import asyncio
-import json
 from pathlib import Path
 
-from uns_kit import UnsMqttClient, UnsPacket, TopicBuilder, UnsConfig
+from uns_kit import ConfigFile, TopicBuilder, UnsMqttClient, UnsPacket
 
 
 async def run():
-    # Load TS-style nested config
-    cfg = UnsConfig.load(Path("config.json"))
-    tb = cfg.topic_builder()
+    cfg = ConfigFile.load_config(Path("config.json"))
+    infra = cfg.get("infra") or {}
+    uns = cfg.get("uns") or {}
+    host = infra.get("host") or "localhost"
+    process_name = uns.get("processName") or "uns-process"
+    tb = TopicBuilder(process_name=process_name)
 
     client = UnsMqttClient(
-        cfg.host,
-        port=cfg.port,
-        username=cfg.username,
-        password=cfg.password,
-        tls=cfg.tls,
-        client_id=cfg.client_id or f"{cfg.process_name}-py",
+        host,
+        port=infra.get("port"),
+        username=infra.get("username"),
+        password=infra.get("password"),
+        tls=bool(infra.get("tls")),
+        client_id=infra.get("clientId") or f"{process_name}-py",
         topic_builder=tb,
         reconnect_interval=1,
     )

@@ -40,6 +40,8 @@ class UnsMqttProxy(UnsProxy):
         client_id: Optional[str] = None,
         keepalive: int = 60,
         clean_session: bool = True,
+        reconnect_interval: float = 2.0,
+        max_reconnect_interval: float = 30.0,
     ) -> None:
         self.topic_builder = TopicBuilder(package_name, package_version, process_name)
         self.instance_status_topic = self.topic_builder.instance_status_topic(instance_name)
@@ -52,6 +54,8 @@ class UnsMqttProxy(UnsProxy):
             client_id=client_id,
             keepalive=keepalive,
             clean_session=clean_session,
+            reconnect_interval=reconnect_interval,
+            max_reconnect_interval=max_reconnect_interval,
             topic_builder=self.topic_builder,
             instance_name=instance_name,
             publisher_active=True,

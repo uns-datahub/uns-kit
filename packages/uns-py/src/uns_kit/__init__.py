@@ -4,8 +4,14 @@ import sys
 from importlib import import_module
 from typing import TYPE_CHECKING
 
-from .config import UnsConfig
+from .config_file import ConfigFile
 from .packet import DataPayload, TablePayload, UnsPacket
+from .secret_resolver import (
+    HostResolverOptions,
+    InfisicalResolverOptions,
+    SecretResolverOptions,
+    resolve_infisical_config,
+)
 from .topic_builder import TopicBuilder
 from .version import __version__
 
@@ -21,7 +27,7 @@ if sys.platform.startswith("win"):
         pass
 
 if TYPE_CHECKING:
-    from .proxy_process import UnsProxyProcess
+    from .proxy_process import UnsParameters, UnsProcessParameters, UnsProxyProcess
     from .status_monitor import StatusMonitor
     from .uns_mqtt_proxy import MessageMode, UnsMqttProxy
     from .client import UnsMqttClient
@@ -31,13 +37,19 @@ __all__ = [
     "UnsPacket",
     "DataPayload",
     "TablePayload",
-    "UnsConfig",
+    "ConfigFile",
+    "SecretResolverOptions",
+    "InfisicalResolverOptions",
+    "HostResolverOptions",
+    "resolve_infisical_config",
     "__version__",
     "UnsMqttClient",
     "StatusMonitor",
     "UnsMqttProxy",
     "MessageMode",
     "UnsProxyProcess",
+    "UnsProcessParameters",
+    "UnsParameters",
     "client",  # for backward compatibility
 ]
 
@@ -47,6 +59,8 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "UnsMqttProxy": ("uns_kit.uns_mqtt_proxy", "UnsMqttProxy"),
     "MessageMode": ("uns_kit.uns_mqtt_proxy", "MessageMode"),
     "UnsProxyProcess": ("uns_kit.proxy_process", "UnsProxyProcess"),
+    "UnsProcessParameters": ("uns_kit.proxy_process", "UnsProcessParameters"),
+    "UnsParameters": ("uns_kit.proxy_process", "UnsParameters"),
 }
 
 
