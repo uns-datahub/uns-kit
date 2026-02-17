@@ -7,7 +7,7 @@ from typing import Any, List, Mapping, Optional
 
 from .client import UnsMqttClient
 from .status_monitor import StatusMonitor
-from .topic_builder import TopicBuilder
+from .topic_builder import TopicBuilder, resolve_runtime_package_metadata
 from .uns_mqtt_proxy import UnsMqttProxy
 from .version import __version__
 
@@ -62,8 +62,8 @@ class UnsProcessParameters:
     keepalive: Optional[int] = None
     clean: Optional[bool] = None
     reconnect_period: Optional[int] = None
-    package_name: str = "uns-kit"
-    package_version: str = __version__
+    package_name: Optional[str] = None
+    package_version: Optional[str] = None
 
     @staticmethod
     def from_mapping(mapping: Mapping[str, Any]) -> "UnsProcessParameters":
@@ -80,8 +80,8 @@ class UnsProcessParameters:
             keepalive=mapping.get("keepalive"),
             clean=mapping.get("clean"),
             reconnect_period=_pick(mapping, "reconnect_period", "reconnectPeriod"),
-            package_name=_pick(mapping, "package_name", "packageName") or "uns-kit",
-            package_version=_pick(mapping, "package_version", "packageVersion") or __version__,
+            package_name=_pick(mapping, "package_name", "packageName"),
+            package_version=_pick(mapping, "package_version", "packageVersion"),
         )
 
 
@@ -108,6 +108,17 @@ class UnsProxyProcess:
                 self.process_parameters.process_name = process_name
 
         self.process_name = self.process_parameters.process_name
+        detected_package_name, detected_package_version = resolve_runtime_package_metadata()
+        self.process_parameters.package_name = (
+            self.process_parameters.package_name
+            or detected_package_name
+            or "uns-kit"
+        )
+        self.process_parameters.package_version = (
+            self.process_parameters.package_version
+            or detected_package_version
+            or __version__
+        )
         self.process_id = uuid.uuid4().hex
         self.active = False
         self._activate_delay_s = activate_delay_s

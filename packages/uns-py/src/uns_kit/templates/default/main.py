@@ -10,11 +10,7 @@ async def run():
     uns = cfg.get("uns") or {}
     host = infra.get("host") or "localhost"
     process_name = uns.get("processName") or "uns-process"
-    tb = TopicBuilder(
-        uns.get("packageName") or "uns-kit",
-        uns.get("packageVersion") or "0.1.0",
-        process_name,
-    )
+    tb = TopicBuilder(process_name=process_name)
 
     client = UnsMqttClient(
         host,

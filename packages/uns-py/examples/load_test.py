@@ -71,8 +71,6 @@ async def main() -> None:
     log_info(f"Starting load test with {count} messages and {delay_ms} ms delay...")
 
     tb = TopicBuilder(
-        uns.get("packageName") or "uns-kit",
-        uns.get("packageVersion") or "0.0.0",
         uns.get("processName") or "uns-process",
     )
     client = UnsMqttClient(

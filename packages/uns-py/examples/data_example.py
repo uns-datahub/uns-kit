@@ -27,11 +27,7 @@ async def main() -> None:
         password=infra.get("password") or None,
         tls=bool(infra.get("tls")),
         client_id=None,
-        topic_builder=TopicBuilder(
-            uns.get("packageName") or "uns-kit",
-            uns.get("packageVersion") or "0.0.0",
-            process_name,
-        ),
+        topic_builder=TopicBuilder(process_name=process_name),
         instance_name="py-input",
         subscriber_active=True,
     )
