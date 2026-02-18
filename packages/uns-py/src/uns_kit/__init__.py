@@ -5,6 +5,7 @@ from importlib import import_module
 from typing import TYPE_CHECKING
 
 from .config_file import ConfigFile
+from .logger import get_logger, logger, set_log_level
 from .packet import DataPayload, TablePayload, UnsPacket
 from .secret_resolver import (
     HostResolverOptions,
@@ -38,6 +39,9 @@ __all__ = [
     "DataPayload",
     "TablePayload",
     "ConfigFile",
+    "logger",
+    "get_logger",
+    "set_log_level",
     "SecretResolverOptions",
     "InfisicalResolverOptions",
     "HostResolverOptions",

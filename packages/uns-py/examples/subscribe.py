@@ -1,5 +1,7 @@
 import asyncio
-from uns_kit import TopicBuilder, UnsMqttClient
+from uns_kit import UnsMqttClient, TopicBuilder, get_logger
+
+log = get_logger(__name__, "INFO")
 
 
 async def main() -> None:
@@ -8,7 +10,7 @@ async def main() -> None:
     await client.connect()
 
     async for msg in client.resilient_messages("uns-infra/#"):
-        print("received", msg.topic, msg.payload.decode())
+        log.info("received topic=%s payload=%s", msg.topic, msg.payload.decode())
 
 
 if __name__ == "__main__":
