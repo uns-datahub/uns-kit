@@ -1,8 +1,14 @@
 import asyncio
-from uns_kit import UnsMqttClient, UnsPacket, TopicBuilder, get_logger
+from uns_kit import UnsMqttClient, UnsPacket, TopicBuilder
+from uns_kit.logger import configure_logger, get_logger
 
-
-log = get_logger(__name__, "INFO")
+configure_logger(
+    settings={
+        "level": "INFO",
+        "console": True,
+    }
+)
+log = get_logger(__name__)
 
 async def main() -> None:
     tb = TopicBuilder("py-demo")
