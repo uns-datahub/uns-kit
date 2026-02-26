@@ -4,7 +4,15 @@ from datetime import datetime
 from pathlib import Path
 
 from uns_kit import ConfigFile, TopicBuilder, UnsMqttClient
+from uns_kit.logger import configure_logger, get_logger
 
+configure_logger(
+    settings={
+        "level": "INFO",
+        "console": True,
+    }
+)
+log = get_logger(__name__)
 
 def load_config() -> dict:
     cfg_path = Path("config.json")
@@ -39,7 +47,7 @@ def prompt_float(prompt: str, default: float) -> float:
 
 def log_info(message: str) -> None:
     timestamp = datetime.now().isoformat(timespec="seconds")
-    print(f"{timestamp} [INFO] {message}")
+    log.info(f"{timestamp} [INFO] {message}")
 
 
 def simulate_sensor_value(step: int) -> float:
@@ -60,7 +68,7 @@ async def main() -> None:
     host = f"{host_name}:{host_port}" if host_port else host_name
 
     if not prompt_bool(f"Would you like to continue with load-test on {host}?"):
-        print("Load test aborted.")
+        log.info("Load test aborted.")
         return
 
     count = prompt_int("How many iterations should be run?", 100, "")

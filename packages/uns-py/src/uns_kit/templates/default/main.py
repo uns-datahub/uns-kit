@@ -2,7 +2,15 @@ import asyncio
 from pathlib import Path
 
 from uns_kit import ConfigFile, TopicBuilder, UnsMqttClient, UnsPacket
+from uns_kit.logger import configure_logger, get_logger
 
+configure_logger(
+    settings={
+        "level": "INFO",
+        "console": True,
+    }
+)
+log = get_logger(__name__)
 
 async def run():
     cfg = ConfigFile.load_config(Path("config.json"))
@@ -23,6 +31,7 @@ async def run():
         reconnect_interval=1,
     )
     await client.connect()
+    log.info("Client connected.")
 
     # Publish a startup heartbeat to raw/data/ (can be changed)
     await client.publish_packet("raw/data/", UnsPacket.data(value="started", uom="state"))

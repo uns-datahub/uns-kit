@@ -4,7 +4,15 @@ from pathlib import Path
 
 from uns_kit import ConfigFile, TopicBuilder, UnsMqttClient, UnsProcessParameters, UnsProxyProcess
 from uns_kit.packet import isoformat
+from uns_kit.logger import configure_logger, get_logger
 
+configure_logger(
+    settings={
+        "level": "INFO",
+        "console": True,
+    }
+)
+log = get_logger(__name__)
 
 async def main() -> None:
     cfg_path = Path("config.json")
@@ -16,10 +24,10 @@ async def main() -> None:
     process_name = uns.get("processName") or "uns-process"
     process = UnsProxyProcess(host, UnsProcessParameters(process_name=process_name))
     await process.start()
-    print("[data-example] Process client connected.")
+    log.info("[data-example] Process client connected.")
 
     mqtt_output = await process.create_mqtt_proxy("py-output")
-    print("[data-example] Output proxy connected.")
+    log.info("[data-example] Output proxy connected.")
     mqtt_input = UnsMqttClient(
         host,
         port=port,
@@ -32,7 +40,7 @@ async def main() -> None:
         subscriber_active=True,
     )
     await mqtt_input.connect()
-    print("[data-example] Input client connected, subscribing to raw/#")
+    log.info("[data-example] Input client connected, subscribing to raw/#")
 
     topic = "enterprise/site/area/line/"
     asset = "asset"
@@ -47,7 +55,7 @@ async def main() -> None:
             payload = msg.payload.decode()
             values = payload.split(",")
             if len(values) < 3:
-                print(f"Skipping malformed raw/data payload: {payload}")
+                log.info(f"Skipping malformed raw/data payload: {payload}")
                 continue
 
             count_raw, timestamp_raw, sensor_raw = values[:3]
@@ -56,7 +64,7 @@ async def main() -> None:
                 event_time = datetime.fromtimestamp(int(timestamp_raw) / 1000, tz=timezone.utc)
                 sensor_value = float(sensor_raw)
             except ValueError:
-                print(f"Skipping malformed raw/data payload: {payload}")
+                log.info(f"Skipping malformed raw/data payload: {payload}")
                 continue
 
             interval_start = isoformat(event_time - timedelta(seconds=1))
@@ -98,7 +106,7 @@ async def main() -> None:
                     ],
                 }
             )
-            print(f"[data-example] Published transformed attributes for ts={time}")
+            log.info(f"[data-example] Published transformed attributes for ts={time}")
     except KeyboardInterrupt:
         pass
     finally:
