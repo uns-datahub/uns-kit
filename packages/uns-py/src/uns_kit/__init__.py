@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from .config_file import ConfigFile
 from .packet import DataPayload, TablePayload, UnsPacket
+from .runtime_metadata import RUNTIME_METADATA
 from .secret_resolver import (
     HostResolverOptions,
     InfisicalResolverOptions,
@@ -38,6 +39,7 @@ __all__ = [
     "DataPayload",
     "TablePayload",
     "ConfigFile",
+    "RUNTIME_METADATA",
     "SecretResolverOptions",
     "InfisicalResolverOptions",
     "HostResolverOptions",

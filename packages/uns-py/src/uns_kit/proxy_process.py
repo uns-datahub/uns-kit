@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from typing import Any, List, Mapping, Optional
 
 from .client import UnsMqttClient
+from .runtime_metadata import RUNTIME_METADATA
 from .status_monitor import StatusMonitor
-from .topic_builder import TopicBuilder, resolve_runtime_package_metadata
+from .topic_builder import TopicBuilder
 from .uns_mqtt_proxy import UnsMqttProxy
 from .version import __version__
 
@@ -108,15 +109,14 @@ class UnsProxyProcess:
                 self.process_parameters.process_name = process_name
 
         self.process_name = self.process_parameters.process_name
-        detected_package_name, detected_package_version = resolve_runtime_package_metadata()
         self.process_parameters.package_name = (
             self.process_parameters.package_name
-            or detected_package_name
+            or RUNTIME_METADATA.package_name
             or "uns-kit"
         )
         self.process_parameters.package_version = (
             self.process_parameters.package_version
-            or detected_package_version
+            or RUNTIME_METADATA.package_version
             or __version__
         )
         self.process_id = uuid.uuid4().hex
