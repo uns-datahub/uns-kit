@@ -19,7 +19,8 @@ class GraylogSettings(TypedDict, total=False):
 
 class LoggerSettings(TypedDict, total=False):
     level: str | int
-    package_name: str
+    service: str
+    version: str
     console: bool
     file_path: str | None
     graylog: GraylogSettings
@@ -27,11 +28,13 @@ class LoggerSettings(TypedDict, total=False):
 _DEFAULT_LEVEL = os.getenv("UNS_LOG_LEVEL", "INFO").upper()
 _DEFAULT_GRAYLOG_HOST = os.getenv("UNS_GRAYLOG_HOST")
 _DEFAULT_GRAYLOG_PORT = int(os.getenv("UNS_GRAYLOG_PORT", "12201"))
-_DEFAULT_PACKAGE_NAME = RUNTIME_METADATA.package_name
+_DEFAULT_SERVICE = RUNTIME_METADATA.package_name
+_DEFAULT_VERSION = RUNTIME_METADATA.package_version
 
 _logger_config: dict[str, Any] = {
     "level": _DEFAULT_LEVEL,
-    "package_name": _DEFAULT_PACKAGE_NAME,
+    "service": _DEFAULT_SERVICE,
+    "version": _DEFAULT_VERSION,
     "console": False,
     "file_path": None,
     "use_graylog": False,
@@ -48,7 +51,8 @@ class JsonFormatter(logging.Formatter):
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname.lower(),
             "logger": record.name,
-            "package_name": getattr(record, "package_name", _logger_config["package_name"]),
+            "service": getattr(record, "service", _logger_config["service"]),
+            "version": getattr(record, "version", _logger_config["version"]),
             "message": record.getMessage(),
         }
 
@@ -67,8 +71,10 @@ class GraylogContextFilter(logging.Filter):
             record.logger_name = record.name
         if not hasattr(record, "log_level"):
             record.log_level = record.levelname.lower()
-        if not hasattr(record, "package_name"):
-            record.package_name = _logger_config["package_name"]
+        if not hasattr(record, "service"):
+            record.service = _logger_config["service"]
+        if not hasattr(record, "version"):
+            record.version = _logger_config["version"]
         return True
 
 
@@ -83,7 +89,8 @@ def configure_logger(
     Configure logger outputs from a single standardized ``settings`` object.
 
     Standardized settings can be provided via ``settings``:
-    - ``package_name``: str
+    - ``service``: str
+    - ``version``: str
     - ``console``: bool
     - ``file_path``: str | None
     - ``graylog``: dict with ``host``, optional ``port`` and ``enabled``
@@ -97,7 +104,8 @@ def configure_logger(
         configure_logger(
             settings={
                 "level": "INFO",
-                "package_name": "sandbox-app-py",
+                "service": "sandbox-app-py",
+                "version": "1.0.0",
                 "console": True,
                 "file_path": "log/log.log",
                 "graylog": {
@@ -117,8 +125,10 @@ def configure_logger(
     if settings is not None:
         if "level" in settings and settings["level"] is not None:
             desired["level"] = settings["level"]
-        if "package_name" in settings and settings["package_name"]:
-            desired["package_name"] = str(settings["package_name"])
+        if "service" in settings and settings["service"]:
+            desired["service"] = str(settings["service"])
+        if "version" in settings and settings["version"]:
+            desired["version"] = str(settings["version"])
         if "console" in settings and settings["console"] is not None:
             desired["console"] = bool(settings["console"])
         if "file_path" in settings:
