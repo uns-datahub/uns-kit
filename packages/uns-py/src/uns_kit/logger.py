@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import socket
 import sys
 from datetime import datetime, timezone
 from logging.handlers import TimedRotatingFileHandler
@@ -30,6 +31,7 @@ _DEFAULT_GRAYLOG_HOST = os.getenv("UNS_GRAYLOG_HOST")
 _DEFAULT_GRAYLOG_PORT = int(os.getenv("UNS_GRAYLOG_PORT", "12201"))
 _DEFAULT_SERVICE = RUNTIME_METADATA.package_name
 _DEFAULT_VERSION = RUNTIME_METADATA.package_version
+_DEFAULT_HOSTNAME = socket.gethostname()
 
 _logger_config: dict[str, Any] = {
     "level": _DEFAULT_LEVEL,
@@ -75,6 +77,8 @@ class GraylogContextFilter(logging.Filter):
             record.service = _logger_config["service"]
         if not hasattr(record, "version"):
             record.version = _logger_config["version"]
+        if not hasattr(record, "hostname"):
+            record.hostname = _DEFAULT_HOSTNAME
         return True
 
 
