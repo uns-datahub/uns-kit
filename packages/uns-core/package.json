@@ -33,6 +33,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node ./scripts/copy-static-assets.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "sync-uns-schema": "tsx src/tools/sync-uns-schema.ts",
     "postversion": "node ../../scripts/update-cli-package-version.cjs"
   },
   "dependencies": {

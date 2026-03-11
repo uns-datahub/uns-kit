@@ -41,7 +41,8 @@
     "ts:configure:python": "pnpm exec tsx packages/uns-cli/src/index.ts configure-python sandbox-app",
     "ts:configure:uns-reference": "pnpm exec tsx packages/uns-cli/src/index.ts configure-uns-reference sandbox-app",
     "ts:core:pull-request": "pnpm --filter @uns-kit/core build && pnpm exec tsx packages/uns-core/src/tools/pull-request.ts",
-    "ts:core:generate-uns-topics-tags": "pnpm --filter @uns-kit/core build && pnpm exec tsx packages/uns-core/src/tools/refresh-uns.ts"
+    "ts:core:generate-uns-topics-tags": "pnpm --filter @uns-kit/core build && pnpm exec tsx packages/uns-core/src/tools/refresh-uns.ts",
+    "ts:core:sync-uns-schema": "pnpm exec tsx packages/uns-core/src/tools/sync-uns-schema.ts"
   },
   "author": "Aljosa Vister",
   "license": "ISC",
