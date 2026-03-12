@@ -5,6 +5,7 @@
  * generate-uns-measurements.ts to make project setup simpler.
  */
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { generateUnsDictionary } from "./generate-uns-dictionary.js";
 import { generateUnsMeasurements } from "./generate-uns-measurements.js";
 
@@ -93,7 +94,13 @@ Options:
 `);
 }
 
-main().catch((err) => {
-  console.error("Failed to generate UNS reference:", err);
-  process.exitCode = 1;
-});
+const isDirectExecution = process.argv[1]
+  ? import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+  : false;
+
+if (isDirectExecution) {
+  main().catch((err) => {
+    console.error("Failed to generate UNS reference:", err);
+    process.exitCode = 1;
+  });
+}

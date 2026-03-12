@@ -79,6 +79,34 @@ pnpm tsx packages/uns-core/src/tools/generate-uns-reference.ts \
   --lang sl
 ```
 
+### Sync canonical UNS schema from the controller
+
+Use `sync-uns-schema` when you need to refresh the repo-maintained schema files from
+the controller’s REST export endpoints.
+
+```bash
+pnpm run sync-uns-schema -- \
+  --controller-url http://localhost:3200 \
+  --token <bearer-token>
+```
+
+- Uses `GET /api/schema/export/uns-dictionary?status=...` and `GET /api/schema/export/uns-measurements`.
+- Sends `Authorization: Bearer <token>`.
+- Preserves the full exported JSON document when updating:
+  - `packages/uns-cli/templates/uns-dictionary/uns-dictionary.json`
+  - `packages/uns-cli/templates/uns-measurements/uns-measurements.json`
+- Regenerates the local TS artifacts unless you pass `--skip-generate`.
+- Defaults dictionary sync to `--status active`.
+- Supports environment fallbacks: `UNS_CONTROLLER_URL`, `UNS_CONTROLLER_TOKEN`, `UNS_SCHEMA_STATUS`.
+
+Useful variants:
+
+```bash
+pnpm run sync-uns-schema -- --dry-run
+pnpm run sync-uns-schema -- --dictionary-only
+pnpm run sync-uns-schema -- --measurements-only --skip-generate
+```
+
 ### Infisical secret resolution in development
 
 - The resolver looks for `SecretResolverOptions.infisical.fetchSecret`, then `INFISICAL_TOKEN`/`INFISICAL_PERSONAL_TOKEN`, then `/run/secrets/infisical_token` (or `/var/lib/uns/secrets/infisical_token`).
