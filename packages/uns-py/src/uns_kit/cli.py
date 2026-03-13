@@ -407,7 +407,12 @@ def pull_request(dest: str, target_branch: Optional[str]):
     _assert_version_tag_unique(org, project, repo_id, token, new_version)
 
     _write_poetry_version(pyproject_path, new_version)
-    _git(dest_path, ["add", "pyproject.toml"])
+    pkg_path = dest_path / "package.json"
+    if pkg_path.exists():
+        _write_package_json_version(pkg_path, new_version)
+        _git(dest_path, ["add", "pyproject.toml", "package.json"])
+    else:
+        _git(dest_path, ["add", "pyproject.toml"])
     _git(dest_path, ["commit", "-m", f"Set new production version: {new_version}"])
     _git(dest_path, ["push", "origin", current_branch], token=token)
 
@@ -557,6 +562,19 @@ def _write_poetry_version(pyproject_path: Path, new_version: str) -> None:
     if not changed:
         raise click.ClickException(f"Could not update version in {pyproject_path} (tool.poetry section missing?)")
     pyproject_path.write_text("\n".join(out) + "\n")
+
+
+def _write_package_json_version(package_json_path: Path, new_version: str) -> None:
+    try:
+        data = json.loads(package_json_path.read_text())
+    except Exception as exc:
+        raise click.ClickException(f"Could not read {package_json_path}: {exc}") from exc
+
+    if not isinstance(data, dict):
+        raise click.ClickException(f"Expected a JSON object in {package_json_path}.")
+
+    data["version"] = new_version
+    package_json_path.write_text(json.dumps(data, indent=2) + "\n")
 
 
 def _assert_version_tag_unique(org: str, project: str, repo_id: str, token: str, version: str) -> None:
