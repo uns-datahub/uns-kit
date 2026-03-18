@@ -16,6 +16,7 @@ import { UnsTopicMatcher } from "@uns-kit/core/uns/uns-topic-matcher.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import { IApiProxyOptions, IGetEndpointOptions } from "@uns-kit/core/uns/uns-interfaces.js";
 import { DataSizeMeasurements, PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
+import { buildUnsRoutePath } from "@uns-kit/core/uns/uns-path.js";
 import App from "./app.js";
 import { UnsAsset } from "@uns-kit/core/uns/uns-asset.js";
 import { UnsObjectType, UnsObjectId } from "@uns-kit/core/uns/uns-object.js";
@@ -105,7 +106,7 @@ export default class UnsApiProxy extends UnsProxy {
     attribute: UnsAttribute,
     method:  "GET" | "POST" | "PUT" | "DELETE" 
   ): Promise<void> {
-    const fullPath = `/${topic}${attribute}`;
+    const fullPath = buildUnsRoutePath(topic, asset, objectType, objectId, attribute);
     const apiPath = `${this.apiBasePrefix}${fullPath}`.replace(/\/{2,}/g, "/");
     const methodKey = method.toLowerCase(); // Express stores method keys in lowercase
 
@@ -147,7 +148,7 @@ export default class UnsApiProxy extends UnsProxy {
     }
 
     const time = UnsPacket.formatToISO8601(new Date());
-    const fullPath = `/${topic}${attribute}`;
+    const fullPath = buildUnsRoutePath(topic, asset, objectType, objectId, attribute);
     const apiPath = `${this.apiBasePrefix}${fullPath}`.replace(/\/{2,}/g, "/");
     const swaggerPath = buildSwaggerPath(this.swaggerBasePrefix, this.processName, this.instanceName);
 
@@ -331,7 +332,7 @@ export default class UnsApiProxy extends UnsProxy {
         };
       }
     } catch (error) {
-      logger.error(`${this.instanceNameWithSuffix} - Error publishing message to topic ${topic}${attribute}: ${error.message}`);
+      logger.error(`${this.instanceNameWithSuffix} - Error publishing message to route ${fullPath}: ${error.message}`);
     }
   }
 

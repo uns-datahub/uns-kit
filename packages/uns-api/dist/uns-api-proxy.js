@@ -10,6 +10,7 @@ import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import UnsProxy from "@uns-kit/core/uns/uns-proxy.js";
 import { UnsTopicMatcher } from "@uns-kit/core/uns/uns-topic-matcher.js";
 import { DataSizeMeasurements, PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
+import { buildUnsRoutePath } from "@uns-kit/core/uns/uns-path.js";
 import App from "./app.js";
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
@@ -82,7 +83,7 @@ export default class UnsApiProxy extends UnsProxy {
      * @param method - The HTTP method (e.g., "GET", "POST", "PUT", "DELETE").
      */
     async unregister(topic, asset, objectType, objectId, attribute, method) {
-        const fullPath = `/${topic}${attribute}`;
+        const fullPath = buildUnsRoutePath(topic, asset, objectType, objectId, attribute);
         const apiPath = `${this.apiBasePrefix}${fullPath}`.replace(/\/{2,}/g, "/");
         const methodKey = method.toLowerCase(); // Express stores method keys in lowercase
         // Remove route from router
@@ -117,7 +118,7 @@ export default class UnsApiProxy extends UnsProxy {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
         const time = UnsPacket.formatToISO8601(new Date());
-        const fullPath = `/${topic}${attribute}`;
+        const fullPath = buildUnsRoutePath(topic, asset, objectType, objectId, attribute);
         const apiPath = `${this.apiBasePrefix}${fullPath}`.replace(/\/{2,}/g, "/");
         const swaggerPath = buildSwaggerPath(this.swaggerBasePrefix, this.processName, this.instanceName);
         try {
@@ -289,7 +290,7 @@ export default class UnsApiProxy extends UnsProxy {
             }
         }
         catch (error) {
-            logger.error(`${this.instanceNameWithSuffix} - Error publishing message to topic ${topic}${attribute}: ${error.message}`);
+            logger.error(`${this.instanceNameWithSuffix} - Error publishing message to route ${fullPath}: ${error.message}`);
         }
     }
     /**

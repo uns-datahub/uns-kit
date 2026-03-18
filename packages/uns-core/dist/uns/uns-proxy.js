@@ -1,6 +1,7 @@
 import logger from "../logger.js";
 import { UnsEventEmitter } from "./uns-event-emitter.js";
 import { UnsPacket } from "./uns-packet.js";
+import { buildUnsIdentityPath } from "./uns-path.js";
 export default class UnsProxy {
     publishInterval = null;
     event = new UnsEventEmitter();
@@ -91,7 +92,7 @@ export default class UnsProxy {
      */
     registerUniqueTopic(topicObject) {
         if (this.instanceStatusTopic !== "") {
-            const fullTopic = `${topicObject.topic}${topicObject.asset}/${topicObject.objectType}/${topicObject.objectId}/${topicObject.attribute}`;
+            const fullTopic = buildUnsIdentityPath(topicObject.topic, topicObject.asset, topicObject.objectType, topicObject.objectId, topicObject.attribute);
             if (!this.producedTopics.has(fullTopic)) {
                 this.producedTopics.set(fullTopic, {
                     timestamp: topicObject.timestamp,
@@ -118,7 +119,7 @@ export default class UnsProxy {
      */
     registerApiEndpoint(apiObject) {
         if (this.instanceStatusTopic !== "") {
-            const fullTopic = `${apiObject.topic}${apiObject.asset}/${apiObject.objectType}/${apiObject.objectId}/${apiObject.attribute}`;
+            const fullTopic = buildUnsIdentityPath(apiObject.topic, apiObject.asset, apiObject.objectType, apiObject.objectId, apiObject.attribute);
             if (!this.producedApiEndpoints.has(fullTopic)) {
                 const time = UnsPacket.formatToISO8601(new Date());
                 this.producedApiEndpoints.set(fullTopic, {
@@ -159,7 +160,7 @@ export default class UnsProxy {
         }
     }
     unregisterApiEndpoint(topic, asset, objectType, objectId, attribute) {
-        const fullTopic = `${topic}/${asset}/${objectType}/${objectId}/${attribute}`;
+        const fullTopic = buildUnsIdentityPath(topic, asset, objectType, objectId, attribute);
         if (this.producedApiEndpoints.has(fullTopic)) {
             this.producedApiEndpoints.delete(fullTopic);
             this.emitProducedApiEndpoints();
