@@ -129,8 +129,8 @@ When created inside this monorepo, `pyproject.toml` is automatically set to use 
 - Windows: the library sets `WindowsSelectorEventLoopPolicy()` to avoid `add_reader/add_writer` `NotImplementedError`.
 
 ## TODO (parity with TS core)
-- Handover manager (cross-version active detection + handover_* messages).
-- Publish throttling/queue.
-- Status parity (publisher/subscriber active flags everywhere, richer metrics).
-- API endpoints registry (to mirror @uns-kit/api produced endpoints).
+- Handover manager parity: subscribe to wildcard `active` and `handover` topics, keep new instances passive until timeout or handover completion, and support `handover_intent`, `handover_request`, `handover_subscriber`, `handover_fin`, and `handover_ack`.
+- Publish throttling / queue parity: add buffered ordered publishing instead of direct proxy-path publish, plus publisher/subscriber active-passive controls and passive-drain behavior.
+- Status parity: add process-level `alive` and `uptime`, publisher/subscriber active flags everywhere, published/subscribed message count and byte metrics, and process identity on active status packets.
+- API endpoints registry: mirror `@uns-kit/api` produced endpoints when Python gets an API surface, and use full UNS identity for endpoint keys and paths: `topic + asset + objectType + objectId + attribute`.
 - Optional: dictionary/measurement helpers + CLI wrapper.
