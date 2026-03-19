@@ -9,6 +9,7 @@ import shutil
 import importlib.resources
 from pathlib import Path
 import subprocess
+import sys
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -23,6 +24,10 @@ from .service_bundle import (
     load_service_bundle,
 )
 from .topic_builder import TopicBuilder
+from .version import __package_name__, __version__
+
+
+CLI_PROG_NAME = "uns-kit-py"
 
 
 def common_options(func):
@@ -32,16 +37,21 @@ def common_options(func):
     func = click.option("--password", help="MQTT password")(func)
     func = click.option("--tls/--no-tls", default=False, show_default=True, help="Enable TLS")(func)
     func = click.option("--client-id", help="MQTT clientId")(func)
-    func = click.option("--package-name", default="uns-kit", show_default=True, help="Package name for infra topics")(func)
-    func = click.option("--package-version", default="0.0.1", show_default=True, help="Package version for infra topics")(func)
+    func = click.option("--package-name", default=__package_name__ or "uns-kit", show_default=True, help="Package name for infra topics")(func)
+    func = click.option("--package-version", default=__version__, show_default=True, help="Package version for infra topics")(func)
     func = click.option("--process-name", default="uns-process", show_default=True, help="Process name for infra topics")(func)
     func = click.option("--reconnect-interval", default=1.0, show_default=True, type=float, help="Reconnect backoff start (s)")(func)
     return func
 
 
-@click.group(help="Lightweight UNS MQTT helper (Python).")
+@click.group(context_settings={"help_option_names": ["--help", "-h"]}, help="Lightweight UNS MQTT helper (Python).")
 def cli():
     pass
+
+
+@cli.command("help", help="Show this message.")
+def help_cmd():
+    click.echo(render_cli_help())
 
 
 @cli.command("publish", help="Publish a UNS data packet to a topic.")
@@ -923,8 +933,44 @@ def _configure_local_uns_kit_dependency(pyproject_path: Path) -> None:
     pyproject_path.write_text(text)
 
 
-def main():
-    cli()
+def render_cli_help(prog_name: str = CLI_PROG_NAME) -> str:
+    return (
+        f"\n{prog_name} v{__version__}\n"
+        "\n"
+        f"Usage: {prog_name} <command> [options]\n"
+        "\n"
+        "Commands:\n"
+        "  create <name>           Scaffold a new UNS Python application\n"
+        "  create --bundle <path>  Scaffold a new UNS Python application from service.bundle.json\n"
+        "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n"
+        "  configure-vscode [dir]  Add VS Code workspace configuration files\n"
+        "  configure-workspace [dir] Create a VS Code workspace file\n"
+        "  publish                 Publish a UNS data packet to a topic\n"
+        "  subscribe               Subscribe to one or more topics (resilient)\n"
+        "  pull-request [dir]      Create an Azure DevOps pull request for a Python project\n"
+        "  help                    Show this message\n"
+    )
+
+
+def main(argv: Optional[list[str]] = None):
+    args = list(argv if argv is not None else sys.argv[1:])
+
+    if not args or args == ["help"] or args == ["--help"] or args == ["-h"]:
+        click.echo(render_cli_help())
+        return
+
+    if args == ["--version"] or args == ["-V"]:
+        click.echo(f"{CLI_PROG_NAME} v{__version__}")
+        return
+
+    if args and args[0] == "help":
+        if len(args) == 1:
+            click.echo(render_cli_help())
+            return
+        cli.main(args=[*args[1:], "--help"], prog_name=CLI_PROG_NAME, standalone_mode=True)
+        return
+
+    cli.main(args=args, prog_name=CLI_PROG_NAME, standalone_mode=True)
 
 
 if __name__ == "__main__":
