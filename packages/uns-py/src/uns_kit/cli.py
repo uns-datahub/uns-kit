@@ -16,6 +16,12 @@ from typing import Any, Dict, Optional, Tuple
 
 import click
 
+from .service_bundle import (
+    ServiceBundle,
+    generate_agents_markdown,
+    generate_service_spec_markdown,
+    load_service_bundle,
+)
 from .topic_builder import TopicBuilder
 
 
@@ -136,51 +142,175 @@ async def _run_subscribe(
             print(f"{msg.topic} <binary {len(msg.payload)} bytes>")
 
 
-@cli.command("create", help="Create a new UNS Python app (default template).")
-@click.argument("dest")
-def create(dest: str):
+@cli.command("create", help="Create a new UNS Python app (default template or service bundle).")
+@click.argument("name", required=False)
+@click.option("--bundle", "bundle_path", type=click.Path(path_type=Path, dir_okay=False), help="Path to service.bundle.json")
+@click.option("--dest", "dest_path", type=click.Path(path_type=Path, file_okay=False), help="Target directory override for bundle-based create")
+@click.option("--allow-existing", is_flag=True, default=False, help="Allow bundle scaffolding into an existing non-empty directory")
+def create(name: Optional[str], bundle_path: Optional[Path], dest_path: Optional[Path], allow_existing: bool):
+    if bundle_path is not None:
+        if name:
+            raise click.ClickException("Do not pass a positional project name with --bundle. Use --dest to override the target directory.")
+        _create_from_bundle(bundle_path, dest_path, allow_existing)
+        return
+
+    if not name:
+        raise click.ClickException("Missing project name. Example: uns-kit-py create my-app")
+    if dest_path is not None:
+        raise click.ClickException("--dest can only be used with --bundle.")
+    if allow_existing:
+        raise click.ClickException("--allow-existing can only be used with --bundle.")
+
+    target_path = Path(name).resolve()
+    project_name = target_path.name
+    initialized_git = _scaffold_python_project(target_path, project_name, allow_existing=False)
+    _print_python_create_success(target_path, initialized_git)
+
+
+def _create_from_bundle(bundle_path: Path, dest_path: Optional[Path], allow_existing: bool) -> None:
+    try:
+        bundle, raw_bundle = load_service_bundle(
+            bundle_path.resolve(),
+            expected_stack="python",
+            cli_name="uns-kit-py",
+            counterpart_cli_name="uns-kit",
+        )
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    target_path = (dest_path or Path(bundle.metadata.name)).resolve()
+    initialized_git = _scaffold_python_project(target_path, bundle.metadata.name, allow_existing=allow_existing)
+    _apply_python_bundle_features(target_path, bundle)
+    _write_python_bundle_artifacts(target_path, bundle, raw_bundle)
+    _print_python_create_success(target_path, initialized_git)
+
+
+def _scaffold_python_project(target_path: Path, project_name: str, *, allow_existing: bool) -> bool:
     template_root = importlib.resources.files("uns_kit").joinpath("templates/default")
-    dest_path = os.path.abspath(dest)
-    project_name = Path(dest_path).name
+    _ensure_target_dir(target_path, allow_existing=allow_existing)
+    _copy_template_tree(template_root, target_path)
+
     initial_app_version = "0.1.0"
-    if os.path.exists(dest_path):
-        raise click.ClickException(f"Destination already exists: {dest_path}")
-    shutil.copytree(template_root, dest_path)
-    pyproject_path = Path(dest_path) / "pyproject.toml"
+    pyproject_path = target_path / "pyproject.toml"
     if pyproject_path.exists():
         try:
             initial_app_version = _read_poetry_version(pyproject_path)
         except Exception:
             pass
-    # Personalize config.json with project identity (TS-style nested config).
-    config_path = Path(dest_path) / "config.json"
+
+    config_path = target_path / "config.json"
     _write_config_file(config_path, project_name)
-    # Personalize pyproject.toml so pip/poetry builds succeed with a project-specific name/module.
+
     if pyproject_path.exists():
         try:
             _personalize_pyproject(pyproject_path, project_name)
             _configure_local_uns_kit_dependency(pyproject_path)
         except Exception:
             pass
-    # Personalize package.json for PM2 metadata (optional; controller also writes this for python RTT nodes).
-    pkg_path = Path(dest_path) / "package.json"
+
+    pkg_path = target_path / "package.json"
     if pkg_path.exists():
         try:
             pkg_data = json.loads(pkg_path.read_text())
             pkg_data["name"] = project_name
             pkg_data["version"] = initial_app_version
-            pkg_path.write_text(json.dumps(pkg_data, indent=2))
+            pkg_path.write_text(json.dumps(pkg_data, indent=2) + "\n")
         except Exception:
             pass
-    initialized_git = _init_git_repository(Path(dest_path))
-    click.echo(f"Created UNS Python app at {dest_path}")
+
+    return _init_git_repository(target_path)
+
+
+def _ensure_target_dir(target_path: Path, *, allow_existing: bool) -> None:
+    if target_path.exists():
+        if not target_path.is_dir():
+            raise click.ClickException(f"Path exists and is not a directory: {target_path}")
+        if any(target_path.iterdir()) and not allow_existing:
+            raise click.ClickException(f"Destination is not empty: {target_path}")
+        return
+
+    target_path.mkdir(parents=True, exist_ok=True)
+
+
+def _copy_template_tree(source_root: Any, destination_root: Path) -> None:
+    for entry in source_root.iterdir():
+        destination = destination_root / entry.name
+        if entry.is_dir():
+            destination.mkdir(parents=True, exist_ok=True)
+            _copy_template_tree(entry, destination)
+            continue
+
+        if destination.exists():
+            continue
+
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with entry.open("rb") as src_handle, destination.open("wb") as dst_handle:
+            shutil.copyfileobj(src_handle, dst_handle)
+
+
+def _apply_python_bundle_features(target_path: Path, bundle: ServiceBundle) -> None:
+    for feature in bundle.scaffold.features:
+        normalized = feature.strip().lower()
+        if normalized == "vscode":
+            _apply_vscode_configuration(target_path, False)
+            continue
+        if normalized == "devops":
+            _configure_devops_from_bundle(target_path, bundle)
+            continue
+        raise click.ClickException(
+            'Unknown bundle feature "{feature}". Supported Python bundle features are: devops, vscode.'.format(
+                feature=feature
+            )
+        )
+
+
+def _configure_devops_from_bundle(target_path: Path, bundle: ServiceBundle) -> None:
+    provider = (bundle.repository.provider if bundle.repository else None) or "azure-devops"
+    if provider != "azure-devops":
+        raise click.ClickException(
+            f'Bundle feature "devops" only supports repository.provider="azure-devops" in this MVP. Received "{provider}".'
+        )
+
+    organization = bundle.repository.organization if bundle.repository else None
+    project = bundle.repository.project if bundle.repository else None
+    if not organization or not project:
+        raise click.ClickException(
+            'Bundle feature "devops" requires repository.organization and repository.project for non-interactive scaffolding.'
+        )
+
+    result = _apply_devops_configuration(
+        target_path,
+        organization=organization,
+        project=project,
+        overwrite=False,
+        ensure_remote=False,
+    )
+    _log_python_devops_result(result, include_remote_details=False)
+
+
+def _write_python_bundle_artifacts(target_path: Path, bundle: ServiceBundle, raw_bundle: str) -> None:
+    (target_path / "service.bundle.json").write_text(raw_bundle)
+    (target_path / "SERVICE_SPEC.md").write_text(generate_service_spec_markdown(bundle))
+    (target_path / "AGENTS.md").write_text(generate_agents_markdown(bundle))
+
+
+def _print_python_create_success(target_path: Path, initialized_git: bool) -> None:
+    click.echo(f"Created UNS Python app at {target_path}")
     click.echo("Next steps:")
-    click.echo(f"  1) cd {dest_path}")
-    click.echo("  2) poetry install")
-    click.echo("  3) poetry run python main.py")
-    click.echo("  4) Edit config.json with your MQTT host/credentials")
+    if target_path != Path.cwd():
+        click.echo(f"  1) cd {target_path}")
+        click.echo("  2) poetry install")
+        click.echo("  3) poetry run python src/main.py")
+        click.echo("  4) Edit config.json with your MQTT host/credentials")
+        if initialized_git:
+            click.echo("  5) git status  # verify the new repository")
+        return
+
+    click.echo("  1) poetry install")
+    click.echo("  2) poetry run python src/main.py")
+    click.echo("  3) Edit config.json with your MQTT host/credentials")
     if initialized_git:
-        click.echo("  5) git status  # verify the new repository")
+        click.echo("  4) git status  # verify the new repository")
 
 
 @cli.command("configure-devops", help="Add Azure DevOps settings and pipeline to a project.")
@@ -188,65 +318,22 @@ def create(dest: str):
 @click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing azure-pipelines.yml")
 def configure_devops(dest: str, overwrite: bool):
     dest_path = Path(dest).resolve()
-    config_path = dest_path / "config.json"
     _ensure_git_repo(dest_path)
+    config_path = dest_path / "config.json"
     if not config_path.exists():
         click.echo(f"config.json not found at {config_path}, generating default.")
         _write_config_file(config_path)
 
     config = json.loads(config_path.read_text())
     org, project = _prompt_devops(config)
-    config.setdefault("devops", {})
-    config["devops"]["provider"] = "azure-devops"
-    config["devops"]["organization"] = org
-    config["devops"]["project"] = project
-    config_path.write_text(json.dumps(config, indent=2))
-    click.echo(f"Updated devops settings in {config_path}")
-
-    if not _git_has_remote(dest_path, "origin"):
-        token = (os.environ.get("AZURE_PAT") or "").strip()
-        if not token:
-            token = click.prompt(
-                f"Azure DevOps PAT (create one at https://dev.azure.com/{org}/_usersSettings/tokens)",
-                hide_input=True,
-                type=str,
-            ).strip()
-        if len(token) < 10:
-            raise click.ClickException("AZURE_PAT token looks too short.")
-
-        repo_name = dest_path.name
-        repo = _azure_ensure_repo(org, project, repo_name, token)
-        remote_url = repo.get("remoteUrl") or f"https://{org}@dev.azure.com/{org}/{project}/_git/{repo_name}"
-        _git(dest_path, ["remote", "add", "origin", remote_url])
-        click.echo(f"Added git remote origin -> {remote_url}")
-
-    # Mirror TS behavior: add package.json scripts (if package.json exists).
-    pkg_path = dest_path / "package.json"
-    if pkg_path.exists():
-        try:
-            pkg = json.loads(pkg_path.read_text())
-            scripts = pkg.setdefault("scripts", {})
-            if isinstance(scripts, dict):
-                scripts.setdefault("configure-devops", "poetry run uns-kit-py configure-devops")
-                scripts.setdefault("configure-vscode", "poetry run uns-kit-py configure-vscode")
-                scripts.setdefault("write-config", "poetry run uns-kit-py write-config")
-                scripts.setdefault("pull-request", "poetry run uns-kit-py pull-request")
-            pkg_path.write_text(json.dumps(pkg, indent=2))
-            click.echo(f"Updated scripts in {pkg_path}")
-        except Exception:
-            pass
-
-    pipeline_template = importlib.resources.files("uns_kit").joinpath("templates/azure-pipelines.yml")
-    pipeline_target = dest_path / "azure-pipelines.yml"
-    if pipeline_target.exists() and not overwrite:
-        click.echo("azure-pipelines.yml already exists (skipped). Use --overwrite to replace.")
-    else:
-        shutil.copyfile(pipeline_template, pipeline_target)
-        click.echo(f"Wrote {pipeline_target}")
-
-    click.echo("DevOps configuration complete. Next steps:")
-    click.echo("  1) Commit config.json and azure-pipelines.yml")
-    click.echo("  2) Set AZURE_PAT in your CI or local env for pipeline access")
+    result = _apply_devops_configuration(
+        dest_path,
+        organization=org,
+        project=project,
+        overwrite=overwrite,
+        ensure_remote=True,
+    )
+    _log_python_devops_result(result, include_remote_details=True)
 
 
 def _prompt_devops(config: dict) -> Tuple[str, str]:
@@ -255,6 +342,98 @@ def _prompt_devops(config: dict) -> Tuple[str, str]:
     org = click.prompt("Azure DevOps organization", default=default_org or None, type=str)
     project = click.prompt("Azure DevOps project", default=default_proj or None, type=str)
     return org.strip(), project.strip()
+
+
+def _apply_devops_configuration(
+    dest_path: Path,
+    *,
+    organization: str,
+    project: str,
+    overwrite: bool,
+    ensure_remote: bool,
+) -> Dict[str, Any]:
+    config_path = dest_path / "config.json"
+    if not config_path.exists():
+        _write_config_file(config_path)
+
+    config = json.loads(config_path.read_text())
+    if not isinstance(config, dict):
+        raise click.ClickException(f"Expected a JSON object in {config_path}.")
+    config.setdefault("devops", {})
+    config["devops"]["provider"] = "azure-devops"
+    config["devops"]["organization"] = organization
+    config["devops"]["project"] = project
+    config_path.write_text(json.dumps(config, indent=2) + "\n")
+
+    git_remote_message = None
+    if ensure_remote and not _git_has_remote(dest_path, "origin"):
+        token = (os.environ.get("AZURE_PAT") or "").strip()
+        if not token:
+            token = click.prompt(
+                f"Azure DevOps PAT (create one at https://dev.azure.com/{organization}/_usersSettings/tokens)",
+                hide_input=True,
+                type=str,
+            ).strip()
+        if len(token) < 10:
+            raise click.ClickException("AZURE_PAT token looks too short.")
+
+        repo_name = dest_path.name
+        repo = _azure_ensure_repo(organization, project, repo_name, token)
+        remote_url = repo.get("remoteUrl") or f"https://{organization}@dev.azure.com/{organization}/{project}/_git/{repo_name}"
+        _git(dest_path, ["remote", "add", "origin", remote_url])
+        git_remote_message = f"Added git remote origin -> {remote_url}"
+
+    pkg_path = dest_path / "package.json"
+    pkg_changed = False
+    package_message = None
+    if pkg_path.exists():
+        try:
+            pkg = json.loads(pkg_path.read_text())
+            scripts = pkg.setdefault("scripts", {})
+            if isinstance(scripts, dict):
+                before = dict(scripts)
+                scripts.setdefault("configure-devops", "poetry run uns-kit-py configure-devops")
+                scripts.setdefault("configure-vscode", "poetry run uns-kit-py configure-vscode")
+                scripts.setdefault("write-config", "poetry run uns-kit-py write-config")
+                scripts.setdefault("pull-request", "poetry run uns-kit-py pull-request")
+                pkg_changed = scripts != before
+            pkg_path.write_text(json.dumps(pkg, indent=2) + "\n")
+            package_message = f"Updated scripts in {pkg_path}"
+        except Exception:
+            package_message = None
+
+    pipeline_template = importlib.resources.files("uns_kit").joinpath("templates/azure-pipelines.yml")
+    pipeline_target = dest_path / "azure-pipelines.yml"
+    if pipeline_target.exists() and not overwrite:
+        pipeline_message = "azure-pipelines.yml already exists (skipped). Use --overwrite to replace."
+    else:
+        with pipeline_template.open("rb") as src_handle, pipeline_target.open("wb") as dst_handle:
+            shutil.copyfileobj(src_handle, dst_handle)
+        pipeline_message = f"Wrote {pipeline_target}"
+
+    return {
+        "organization": organization,
+        "project": project,
+        "package_message": package_message,
+        "pkg_changed": pkg_changed,
+        "pipeline_message": pipeline_message,
+        "git_remote_message": git_remote_message,
+        "config_message": f"Updated devops settings in {config_path}",
+    }
+
+
+def _log_python_devops_result(result: Dict[str, Any], *, include_remote_details: bool) -> None:
+    click.echo(result["config_message"])
+    if include_remote_details and result.get("git_remote_message"):
+        click.echo(result["git_remote_message"])
+    if result.get("package_message"):
+        click.echo(result["package_message"])
+    if result.get("pipeline_message"):
+        click.echo(result["pipeline_message"])
+    click.echo("DevOps configuration complete. Next steps:")
+    click.echo("  1) Commit config.json and azure-pipelines.yml")
+    if include_remote_details:
+        click.echo("  2) Set AZURE_PAT in your CI or local env for pipeline access")
 
 
 def _write_config_file(path: Path, project_name: Optional[str] = None) -> None:
@@ -283,7 +462,18 @@ def _write_config_file(path: Path, project_name: Optional[str] = None) -> None:
 @click.argument("dest", required=False, default=".")
 @click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing .vscode files")
 def configure_vscode(dest: str, overwrite: bool):
+    _apply_vscode_configuration(Path(dest).resolve(), overwrite)
+
+
+@cli.command("configure-workspace", help="Create a VS Code workspace file for the project.")
+@click.argument("dest", required=False, default=".")
+@click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing workspace file")
+def configure_workspace(dest: str, overwrite: bool):
     dest_path = Path(dest).resolve()
+    _write_workspace_file(dest_path, overwrite)
+
+
+def _apply_vscode_configuration(dest_path: Path, overwrite: bool) -> None:
     vscode_dir = dest_path / ".vscode"
     vscode_dir.mkdir(parents=True, exist_ok=True)
 
@@ -294,20 +484,12 @@ def configure_vscode(dest: str, overwrite: bool):
         if dst.exists() and not overwrite:
             click.echo(f"{dst} already exists (skipped). Use --overwrite to replace.")
             continue
-        shutil.copyfile(src, dst)
+        with src.open("rb") as src_handle, dst.open("wb") as dst_handle:
+            shutil.copyfileobj(src_handle, dst_handle)
         click.echo(f"Wrote {dst}")
 
-    # Also write a workspace file (mirrors TS behavior).
     _write_workspace_file(dest_path, overwrite)
     click.echo("VS Code configuration complete.")
-
-
-@cli.command("configure-workspace", help="Create a VS Code workspace file for the project.")
-@click.argument("dest", required=False, default=".")
-@click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing workspace file")
-def configure_workspace(dest: str, overwrite: bool):
-    dest_path = Path(dest).resolve()
-    _write_workspace_file(dest_path, overwrite)
 
 
 def _write_workspace_file(dest_path: Path, overwrite: bool) -> None:

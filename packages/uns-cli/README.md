@@ -43,9 +43,27 @@ pnpm run dev
 
 When `git` is available on your PATH the scaffold also initializes a fresh repository so you can commit immediately.
 
+### Create from a service bundle
+
+```bash
+uns-kit create --bundle ./service.bundle.json
+uns-kit create --bundle ./service.bundle.json --dest ./my-dir
+uns-kit create --bundle ./service.bundle.json --dest . --allow-existing
+```
+
+Bundle-driven create uses `service.bundle.json` as the source of truth. The CLI:
+
+- scaffolds the base TypeScript app from the existing default template
+- copies the original bundle into the project root as `service.bundle.json`
+- generates `SERVICE_SPEC.md` and `AGENTS.md`
+- applies supported bundle features such as `vscode` and `devops`
+
+When `--bundle` is used, the default destination is `./<metadata.name>`. The TypeScript CLI only accepts bundles with `scaffold.stack = "ts"` and currently supports `scaffold.template = "default"` for this MVP. If the bundle targets Python instead, use `uns-kit-py create --bundle ...`.
+
 ## Commands
 
 - `uns-kit create <name>` – create a new UNS project in the specified directory.
+- `uns-kit create --bundle <path> [--dest <dir>] [--allow-existing]` – create a new TypeScript UNS project from `service.bundle.json`.
 - `uns-kit configure [path] [features...]` – run multiple configure templates in sequence (`--all`, `--overwrite`).
 - `uns-kit configure-templates [path] [templates...]` – copy any template directory (`--all`, `--overwrite`).
 - `uns-kit configure-devops [path]` – add Azure DevOps tooling (dependencies, script, config) to an existing project.

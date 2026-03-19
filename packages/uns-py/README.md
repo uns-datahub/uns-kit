@@ -113,6 +113,21 @@ poetry install
 poetry run python src/main.py
 ```
 
+### Create a new project from a service bundle
+```bash
+uns-kit-py create --bundle ./service.bundle.json
+uns-kit-py create --bundle ./service.bundle.json --dest ./my-dir
+uns-kit-py create --bundle ./service.bundle.json --dest . --allow-existing
+```
+
+Bundle-driven create uses `service.bundle.json` as the source of truth. The Python CLI:
+- scaffolds the base Python app from the existing default template
+- copies the original bundle into the project root as `service.bundle.json`
+- generates `SERVICE_SPEC.md` and `AGENTS.md`
+- applies supported bundle features such as `vscode` and `devops`
+
+When `--bundle` is used, the default destination is `./<metadata.name>`. The Python CLI only accepts bundles with `scaffold.stack = "python"` and currently supports `scaffold.template = "default"` for this MVP. If the bundle targets TypeScript instead, use `uns-kit create --bundle ...`.
+
 ### Create a sandbox app in this repo
 From the monorepo root:
 ```bash

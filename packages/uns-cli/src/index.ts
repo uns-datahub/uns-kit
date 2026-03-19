@@ -11,6 +11,12 @@ import { promisify } from "node:util";
 import * as azdev from "azure-devops-node-api";
 import type { IGitApi } from "azure-devops-node-api/GitApi.js";
 import type { GitRepository } from "azure-devops-node-api/interfaces/GitInterfaces.js";
+import {
+  generateAgentsMarkdown,
+  generateServiceSpecMarkdown,
+  readAndValidateServiceBundle,
+  type ServiceBundle,
+} from "./service-bundle.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -151,15 +157,15 @@ async function main(): Promise<void> {
   }
 
   if (command === "create") {
-    const projectName = args[1];
-    if (!projectName) {
-      console.error("Missing project name. Example: uns-kit create my-app");
-      process.exitCode = 1;
-      return;
-    }
-
     try {
-      await createProject(projectName);
+      const createOptions = parseCreateArgs(args.slice(1));
+      if (createOptions.bundlePath) {
+        await createProjectFromBundle(createOptions);
+      } else if (createOptions.projectName) {
+        await createProject(createOptions.projectName);
+      } else {
+        throw new Error("Missing project name. Example: uns-kit create my-app");
+      }
     } catch (error) {
       console.error((error as Error).message);
       process.exitCode = 1;
@@ -178,6 +184,7 @@ function printHelp(): void {
     "\nUsage: uns-kit <command> [options]\n" +
     "\nCommands:\n" +
     "  create <name>           Scaffold a new UNS application\n" +
+    "  create --bundle <path>  Scaffold a new UNS application from service.bundle.json\n" +
     "  configure [dir] [features...] Configure multiple templates (--all, --overwrite)\n" +
     "  configure-templates [dir] [templates...] Copy any template directory (--all, --overwrite)\n" +
     "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n" +
@@ -192,28 +199,191 @@ function printHelp(): void {
   );
 }
 
+type CreateCommandOptions = {
+  projectName?: string;
+  bundlePath?: string;
+  destPath?: string;
+  allowExisting: boolean;
+};
+
+function parseCreateArgs(args: string[]): CreateCommandOptions {
+  let projectName: string | undefined;
+  let bundlePath: string | undefined;
+  let destPath: string | undefined;
+  let allowExisting = false;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === "--bundle") {
+      const next = args[index + 1];
+      if (!next || next.startsWith("--")) {
+        throw new Error("Missing value for --bundle.");
+      }
+      bundlePath = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--dest") {
+      const next = args[index + 1];
+      if (!next || next.startsWith("--")) {
+        throw new Error("Missing value for --dest.");
+      }
+      destPath = next;
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--allow-existing") {
+      allowExisting = true;
+      continue;
+    }
+
+    if (arg.startsWith("--")) {
+      throw new Error(`Unknown option ${arg}.`);
+    }
+
+    if (!projectName) {
+      projectName = arg;
+      continue;
+    }
+
+    throw new Error(`Unexpected argument ${arg}.`);
+  }
+
+  if (bundlePath && projectName) {
+    throw new Error("Do not pass a positional project name with --bundle. Use --dest to override the target directory.");
+  }
+
+  if (!bundlePath && destPath) {
+    throw new Error("--dest can only be used with --bundle.");
+  }
+
+  if (!bundlePath && allowExisting) {
+    throw new Error("--allow-existing can only be used with --bundle.");
+  }
+
+  return { projectName, bundlePath, destPath, allowExisting };
+}
+
 async function createProject(projectName: string): Promise<void> {
   const targetDir = path.resolve(process.cwd(), projectName);
-  await ensureTargetDir(targetDir);
+  const result = await scaffoldTsProject(projectName, targetDir);
+  printTsCreateSuccess(targetDir, result.packageName, initializedGitNextSteps(result.initializedGit, "pnpm run dev"));
+}
 
-  const templateDir = path.resolve(__dirname, "../templates/default");
+async function createProjectFromBundle(options: CreateCommandOptions): Promise<void> {
+  if (!options.bundlePath) {
+    throw new Error("Missing --bundle path.");
+  }
+
+  const { bundle, raw } = await readAndValidateServiceBundle(options.bundlePath, {
+    expectedStack: "ts",
+    cliName: "uns-kit",
+    counterpartCliName: "uns-kit-py",
+  });
+
+  const targetDir = path.resolve(process.cwd(), options.destPath ?? bundle.metadata.name);
+  const result = await scaffoldTsProject(bundle.metadata.name, targetDir, {
+    allowExisting: options.allowExisting,
+    templateName: bundle.scaffold.template,
+  });
+
+  await applyTsBundleFeatures(targetDir, bundle);
+  await writeServiceBundleArtifacts(targetDir, bundle, raw);
+
+  printTsCreateSuccess(targetDir, result.packageName, initializedGitNextSteps(result.initializedGit, "pnpm run dev"));
+}
+
+async function scaffoldTsProject(
+  projectName: string,
+  targetDir: string,
+  options: { allowExisting?: boolean; templateName?: string } = {},
+): Promise<{ packageName: string; initializedGit: boolean }> {
+  await ensureTargetDir(targetDir, { allowExisting: options.allowExisting });
+
+  const templateDir = path.resolve(__dirname, `../templates/${options.templateName ?? DEFAULT_TEMPLATE_NAME}`);
+  try {
+    await access(templateDir);
+  } catch (error) {
+    throw new Error(`Template directory is missing: ${templateDir}`);
+  }
+
   await copyTemplateDirectory(templateDir, targetDir, targetDir);
-  // Seed config examples automatically (previously required configure-config).
   await configureConfigFiles(targetDir, { overwrite: false });
 
-  const pkgName = normalizePackageName(projectName);
-  await patchPackageJson(targetDir, pkgName);
-  await patchConfigJson(targetDir, pkgName);
-  await replacePlaceholders(targetDir, pkgName);
+  const packageName = normalizePackageName(projectName);
+  await patchPackageJson(targetDir, packageName);
+  await patchConfigJson(targetDir, packageName);
+  await replacePlaceholders(targetDir, packageName);
   const initializedGit = await initGitRepository(targetDir);
 
-  console.log(`\nCreated ${pkgName} in ${path.relative(process.cwd(), targetDir)}`);
-  console.log("Next steps:");
-  console.log(`  cd ${projectName}`);
-  console.log("  pnpm install");
-  console.log("  pnpm run dev");
+  return { packageName, initializedGit };
+}
+
+async function applyTsBundleFeatures(targetDir: string, bundle: ServiceBundle): Promise<void> {
+  for (const featureName of bundle.scaffold.features) {
+    const resolvedFeature = resolveConfigureFeatureName(featureName);
+    if (resolvedFeature === "devops") {
+      await configureDevopsFromBundle(targetDir, bundle);
+      continue;
+    }
+
+    const handler = configureFeatureHandlers[resolvedFeature];
+    await handler(targetDir, { overwrite: false });
+  }
+}
+
+async function configureDevopsFromBundle(targetDir: string, bundle: ServiceBundle): Promise<void> {
+  const provider = bundle.repository?.provider?.trim() || AZURE_DEVOPS_PROVIDER;
+  if (provider !== AZURE_DEVOPS_PROVIDER) {
+    throw new Error(
+      `Bundle feature "devops" only supports repository.provider="${AZURE_DEVOPS_PROVIDER}" in this MVP. Received "${provider}".`,
+    );
+  }
+
+  const organization = bundle.repository?.organization?.trim();
+  const project = bundle.repository?.project?.trim();
+  if (!organization || !project) {
+    throw new Error(
+      'Bundle feature "devops" requires repository.organization and repository.project for non-interactive scaffolding.',
+    );
+  }
+
+  const result = await applyAzureDevopsConfig(targetDir, {
+    organization,
+    project,
+    overwrite: false,
+    ensureRemote: false,
+  });
+
+  logDevopsResult(result, { includeRemoteDetails: false });
+}
+
+async function writeServiceBundleArtifacts(targetDir: string, bundle: ServiceBundle, rawBundle: string): Promise<void> {
+  await writeFile(path.join(targetDir, "service.bundle.json"), rawBundle, "utf8");
+  await writeFile(path.join(targetDir, "SERVICE_SPEC.md"), generateServiceSpecMarkdown(bundle), "utf8");
+  await writeFile(path.join(targetDir, "AGENTS.md"), generateAgentsMarkdown(bundle), "utf8");
+}
+
+function initializedGitNextSteps(initializedGit: boolean, runCommand: string): string[] {
+  const steps = ["pnpm install", runCommand];
   if (initializedGit) {
-    console.log("  git status  # verify the new repository");
+    steps.push("git status  # verify the new repository");
+  }
+  return steps;
+}
+
+function printTsCreateSuccess(targetDir: string, packageName: string, nextSteps: string[]): void {
+  const relativeTarget = path.relative(process.cwd(), targetDir) || ".";
+  console.log(`\nCreated ${packageName} in ${relativeTarget}`);
+  console.log("Next steps:");
+  if (relativeTarget !== ".") {
+    console.log(`  cd ${relativeTarget}`);
+  }
+  for (const step of nextSteps) {
+    console.log(`  ${step}`);
   }
 }
 
@@ -300,8 +470,85 @@ type CopyTemplateResult = {
   overwritten: string[];
 };
 
+type ApplyAzureDevopsConfigOptions = {
+  organization: string;
+  project: string;
+  overwrite?: boolean;
+  ensureRemote?: boolean;
+  repositoryName?: string;
+};
+
+type ApplyAzureDevopsConfigResult = {
+  provider: string;
+  organization: string;
+  project: string;
+  pkgChanged: boolean;
+  pipelineMessage: string;
+  gitRemoteMessage?: string;
+  repositoryUrlMessage?: string;
+};
+
 async function configureDevops(targetPath?: string, options?: ConfigureTemplateOptions): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
+  await ensureGitRepository(targetDir);
+
+  const packagePath = path.join(targetDir, "package.json");
+  let pkgRaw: string;
+  try {
+    pkgRaw = await readFile(packagePath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`Could not find package.json in ${targetDir}`);
+    }
+    throw error;
+  }
+
+  const pkg = JSON.parse(pkgRaw) as PackageJson;
+  const configPath = path.join(targetDir, "config.json");
+  let configRaw: string;
+  try {
+    configRaw = await readFile(configPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`Could not find config.json in ${targetDir}`);
+    }
+    throw error;
+  }
+
+  const config = JSON.parse(configRaw) as ConfigJson;
+  const remoteUrl = await getGitRemoteUrl(targetDir, "origin");
+  const remoteInfo = remoteUrl ? parseAzureRemote(remoteUrl) : undefined;
+
+  const repositoryName = inferRepositoryNameFromPackage(pkg.name) || inferRepositoryNameFromPackage(path.basename(targetDir));
+
+  const defaultOrganization = config.devops?.organization?.trim() || remoteInfo?.organization || "example-org";
+  const organization = await promptWithDefault(
+    defaultOrganization ? `Azure DevOps organization [${defaultOrganization}]: ` : "Azure DevOps organization: ",
+    defaultOrganization,
+    "Azure DevOps organization is required.",
+  );
+
+  const defaultProject = config.devops?.project?.trim() || remoteInfo?.project || "";
+  const project = await promptWithDefault(
+    defaultProject ? `Azure DevOps project [${defaultProject}]: ` : "Azure DevOps project: ",
+    defaultProject,
+    "Azure DevOps project is required.",
+  );
+
+  const result = await applyAzureDevopsConfig(targetDir, {
+    organization,
+    project,
+    overwrite: options?.overwrite,
+    ensureRemote: true,
+    repositoryName: remoteInfo?.repository ?? repositoryName,
+  });
+  logDevopsResult(result, { includeRemoteDetails: true });
+}
+
+async function applyAzureDevopsConfig(
+  targetDir: string,
+  options: ApplyAzureDevopsConfigOptions,
+): Promise<ApplyAzureDevopsConfigResult> {
   const packagePath = path.join(targetDir, "package.json");
   const configPath = path.join(targetDir, "config.json");
 
@@ -328,64 +575,54 @@ async function configureDevops(targetPath?: string, options?: ConfigureTemplateO
   const pkg = JSON.parse(pkgRaw) as PackageJson;
   const config = JSON.parse(configRaw) as ConfigJson;
 
-  await ensureGitRepository(targetDir);
-
-  const remoteUrl = await getGitRemoteUrl(targetDir, "origin");
-  const remoteInfo = remoteUrl ? parseAzureRemote(remoteUrl) : undefined;
-
-  const repositoryName = inferRepositoryNameFromPackage(pkg.name) || inferRepositoryNameFromPackage(path.basename(targetDir));
-
-  const defaultOrganization = config.devops?.organization?.trim() || remoteInfo?.organization || "example-org";
-  const organization = await promptWithDefault(
-    defaultOrganization ? `Azure DevOps organization [${defaultOrganization}]: ` : "Azure DevOps organization: ",
-    defaultOrganization,
-    "Azure DevOps organization is required.",
-  );
-
-  const defaultProject = config.devops?.project?.trim() || remoteInfo?.project || "";
-  const project = await promptWithDefault(
-    defaultProject ? `Azure DevOps project [${defaultProject}]: ` : "Azure DevOps project: ",
-    defaultProject,
-    "Azure DevOps project is required.",
-  );
-
   if (!config.devops || typeof config.devops !== "object") {
     config.devops = {};
   }
   const devopsConfig = config.devops as DevopsConfig;
   devopsConfig.provider = AZURE_DEVOPS_PROVIDER;
-  devopsConfig.organization = organization;
-  devopsConfig.project = project;
+  devopsConfig.organization = options.organization;
+  devopsConfig.project = options.project;
 
   let gitRemoteMessage: string | undefined;
   let repositoryUrlMessage: string | undefined;
-  let ensuredRemoteUrl = remoteUrl ?? "";
 
-  if (!remoteUrl) {
-    const { gitApi } = await resolveAzureGitApi(organization);
-    const repositoryDetails = await ensureAzureRepositoryExists(gitApi, {
-      organization,
-      project,
-      repository: repositoryName,
-    });
+  if (options.ensureRemote) {
+    const repositoryName =
+      options.repositoryName
+      ?? inferRepositoryNameFromPackage(pkg.name)
+      ?? inferRepositoryNameFromPackage(path.basename(targetDir));
+    const remoteUrl = await getGitRemoteUrl(targetDir, "origin");
+    const remoteInfo = remoteUrl ? parseAzureRemote(remoteUrl) : undefined;
 
-    ensuredRemoteUrl = repositoryDetails.remoteUrl ?? buildAzureGitRemoteUrl(organization, project, repositoryName);
-    await addGitRemote(targetDir, "origin", ensuredRemoteUrl);
-    gitRemoteMessage = `  Added git remote origin -> ${ensuredRemoteUrl}`;
-    const friendlyUrl = repositoryDetails.webUrl ?? buildAzureRepositoryUrl(organization, project, repositoryName);
-    if (friendlyUrl) {
-      repositoryUrlMessage = `  Repository URL: ${friendlyUrl}`;
-    }
-  } else {
-    ensuredRemoteUrl = remoteUrl;
-    gitRemoteMessage = `  Git remote origin detected -> ${ensuredRemoteUrl}`;
-    const friendlyUrl = buildAzureRepositoryUrl(
-      remoteInfo?.organization ?? organization,
-      remoteInfo?.project ?? project,
-      remoteInfo?.repository ?? repositoryName,
-    );
-    if (friendlyUrl) {
-      repositoryUrlMessage = `  Repository URL: ${friendlyUrl}`;
+    if (!remoteUrl) {
+      const { gitApi } = await resolveAzureGitApi(options.organization);
+      const repositoryDetails = await ensureAzureRepositoryExists(gitApi, {
+        organization: options.organization,
+        project: options.project,
+        repository: repositoryName,
+      });
+
+      const ensuredRemoteUrl =
+        repositoryDetails.remoteUrl
+        ?? buildAzureGitRemoteUrl(options.organization, options.project, repositoryName);
+      await addGitRemote(targetDir, "origin", ensuredRemoteUrl);
+      gitRemoteMessage = `  Added git remote origin -> ${ensuredRemoteUrl}`;
+      const friendlyUrl =
+        repositoryDetails.webUrl
+        ?? buildAzureRepositoryUrl(options.organization, options.project, repositoryName);
+      if (friendlyUrl) {
+        repositoryUrlMessage = `  Repository URL: ${friendlyUrl}`;
+      }
+    } else {
+      gitRemoteMessage = `  Git remote origin detected -> ${remoteUrl}`;
+      const friendlyUrl = buildAzureRepositoryUrl(
+        remoteInfo?.organization ?? options.organization,
+        remoteInfo?.project ?? options.project,
+        remoteInfo?.repository ?? repositoryName,
+      );
+      if (friendlyUrl) {
+        repositoryUrlMessage = `  Repository URL: ${friendlyUrl}`;
+      }
     }
   }
 
@@ -393,7 +630,7 @@ async function configureDevops(targetPath?: string, options?: ConfigureTemplateO
     "azure-devops-node-api": "^15.1.0",
     "simple-git": "^3.27.0",
     "chalk": "^5.4.1",
-    "prettier": "^3.5.3"
+    "prettier": "^3.5.3",
   };
 
   let pkgChanged = false;
@@ -421,10 +658,9 @@ async function configureDevops(targetPath?: string, options?: ConfigureTemplateO
   }
 
   const pipelineTargetPath = path.join(targetDir, "azure-pipelines.yml");
-  const overwrite = !!options?.overwrite;
   let pipelineMessage = "";
   if (await fileExists(pipelineTargetPath)) {
-    if (overwrite) {
+    if (options.overwrite) {
       await copyFile(azurePipelineTemplatePath, pipelineTargetPath);
       pipelineMessage = "  Overwrote azure-pipelines.yml pipeline definition.";
     } else {
@@ -440,20 +676,35 @@ async function configureDevops(targetPath?: string, options?: ConfigureTemplateO
     await writeFile(packagePath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
   }
 
+  return {
+    provider: AZURE_DEVOPS_PROVIDER,
+    organization: options.organization,
+    project: options.project,
+    pkgChanged,
+    pipelineMessage,
+    gitRemoteMessage,
+    repositoryUrlMessage,
+  };
+}
+
+function logDevopsResult(
+  result: ApplyAzureDevopsConfigResult,
+  options: { includeRemoteDetails: boolean },
+): void {
   console.log(`\nDevOps tooling configured.`);
-  console.log(`  DevOps provider: ${AZURE_DEVOPS_PROVIDER}`);
-  console.log(`  Azure organization: ${organization}`);
-  console.log(`  Azure project: ${project}`);
-  if (repositoryUrlMessage) {
-    console.log(repositoryUrlMessage);
+  console.log(`  DevOps provider: ${result.provider}`);
+  console.log(`  Azure organization: ${result.organization}`);
+  console.log(`  Azure project: ${result.project}`);
+  if (options.includeRemoteDetails && result.repositoryUrlMessage) {
+    console.log(result.repositoryUrlMessage);
   }
-  if (gitRemoteMessage) {
-    console.log(gitRemoteMessage);
+  if (options.includeRemoteDetails && result.gitRemoteMessage) {
+    console.log(result.gitRemoteMessage);
   }
-  if (pipelineMessage) {
-    console.log(pipelineMessage);
+  if (result.pipelineMessage) {
+    console.log(result.pipelineMessage);
   }
-  if (pkgChanged) {
+  if (result.pkgChanged) {
     console.log("  Updated package.json scripts/devDependencies. Run pnpm install to fetch new packages.");
   } else {
     console.log("  Existing package.json already contained required entries.");
@@ -1440,14 +1691,14 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-async function ensureTargetDir(dir: string): Promise<void> {
+async function ensureTargetDir(dir: string, options: { allowExisting?: boolean } = {}): Promise<void> {
   try {
     const stats = await stat(dir);
     if (!stats.isDirectory()) {
       throw new Error(`Path ${dir} exists and is not a directory.`);
     }
     const entries = await readdir(dir);
-    if (entries.length > 0) {
+    if (entries.length > 0 && !options.allowExisting) {
       throw new Error(`Directory ${dir} is not empty.`);
     }
   } catch (error) {
