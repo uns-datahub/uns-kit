@@ -22,6 +22,7 @@ export default class MqttProxy {
     isConnected = false;
     rejectUnauthorized;
     pendingReconnectWait = null;
+    hasEstablishedConnection = false;
     constructor(mqttHost, instanceName, mqttParameters, mqttWorker) {
         this.mqttSSL = mqttParameters?.mqttSSL ?? false;
         this.rejectUnauthorized = mqttParameters.rejectUnauthorized ?? false;
@@ -93,7 +94,7 @@ export default class MqttProxy {
         return servers.length > 0 ? servers : undefined;
     }
     async start() {
-        logger.info(`${this.instanceName} - Connecting to MQTT broker...`);
+        logger.debug(`${this.instanceName} - Connecting to MQTT broker...`);
         return new Promise((resolve, reject) => {
             try {
                 const username = this.mqttParameters.username;
@@ -141,9 +142,10 @@ export default class MqttProxy {
                 const onConnect = () => {
                     try {
                         this.mqttClient.stream.setMaxListeners(0);
+                        this.hasEstablishedConnection = true;
                         logger.info(`${this.instanceName} - Connected to MQTT broker at ${this.mqttHost}`);
                         if (this.mqttSubToTopics && this.mqttSubToTopics.length > 0) {
-                            logger.info(`${this.instanceName} - Subscribed to ${this.mqttSubToTopics.length} topics.`);
+                            logger.debug(`${this.instanceName} - Subscribed to ${this.mqttSubToTopics.length} topics.`);
                             this.mqttClient.subscribe(this.mqttSubToTopics, { qos: 0 });
                         }
                         if (this.statusTopic) {
@@ -157,7 +159,7 @@ export default class MqttProxy {
                         resolve();
                     }
                     catch (error) {
-                        logger.error(`${this.instanceName} - Error in MQTT connect handler: ${error.message}`);
+                        logger.error(`${this.instanceName} - Error in MQTT connect handler: ${formatMqttError(error).message}`);
                         this.isConnected = false;
                         reject(error);
                     }
@@ -178,14 +180,13 @@ export default class MqttProxy {
                     }
                 });
                 this.mqttClient.on("error", (error) => {
-                    logger.error(`${this.instanceName} - MQTT client error: ${error.message}`);
+                    const errorInfo = formatMqttError(error);
+                    logger.error(`${this.instanceName} - MQTT client error: ${errorInfo.message}`);
                     this.isConnected = false;
-                    if ("code" in error) {
-                        this.event.emit("error", { code: error.code, message: error.message });
-                    }
-                    else {
-                        this.event.emit("error", { message: error.message, code: 0 });
-                    }
+                    this.event.emit("error", {
+                        code: typeof errorInfo.code === "number" ? errorInfo.code : 0,
+                        message: errorInfo.message,
+                    });
                     reject(error);
                 });
                 this.mqttClient.on("reconnect", () => {
@@ -209,7 +210,7 @@ export default class MqttProxy {
                 });
             }
             catch (error) {
-                logger.error(`${this.instanceName} - Error starting MQTT proxy: ${error.message}`);
+                logger.error(`${this.instanceName} - Error starting MQTT proxy: ${formatMqttError(error).message}`);
                 this.isConnected = false;
                 reject(error);
             }
@@ -252,8 +253,12 @@ export default class MqttProxy {
         }
         return this.mqttClient.unsubscribeAsync(topics);
     }
-    stop() {
-        logger.info(`${this.instanceName} - Disconnecting from MQTT broker...`);
+    stop(options = {}) {
+        const silent = options.silent === true || options.reason === "retry";
+        const shouldLogDisconnect = !silent && this.hasEstablishedConnection;
+        if (shouldLogDisconnect) {
+            logger.debug(`${this.instanceName} - Disconnecting from MQTT broker...`);
+        }
         try {
             if (this.statusUpdateInterval) {
                 clearInterval(this.statusUpdateInterval);
@@ -266,13 +271,23 @@ export default class MqttProxy {
             if (this.mqttClient) {
                 this.mqttClient.end(false, () => {
                     this.isConnected = false;
-                    logger.info(`${this.instanceName} - Disconnected from MQTT broker.`);
+                    this.pendingReconnectWait = null;
+                    if (shouldLogDisconnect) {
+                        logger.debug(`${this.instanceName} - Disconnected from MQTT broker.`);
+                    }
                 });
+            }
+            else {
+                this.isConnected = false;
+                this.pendingReconnectWait = null;
             }
         }
         catch (error) {
-            logger.error(`${this.instanceName} - Error during stop: ${error.message}`);
+            if (!silent) {
+                logger.error(`${this.instanceName} - Error during stop: ${formatMqttError(error).message}`);
+            }
             this.isConnected = false;
+            this.pendingReconnectWait = null;
         }
     }
     emitStatusUpdates() {
@@ -371,6 +386,68 @@ export default class MqttProxy {
                 logger.error(`${this.instanceName} - Error emitting transformation statistics: ${error.message}`);
             }
         }
+    }
+}
+export function formatMqttError(error) {
+    const parts = [];
+    const codes = [];
+    collectMqttErrorParts(error, parts, codes);
+    const uniqueParts = Array.from(new Set(parts.map((part) => part.trim()).filter(Boolean)));
+    const message = uniqueParts.join("; ") || "Unknown MQTT error";
+    return {
+        code: codes[0] ?? 0,
+        message,
+    };
+}
+function collectMqttErrorParts(error, parts, codes) {
+    if (error instanceof AggregateError) {
+        if (typeof error.message === "string" && error.message.trim()) {
+            parts.push(error.message.trim());
+        }
+        for (const nested of error.errors) {
+            collectMqttErrorParts(nested, parts, codes);
+        }
+        return;
+    }
+    if (typeof error === "string") {
+        if (error.trim()) {
+            parts.push(error.trim());
+        }
+        return;
+    }
+    if (!error || typeof error !== "object") {
+        return;
+    }
+    const record = error;
+    const code = typeof record.code === "string" || typeof record.code === "number"
+        ? record.code
+        : undefined;
+    if (code !== undefined) {
+        codes.push(code);
+    }
+    const message = typeof record.message === "string" && record.message.trim()
+        ? record.message.trim()
+        : undefined;
+    const address = typeof record.address === "string" && record.address.trim()
+        ? record.address.trim()
+        : undefined;
+    const port = typeof record.port === "number" ? record.port : undefined;
+    const endpoint = address || port !== undefined
+        ? `${address ?? ""}${address && port !== undefined ? ":" : ""}${port ?? ""}`.trim()
+        : undefined;
+    const detailParts = [
+        code !== undefined && !message?.includes(String(code)) ? String(code) : undefined,
+        message,
+        endpoint && !message?.includes(endpoint) ? endpoint : undefined,
+    ].filter((part) => typeof part === "string" && part.length > 0);
+    if (detailParts.length > 0) {
+        parts.push(detailParts.join(" "));
+    }
+    else if (typeof record.name === "string" && record.name.trim()) {
+        parts.push(record.name.trim());
+    }
+    if (record.cause !== undefined) {
+        collectMqttErrorParts(record.cause, parts, codes);
     }
 }
 //# sourceMappingURL=mqtt-proxy.js.map
