@@ -60,6 +60,11 @@ export const unsCoreSchema = z.object({
         kidWellKnownUrl: z.string().url().optional(),
         env: z.enum(["dev", "staging", "test", "prod"]).default("dev"),
     }).strict(),
+    logging: z.object({
+        adapter: z.string().min(1).default("udp"),
+        host: hostValueSchema,
+        port: z.number().int().positive().default(12201),
+    }).strict().optional(),
     input: mqttChannelSchema.optional(),
     output: mqttChannelSchema.optional(),
     infra: mqttChannelSchema,

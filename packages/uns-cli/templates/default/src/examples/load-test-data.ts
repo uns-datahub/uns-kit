@@ -4,8 +4,10 @@
  * In the development environment, you are responsible for creating and maintaining this file and its contents.
  */
 import readline from "readline";
-import { ConfigFile, logger } from "@uns-kit/core";
+import { ConfigFile, getLogger } from "@uns-kit/core";
 import UnsMqttProxy from "@uns-kit/core/uns-mqtt/uns-mqtt-proxy.js";
+
+const logger = getLogger(import.meta.url);
 
 /**
  * Produces a smooth oscillating value to mimic a real-world sensor signal.

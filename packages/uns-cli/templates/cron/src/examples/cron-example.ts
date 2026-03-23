@@ -1,7 +1,7 @@
 /**
  * Change this file according to your specifications and rename it to index.ts
  */
-import { UnsProxyProcess, ConfigFile, logger, UnsEvents } from "@uns-kit/core";
+import { UnsProxyProcess, ConfigFile, UnsEvents, getLogger } from "@uns-kit/core";
 import { registerAttributeDescriptions, registerObjectTypeDescriptions } from "@uns-kit/core/uns/uns-dictionary-registry.js";
 import "@uns-kit/cron";
 import { type UnsProxyProcessWithCron } from "@uns-kit/cron";
@@ -16,6 +16,8 @@ import {
 } from "../uns/uns-dictionary.generated.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 import { GeneratedAssets, resolveGeneratedAsset } from "../uns/uns-assets.js";
+
+const logger = getLogger(import.meta.url);
 
 
 /**

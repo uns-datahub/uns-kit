@@ -150,9 +150,14 @@
           ],
           "additionalProperties": false
         },
-        "input": {
+        "logging": {
           "type": "object",
           "properties": {
+            "adapter": {
+              "type": "string",
+              "minLength": 1,
+              "default": "udp"
+            },
             "host": {
               "anyOf": [
                 {
@@ -252,10 +257,27 @@
                 }
               ]
             },
+            "port": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "default": 12201
+            }
+          },
+          "required": [
+            "host"
+          ],
+          "additionalProperties": false
+        },
+        "input": {
+          "type": "object",
+          "properties": {
+            "host": {
+              "$ref": "#/definitions/AppConfig/properties/logging/properties/host"
+            },
             "hosts": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/AppConfig/properties/input/properties/host"
+                "$ref": "#/definitions/AppConfig/properties/logging/properties/host"
               }
             },
             "servers": {
@@ -264,7 +286,7 @@
                 "type": "object",
                 "properties": {
                   "host": {
-                    "$ref": "#/definitions/AppConfig/properties/input/properties/host"
+                    "$ref": "#/definitions/AppConfig/properties/logging/properties/host"
                   },
                   "port": {
                     "type": "integer",

@@ -69,8 +69,8 @@ class GraylogContextFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         # Non-standard record attributes are exported by graypy as GELF extra fields.
-        if not hasattr(record, "logger_name"):
-            record.logger_name = record.name
+        if not hasattr(record, "facility"):
+            record.facility = record.name
         if not hasattr(record, "log_level"):
             record.log_level = record.levelname.lower()
         if not hasattr(record, "service"):

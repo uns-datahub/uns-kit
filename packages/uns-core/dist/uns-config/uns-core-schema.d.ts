@@ -707,6 +707,89 @@ export declare const unsCoreSchema: z.ZodObject<{
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     }>;
+    logging: z.ZodOptional<z.ZodObject<{
+        adapter: z.ZodDefault<z.ZodString>;
+        host: z.ZodUnion<[z.ZodString, z.ZodDiscriminatedUnion<"provider", [z.ZodObject<{
+            provider: z.ZodLiteral<"inline">;
+            value: z.ZodString;
+        }, "strict", z.ZodTypeAny, {
+            provider?: "inline";
+            value?: string;
+        }, {
+            provider?: "inline";
+            value?: string;
+        }>, z.ZodObject<{
+            provider: z.ZodLiteral<"external">;
+            key: z.ZodString;
+            optional: z.ZodOptional<z.ZodBoolean>;
+            default: z.ZodOptional<z.ZodString>;
+        }, "strict", z.ZodTypeAny, {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        }, {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        }>, z.ZodObject<{
+            provider: z.ZodLiteral<"system">;
+            family: z.ZodDefault<z.ZodUnion<[z.ZodLiteral<"IPv4">, z.ZodLiteral<"IPv6">]>>;
+            interfaceName: z.ZodOptional<z.ZodString>;
+            optional: z.ZodOptional<z.ZodBoolean>;
+            default: z.ZodOptional<z.ZodString>;
+        }, "strict", z.ZodTypeAny, {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        }, {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        }>]>]>;
+        port: z.ZodDefault<z.ZodNumber>;
+    }, "strict", z.ZodTypeAny, {
+        port?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
+        adapter?: string;
+    }, {
+        port?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
+        adapter?: string;
+    }>>;
     input: z.ZodOptional<z.ZodEffects<z.ZodObject<{
         host: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodDiscriminatedUnion<"provider", [z.ZodObject<{
             provider: z.ZodLiteral<"inline">;
@@ -2570,6 +2653,25 @@ export declare const unsCoreSchema: z.ZodObject<{
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     };
+    logging?: {
+        port?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
+        adapter?: string;
+    };
     input?: {
         key?: string;
         hosts?: (string | {
@@ -2870,6 +2972,25 @@ export declare const unsCoreSchema: z.ZodObject<{
         instanceMode?: "wait" | "force" | "handover";
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
+    };
+    logging?: {
+        port?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
+        adapter?: string;
     };
     input?: {
         key?: string;

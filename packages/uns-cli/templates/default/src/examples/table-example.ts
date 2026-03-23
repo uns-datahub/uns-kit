@@ -2,7 +2,7 @@
  * Change this file according to your specifications and rename it to index.ts
  */
 
-import { UnsProxyProcess, ConfigFile, logger } from "@uns-kit/core";
+import { UnsProxyProcess, ConfigFile, getLogger } from "@uns-kit/core";
 import { registerAttributeDescriptions, registerObjectTypeDescriptions } from "@uns-kit/core/uns/uns-dictionary-registry.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import {
@@ -15,6 +15,8 @@ import { GeneratedAssets, resolveGeneratedAsset } from "../uns/uns-assets.js";
 import type { IUnsTableColumn } from "@uns-kit/core/uns/uns-interfaces.js";
 import type { ISO8601 } from "@uns-kit/core/uns/uns-interfaces.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
+
+const logger = getLogger(import.meta.url);
 
 /**
  * Load the configuration from a file.

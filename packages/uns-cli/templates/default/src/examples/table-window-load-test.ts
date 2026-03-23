@@ -28,7 +28,7 @@
 import { randomUUID } from "node:crypto";
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { ConfigFile, logger } from "@uns-kit/core";
+import { ConfigFile, getLogger } from "@uns-kit/core";
 import UnsMqttProxy from "@uns-kit/core/uns-mqtt/uns-mqtt-proxy.js";
 import { registerAttributeDescriptions, registerObjectTypeDescriptions } from "@uns-kit/core/uns/uns-dictionary-registry.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
@@ -42,6 +42,8 @@ import {
 } from "../uns/uns-dictionary.generated.js";
 import { resolveGeneratedAsset } from "../uns/uns-assets.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
+
+const logger = getLogger(import.meta.url);
 
 type RunSelection = "all" | "1" | "2" | "3" | "4";
 type IngestMode = "append" | "dedup" | "window_replace";
