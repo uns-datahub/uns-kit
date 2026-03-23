@@ -15,6 +15,11 @@ export interface ProjectAppConfig {
         kidWellKnownUrl?: string | undefined;
         env?: "dev" | "staging" | "test" | "prod";
     };
+    logging?: {
+        adapter?: string;
+        host: string;
+        port?: number;
+    } | undefined;
     input?: {
         host?: string | undefined;
         hosts?: string[] | undefined;

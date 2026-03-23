@@ -166,6 +166,9 @@ importers:
       winston:
         specifier: ^3.17.0
         version: 3.17.0
+      winston-gelf:
+        specifier: ^1.7.0
+        version: 1.7.0
       ws:
         specifier: ^8.18.3
         version: 8.18.3
@@ -1060,6 +1063,7 @@ packages:
   '@graphql-tools/prisma-loader@8.0.17':
     resolution: {integrity: sha512-fnuTLeQhqRbA156pAyzJYN0KxCjKYRU5bz1q/SKOwElSnAU4k7/G1kyVsWLh7fneY78LoMNH5n+KlFV8iQlnyg==}
     engines: {node: '>=16.0.0'}
+    deprecated: 'This package was intended to be used with an older versions of Prisma.\nThe newer versions of Prisma has a different approach to GraphQL integration.\nTherefore, this package is no longer needed and has been deprecated and removed.\nLearn more: https://www.prisma.io/graphql'
     peerDependencies:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
 
@@ -2391,6 +2395,9 @@ packages:
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
+  gelf-pro@1.4.0:
+    resolution: {integrity: sha512-VXQ1DHQjQr8/Xil83hHgozqeCcVrggGAA6A8hgjojQSatiF6PErR+nnYv/DCBxFBolO6licomD7Abaj0Iec7Qg==}
+
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
@@ -3675,6 +3682,9 @@ packages:
     resolution: {integrity: sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==}
     engines: {node: '>=8'}
     hasBin: true
+
+  winston-gelf@1.7.0:
+    resolution: {integrity: sha512-J6Hc9vMokQPhnAzpmNLWSCjb8759/tO3GOpXK59eqjcsjiCZP4CL9R1jLDlXMtENwPoDD/+VOukppZCraoqbHQ==}
 
   winston-transport@4.9.0:
     resolution: {integrity: sha512-8drMJ4rkgaPo1Me4zD/3WLfI/zPdA9o2IipKODunnGDcuqbHwjsbB79ylv04LCGGzU0xQ6vTznOMpQGaLhhm6A==}
@@ -6626,6 +6636,10 @@ snapshots:
 
   function-bind@1.1.2: {}
 
+  gelf-pro@1.4.0:
+    dependencies:
+      lodash: 4.17.21
+
   gensync@1.0.0-beta.2: {}
 
   get-caller-file@2.0.5: {}
@@ -7902,6 +7916,10 @@ snapshots:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
+
+  winston-gelf@1.7.0:
+    dependencies:
+      gelf-pro: 1.4.0
 
   winston-transport@4.9.0:
     dependencies:
