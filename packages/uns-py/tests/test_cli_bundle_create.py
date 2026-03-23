@@ -28,8 +28,10 @@ def test_create_from_valid_python_bundle(tmp_path: Path, monkeypatch) -> None:
 
     assert (target / "service.bundle.json").read_text() == bundle_path.read_text()
     assert "UNS Example Service" in (target / "SERVICE_SPEC.md").read_text()
-    assert "bootstrapped from `service.bundle.json`" in (target / "AGENTS.md").read_text()
-    assert "pnpm build" in (target / "AGENTS.md").read_text()
+    agents_text = (target / "AGENTS.md").read_text()
+    assert "bootstrapped from `service.bundle.json`" in agents_text
+    assert "pnpm build" in agents_text
+    assert "For UNS topic outputs, use `UnsProxyProcess` with `create_mqtt_proxy`." in agents_text
 
     config = json.loads((target / "config.json").read_text())
     assert config["devops"]["provider"] == "azure-devops"
@@ -122,6 +124,20 @@ def test_legacy_create_name_still_works(tmp_path: Path, monkeypatch) -> None:
     assert result.exit_code == 0, result.output
     assert (tmp_path / "legacy-app" / "pyproject.toml").exists()
     assert not (tmp_path / "legacy-app" / "service.bundle.json").exists()
+
+
+def test_legacy_create_uses_proxy_based_uns_publishing_pattern(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(cli, ["create", "legacy-app"])
+
+    assert result.exit_code == 0, result.output
+    main_text = (tmp_path / "legacy-app" / "main.py").read_text()
+    assert "UnsProxyProcess" in main_text
+    assert "create_mqtt_proxy" in main_text
+    assert "publish_mqtt_message" in main_text
+    assert "UnsMqttClient" not in main_text
+    assert "publish_packet(\"raw/data/\"" not in main_text
 
 
 def _write_bundle(path: Path, **overrides):

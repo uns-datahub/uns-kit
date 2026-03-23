@@ -48,6 +48,14 @@ async def main():
 asyncio.run(main())
 ```
 
+### Recommended publishing pattern
+If your service publishes UNS topics, prefer:
+- `UnsProxyProcess`
+- `await process.create_mqtt_proxy(...)`
+- `await proxy.publish_mqtt_message(...)`
+
+That is the default application pattern for generated Python services and the path that also maintains the retained `.../topics` registry used for discovery. Direct `UnsMqttClient` publishing is lower-level and should not be the default service pattern unless you have a specific reason.
+
 ## Config placeholders (env + Infisical)
 `uns-py` now resolves config placeholders in the same style as `uns-core`.
 For Infisical placeholders, install the optional extra:
@@ -110,7 +118,7 @@ async for msg in client.resilient_messages("uns-infra/#"):
 uns-kit-py create my-uns-py-app
 cd my-uns-py-app
 poetry install
-poetry run python src/main.py
+poetry run python main.py
 ```
 
 ### Create a new project from a service bundle

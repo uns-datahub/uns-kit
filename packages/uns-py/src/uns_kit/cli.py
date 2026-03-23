@@ -310,14 +310,14 @@ def _print_python_create_success(target_path: Path, initialized_git: bool) -> No
     if target_path != Path.cwd():
         click.echo(f"  1) cd {target_path}")
         click.echo("  2) poetry install")
-        click.echo("  3) poetry run python src/main.py")
+        click.echo("  3) poetry run python main.py")
         click.echo("  4) Edit config.json with your MQTT host/credentials")
         if initialized_git:
             click.echo("  5) git status  # verify the new repository")
         return
 
     click.echo("  1) poetry install")
-    click.echo("  2) poetry run python src/main.py")
+    click.echo("  2) poetry run python main.py")
     click.echo("  3) Edit config.json with your MQTT host/credentials")
     if initialized_git:
         click.echo("  4) git status  # verify the new repository")

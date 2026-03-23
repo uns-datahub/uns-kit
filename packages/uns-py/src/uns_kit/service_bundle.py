@@ -182,6 +182,15 @@ def generate_service_spec_markdown(bundle: ServiceBundle) -> str:
 
 
 def generate_agents_markdown(bundle: ServiceBundle) -> str:
+    guardrails = list(bundle.docs.agents.guardrails)
+    if bundle.scaffold.stack == "python":
+        publishing_guardrail = (
+            "For UNS topic outputs, use `UnsProxyProcess` with `create_mqtt_proxy`. "
+            "Do not implement ad-hoc direct MQTT publishing unless explicitly required."
+        )
+        if publishing_guardrail not in guardrails:
+            guardrails.insert(0, publishing_guardrail)
+
     lines = [
         "# AGENTS",
         "",
@@ -201,7 +210,7 @@ def generate_agents_markdown(bundle: ServiceBundle) -> str:
         *_render_string_list(bundle.docs.agents.project_context),
         "",
         "## Guardrails",
-        *_render_string_list(bundle.docs.agents.guardrails),
+        *_render_string_list(guardrails),
         "",
         "## First Tasks",
         *_render_string_list(bundle.docs.agents.first_tasks),
