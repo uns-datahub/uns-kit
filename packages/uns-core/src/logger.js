@@ -33,11 +33,24 @@ function loadLoggingConfig() {
 }
 const packageMeta = loadPackageMeta();
 const loggingConfig = loadLoggingConfig();
+const gelfMeta = {
+    service: packageMeta.name ?? 'unknown-service',
+    version: packageMeta.version ?? 'unknown',
+    environment: process.env.NODE_ENV || 'unknown',
+    hostname: os.hostname()
+};
+const consoleFormat = format.combine(format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), format.errors({ stack: true }), format.splat(), format.json());
 const loggerTransports = [
-    new transports.Console()
+    new transports.Console({
+        format: consoleFormat
+    })
 ];
 if (loggingConfig) {
     loggerTransports.push(new GelfTransport({
+        format: format((info) => ({
+            ...info,
+            ...gelfMeta
+        }))(),
         gelfPro: {
             adapterName: loggingConfig.adapter,
             adapterOptions: {
@@ -49,16 +62,12 @@ if (loggingConfig) {
 }
 const logger = createLogger({
     level: 'info', // Default logging level
-    defaultMeta: {
-        service: packageMeta.name ?? 'unknown-service',
-        version: packageMeta.version ?? 'unknown',
-        environment: process.env.NODE_ENV || 'development',
-        hostname: os.hostname()
-    },
     format: format.combine(format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), format.errors({ stack: true }), format.splat(), format.json()),
     transports: loggerTransports,
     exceptionHandlers: [
-        new transports.Console(), // Log exceptions to console
+        new transports.Console({
+            format: consoleFormat
+        }), // Log exceptions to console
         // Remove exception logging to file
         // new transports.File({ filename: 'logs/exceptions.log' })
     ]
