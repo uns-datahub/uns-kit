@@ -19,5 +19,6 @@ Pointers for AI/code-assist tools when working in this generated project.
 - `pnpm run generate-uns-dictionary` -> updates `src/uns/uns-dictionary.generated.ts`
 - `pnpm run generate-uns-measurements` -> updates `src/uns/uns-measurements.generated.ts`
 - `pnpm run generate-uns-reference` -> runs both
-- `pnpm run generate-uns-topics-tags` -> refreshes topic/tag unions (requires GraphQL connectivity)
+- `pnpm run generate-uns-metadata` -> refreshes topic/tag unions (requires GraphQL connectivity)
 - `pnpm run generate-codegen` -> GraphQL codegen (after configure-codegen)
+- `pnpm run sync-uns-schema -- --controller-url ... --token ...` -> pulls `uns-dictionary.json` + `uns-measurements.json` from the controller and regenerates local TS helpers

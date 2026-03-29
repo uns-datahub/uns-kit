@@ -488,6 +488,42 @@ type ApplyAzureDevopsConfigResult = {
   repositoryUrlMessage?: string;
 };
 
+function setPackageScript(scripts: Record<string, string>, name: string, command: string): boolean {
+  if (scripts[name] === command) {
+    return false;
+  }
+
+  scripts[name] = command;
+  return true;
+}
+
+function ensureUnsReferenceScripts(scripts: Record<string, string>): boolean {
+  let changed = false;
+
+  changed = setPackageScript(
+    scripts,
+    "generate-uns-dictionary",
+    "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-dictionary.js --input uns-dictionary.json --output src/uns/uns-dictionary.generated.ts",
+  ) || changed;
+  changed = setPackageScript(
+    scripts,
+    "generate-uns-measurements",
+    "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-measurements.js --input uns-measurements.json --output src/uns/uns-measurements.generated.ts",
+  ) || changed;
+  changed = setPackageScript(
+    scripts,
+    "generate-uns-reference",
+    "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-reference.js --dictionary uns-dictionary.json --dictionary-output src/uns/uns-dictionary.generated.ts --measurements uns-measurements.json --measurements-output src/uns/uns-measurements.generated.ts",
+  ) || changed;
+  changed = setPackageScript(
+    scripts,
+    "sync-uns-schema",
+    "node ./node_modules/@uns-kit/core/dist/tools/sync-uns-schema.js",
+  ) || changed;
+
+  return changed;
+}
+
 async function configureDevops(targetPath?: string, options?: ConfigureTemplateOptions): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
   await ensureGitRepository(targetDir);
@@ -935,6 +971,8 @@ async function configurePython(targetPath?: string, options: ConfigureTemplateOp
 }
 
 async function configureUnsReference(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
+  const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
+
   await configurePlugin({
     targetPath,
     templateName: "uns-dictionary",
@@ -947,6 +985,28 @@ async function configureUnsReference(targetPath?: string, options: ConfigureTemp
     label: "UNS measurements (units)",
     overwrite: options.overwrite,
   });
+
+  const packagePath = path.join(targetDir, "package.json");
+  let pkgRaw: string;
+  try {
+    pkgRaw = await readFile(packagePath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`Could not find package.json in ${targetDir}`);
+    }
+    throw error;
+  }
+
+  const pkg = JSON.parse(pkgRaw) as PackageJson;
+  const scripts = (pkg.scripts ??= {});
+  const pkgChanged = ensureUnsReferenceScripts(scripts);
+
+  if (pkgChanged) {
+    await writeFile(packagePath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+    console.log("  Updated package.json schema scripts.");
+  } else {
+    console.log("  Existing package.json already contained schema scripts.");
+  }
 }
 
 type ConfigureFeatureHandler = (targetPath?: string, options?: ConfigureTemplateOptions) => Promise<void>;

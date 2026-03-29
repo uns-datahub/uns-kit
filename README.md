@@ -46,7 +46,7 @@ Use these when hacking on the monorepo itself:
 - `ts:configure:*` – run CLI configure commands against `sandbox-app` (devops, vscode, codegen, api, cron, templates, temporal, python, uns-reference).
 - `ts:core:pull-request` – build core then run the PR helper script.
 - `ts:core:generate-uns-topics-tags` – build core then refresh UNS topics/tags.
-- `ts:core:sync-uns-schema` – pull canonical UNS dictionary/measurements JSON from the controller REST export, update the template JSON files, and regenerate local TS artifacts.
+- `ts:core:sync-uns-schema` – pull canonical UNS dictionary/measurements JSON from the controller REST export, update the repo template JSON files, and regenerate local TS artifacts.
 - `py:sandbox:data-example` / `py:sandbox:load-test` – run the Python sandbox example and load test (installs local `uns-py` in editable mode).
 - `py:build` / `py:publish` – build or publish the Python package.
 
@@ -60,8 +60,19 @@ pnpm run ts:core:sync-uns-schema -- \
 
 - The command uses the controller REST exports, not GraphQL.
 - `--status` defaults to `active` for the dictionary export and also supports `draft`, `deprecated`, and `all`.
-- Environment fallbacks are supported: `UNS_CONTROLLER_URL`, `UNS_CONTROLLER_TOKEN`, `UNS_SCHEMA_STATUS`.
+- The token must have admin access.
+- Environment fallbacks are supported: `UNS_CONTROLLER_URL`, `UNS_CONTROLLER_TOKEN`, `UNS_SCHEMA_STATUS`, `UNS_SCHEMA_PROJECT_ROOT`.
 - Add `--dry-run`, `--dictionary-only`, `--measurements-only`, or `--skip-generate` as needed.
+
+Inside a generated microservice project, the same tool can now be run locally via:
+
+```bash
+pnpm run sync-uns-schema -- \
+  --controller-url http://localhost:3200 \
+  --token <admin-bearer-token>
+```
+
+When run from the project root, it writes `uns-dictionary.json`, `uns-measurements.json`, and regenerates the local `src/uns/*.generated.ts` files.
 
 ## uns-kit/cli Quickstart
 

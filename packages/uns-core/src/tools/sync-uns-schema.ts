@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -16,6 +16,7 @@ type CliArgs = {
   controllerUrl: string;
   token: string;
   status: SchemaStatus;
+  projectRoot?: string;
   dryRun: boolean;
   dictionaryOnly: boolean;
   measurementsOnly: boolean;
@@ -41,6 +42,15 @@ type MeasurementsSummary = {
   generatedChanged: FileChangeResult[];
 };
 
+type SyncTarget = {
+  rootDir: string;
+  label: string;
+  dictionaryJson: string;
+  measurementsJson: string;
+  dictionaryGenerated: string[];
+  measurementsGenerated: string[];
+};
+
 const DEFAULT_STATUS: SchemaStatus = "active";
 const GENERATOR_LANG = "sl";
 const STATUS_VALUES: SchemaStatus[] = ["active", "draft", "deprecated", "all"];
@@ -57,19 +67,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const repoRoot = await findRepoRoot();
-  const files = {
-    dictionaryJson: path.join(repoRoot, "packages/uns-cli/templates/uns-dictionary/uns-dictionary.json"),
-    measurementsJson: path.join(repoRoot, "packages/uns-cli/templates/uns-measurements/uns-measurements.json"),
-    dictionaryGenerated: [
-      path.join(repoRoot, "packages/uns-core/src/uns/uns-dictionary.generated.ts"),
-      path.join(repoRoot, "packages/uns-cli/templates/default/src/uns/uns-dictionary.generated.ts"),
-    ],
-    measurementsGenerated: [
-      path.join(repoRoot, "packages/uns-core/src/uns/uns-measurements.generated.ts"),
-      path.join(repoRoot, "packages/uns-cli/templates/default/src/uns/uns-measurements.generated.ts"),
-    ],
-  };
+  const target = await resolveSyncTarget(args);
 
   const shouldSyncDictionary = !args.measurementsOnly;
   const shouldSyncMeasurements = !args.dictionaryOnly;
@@ -84,13 +82,13 @@ async function main(): Promise<void> {
 
   if (dictionaryDocument) {
     const content = formatJsonDocument(dictionaryDocument);
-    const jsonResult = await updateFile(files.dictionaryJson, content, repoRoot, args.dryRun);
+    const jsonResult = await updateFile(target.dictionaryJson, content, target.rootDir, args.dryRun);
     const generatedChanged = args.skipGenerate
       ? []
       : await updateGeneratedFiles(
-          files.dictionaryGenerated,
+          target.dictionaryGenerated,
           renderDictionaryTs(dictionaryDocument, GENERATOR_LANG),
-          repoRoot,
+          target.rootDir,
           args.dryRun,
         );
 
@@ -104,13 +102,13 @@ async function main(): Promise<void> {
 
   if (measurementsDocument) {
     const content = formatJsonDocument(measurementsDocument);
-    const jsonResult = await updateFile(files.measurementsJson, content, repoRoot, args.dryRun);
+    const jsonResult = await updateFile(target.measurementsJson, content, target.rootDir, args.dryRun);
     const generatedChanged = args.skipGenerate
       ? []
       : await updateGeneratedFiles(
-          files.measurementsGenerated,
+          target.measurementsGenerated,
           renderMeasurementsTs(measurementsDocument, GENERATOR_LANG),
-          repoRoot,
+          target.rootDir,
           args.dryRun,
         );
 
@@ -123,6 +121,8 @@ async function main(): Promise<void> {
 
   printSummary({
     controllerUrl: args.controllerUrl,
+    targetLabel: target.label,
+    targetRoot: target.rootDir,
     dryRun: args.dryRun,
     skipGenerate: args.skipGenerate,
     status: args.status,
@@ -135,6 +135,7 @@ function parseArgs(argv: string[]): CliArgs {
   let controllerUrl = process.env.UNS_CONTROLLER_URL?.trim() ?? "";
   let token = process.env.UNS_CONTROLLER_TOKEN?.trim() ?? "";
   let status = normalizeStatus(process.env.UNS_SCHEMA_STATUS, DEFAULT_STATUS);
+  let projectRoot = process.env.UNS_SCHEMA_PROJECT_ROOT?.trim() || undefined;
   let dryRun = false;
   let dictionaryOnly = false;
   let measurementsOnly = false;
@@ -166,6 +167,16 @@ function parseArgs(argv: string[]): CliArgs {
 
     if (arg === "--skip-generate") {
       skipGenerate = true;
+      continue;
+    }
+
+    if (arg === "--project-root") {
+      projectRoot = readRequiredValue(argv, ++index, "--project-root");
+      continue;
+    }
+
+    if (arg.startsWith("--project-root=")) {
+      projectRoot = arg.slice("--project-root=".length);
       continue;
     }
 
@@ -219,6 +230,7 @@ function parseArgs(argv: string[]): CliArgs {
     controllerUrl,
     token,
     status,
+    projectRoot,
     dryRun,
     dictionaryOnly,
     measurementsOnly,
@@ -256,12 +268,15 @@ function printHelp(): void {
   console.log(`Usage: tsx packages/uns-core/src/tools/sync-uns-schema.ts [options]
 
 Pull the canonical UNS schema export from a controller and refresh the local
-JSON templates plus generated TypeScript artifacts.
+JSON files plus generated TypeScript artifacts.
 
 Options:
   --controller-url <url>   Controller base URL (env: UNS_CONTROLLER_URL)
   --token <token>          Bearer token for REST export (env: UNS_CONTROLLER_TOKEN)
   --status <value>         Dictionary status filter: ${STATUS_VALUES.join("|")} (default: ${DEFAULT_STATUS}, env: UNS_SCHEMA_STATUS)
+  --project-root <dir>     Write into a generated microservice project root (env: UNS_SCHEMA_PROJECT_ROOT).
+                           When omitted, the tool auto-detects a generated project from the current working directory
+                           and otherwise updates the uns-kit repo templates.
   --dry-run                Report file changes without writing anything
   --dictionary-only        Sync only the UNS dictionary export
   --measurements-only      Sync only the UNS measurements export
@@ -294,6 +309,66 @@ async function findRepoRoot(): Promise<string> {
   }
 
   throw new Error("Could not locate the @uns-kit/core package directory from sync-uns-schema.ts.");
+}
+
+async function resolveSyncTarget(args: CliArgs): Promise<SyncTarget> {
+  if (args.projectRoot) {
+    return buildProjectTarget(path.resolve(process.cwd(), args.projectRoot));
+  }
+
+  const currentDir = process.cwd();
+  if (await looksLikeGeneratedProjectRoot(currentDir)) {
+    return buildProjectTarget(currentDir);
+  }
+
+  return buildRepoTarget(await findRepoRoot());
+}
+
+function buildRepoTarget(repoRoot: string): SyncTarget {
+  return {
+    rootDir: repoRoot,
+    label: "uns-kit repo templates",
+    dictionaryJson: path.join(repoRoot, "packages/uns-cli/templates/uns-dictionary/uns-dictionary.json"),
+    measurementsJson: path.join(repoRoot, "packages/uns-cli/templates/uns-measurements/uns-measurements.json"),
+    dictionaryGenerated: [
+      path.join(repoRoot, "packages/uns-core/src/uns/uns-dictionary.generated.ts"),
+      path.join(repoRoot, "packages/uns-cli/templates/default/src/uns/uns-dictionary.generated.ts"),
+    ],
+    measurementsGenerated: [
+      path.join(repoRoot, "packages/uns-core/src/uns/uns-measurements.generated.ts"),
+      path.join(repoRoot, "packages/uns-cli/templates/default/src/uns/uns-measurements.generated.ts"),
+    ],
+  };
+}
+
+function buildProjectTarget(projectRoot: string): SyncTarget {
+  return {
+    rootDir: projectRoot,
+    label: "generated microservice project",
+    dictionaryJson: path.join(projectRoot, "uns-dictionary.json"),
+    measurementsJson: path.join(projectRoot, "uns-measurements.json"),
+    dictionaryGenerated: [path.join(projectRoot, "src/uns/uns-dictionary.generated.ts")],
+    measurementsGenerated: [path.join(projectRoot, "src/uns/uns-measurements.generated.ts")],
+  };
+}
+
+async function looksLikeGeneratedProjectRoot(rootDir: string): Promise<boolean> {
+  const [hasPackageJson, hasConfigJson, hasUnsDir] = await Promise.all([
+    pathExists(path.join(rootDir, "package.json")),
+    pathExists(path.join(rootDir, "config.json")),
+    pathExists(path.join(rootDir, "src/uns")),
+  ]);
+
+  return hasPackageJson && hasConfigJson && hasUnsDir;
+}
+
+async function pathExists(targetPath: string): Promise<boolean> {
+  try {
+    await access(targetPath);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 function buildControllerUrl(controllerUrl: string, relativePath: string): URL {
@@ -359,7 +434,7 @@ function formatHttpError(response: Response, url: URL, label: string, body: stri
   }
 
   if (response.status === 403) {
-    return `Forbidden (403) while fetching ${label} export from ${url.toString()}. The token must have operator or admin access.`;
+    return `Forbidden (403) while fetching ${label} export from ${url.toString()}. The token must have admin access.`;
   }
 
   const detail = extractErrorDetail(body);
@@ -432,6 +507,8 @@ function countMeasurementCategories(document: MeasurementsDocument): number {
 
 function printSummary(summary: {
   controllerUrl: string;
+  targetLabel: string;
+  targetRoot: string;
   dryRun: boolean;
   skipGenerate: boolean;
   status: SchemaStatus;
@@ -441,6 +518,8 @@ function printSummary(summary: {
   console.log("");
   console.log(summary.dryRun ? "Dry-run summary" : "Sync summary");
   console.log(`  Controller: ${summary.controllerUrl}`);
+  console.log(`  Target: ${summary.targetLabel}`);
+  console.log(`  Root: ${summary.targetRoot}`);
   console.log(`  Dictionary status: ${summary.status}`);
 
   if (summary.dictionary) {

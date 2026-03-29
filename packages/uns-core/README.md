@@ -81,8 +81,9 @@ pnpm tsx packages/uns-core/src/tools/generate-uns-reference.ts \
 
 ### Sync canonical UNS schema from the controller
 
-Use `sync-uns-schema` when you need to refresh the repo-maintained schema files from
-the controller’s REST export endpoints.
+Use `sync-uns-schema` when you need to refresh either:
+- the repo-maintained schema files inside `uns-kit`, or
+- a generated microservice project that keeps `uns-dictionary.json` / `uns-measurements.json` locally.
 
 ```bash
 pnpm run sync-uns-schema -- \
@@ -92,12 +93,18 @@ pnpm run sync-uns-schema -- \
 
 - Uses `GET /api/schema/export/uns-dictionary?status=...` and `GET /api/schema/export/uns-measurements`.
 - Sends `Authorization: Bearer <token>`.
-- Preserves the full exported JSON document when updating:
+- Requires an admin bearer token.
+- When run inside a generated project root (or with `--project-root <dir>`), updates:
+  - `uns-dictionary.json`
+  - `uns-measurements.json`
+  - `src/uns/uns-dictionary.generated.ts`
+  - `src/uns/uns-measurements.generated.ts`
+- Otherwise it preserves the full exported JSON document when updating the `uns-kit` repo-maintained files:
   - `packages/uns-cli/templates/uns-dictionary/uns-dictionary.json`
   - `packages/uns-cli/templates/uns-measurements/uns-measurements.json`
-- Regenerates the local TS artifacts unless you pass `--skip-generate`.
+- Regenerates the target TS artifacts unless you pass `--skip-generate`.
 - Defaults dictionary sync to `--status active`.
-- Supports environment fallbacks: `UNS_CONTROLLER_URL`, `UNS_CONTROLLER_TOKEN`, `UNS_SCHEMA_STATUS`.
+- Supports environment fallbacks: `UNS_CONTROLLER_URL`, `UNS_CONTROLLER_TOKEN`, `UNS_SCHEMA_STATUS`, `UNS_SCHEMA_PROJECT_ROOT`.
 
 Useful variants:
 

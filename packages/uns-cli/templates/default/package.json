@@ -29,7 +29,10 @@
     "generate-config-schema": "node ./node_modules/@uns-kit/core/dist/tools/generate-config-schema.js",
     "generate-codegen": "graphql-code-generator --require dotenv/config --config codegen.ts",
     "generate-uns-metadata": "node ./node_modules/@uns-kit/core/dist/tools/refresh-uns.js",
-    "generate-uns-measurements": "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-measurements.js --input uns-measurements.json --output src/uns/uns-measurements.generated.ts"
+    "generate-uns-dictionary": "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-dictionary.js --input uns-dictionary.json --output src/uns/uns-dictionary.generated.ts",
+    "generate-uns-measurements": "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-measurements.js --input uns-measurements.json --output src/uns/uns-measurements.generated.ts",
+    "generate-uns-reference": "node ./node_modules/@uns-kit/core/dist/tools/generate-uns-reference.js --dictionary uns-dictionary.json --dictionary-output src/uns/uns-dictionary.generated.ts --measurements uns-measurements.json --measurements-output src/uns/uns-measurements.generated.ts",
+    "sync-uns-schema": "node ./node_modules/@uns-kit/core/dist/tools/sync-uns-schema.js"
   },
   "dependencies": {
     "@uns-kit/core": "__UNS_KIT_CORE_VERSION__",
