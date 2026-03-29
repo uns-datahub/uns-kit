@@ -1,17 +1,25 @@
 import { EventEmitter } from "node:events";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { loggerMock } = vi.hoisted(() => ({
+const { loggerMock, connectMock } = vi.hoisted(() => ({
   loggerMock: {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
   },
+  connectMock: vi.fn(),
 }));
 
 vi.mock("../packages/uns-core/src/logger.js", () => ({
   default: loggerMock,
+}));
+
+vi.mock("mqtt", () => ({
+  default: {
+    connect: connectMock,
+  },
+  connect: connectMock,
 }));
 
 import MqttProxy, { formatMqttError } from "../packages/uns-core/src/uns-mqtt/mqtt-proxy.ts";
@@ -29,6 +37,7 @@ const getMessages = (mockFn: { mock: { calls: unknown[][] } }): string[] => mock
 describe("MqttProxy logging", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    connectMock.mockReset();
   });
 
   it("formats aggregate MQTT startup errors with useful connection details", () => {
@@ -82,6 +91,46 @@ describe("MqttProxy logging", () => {
     const debugMessages = getMessages(loggerMock.debug);
     expect(debugMessages).toContain("controller-cluster - Disconnecting from MQTT broker...");
     expect(debugMessages).toContain("controller-cluster - Disconnected from MQTT broker.");
+  });
+
+  it("restores isConnected on reconnect without duplicating subscribe or interval setup", async () => {
+    const client = new FakeMqttClient();
+    connectMock.mockReturnValue(client);
+    let proxy: MqttProxy | undefined;
+
+    try {
+      proxy = new MqttProxy("127.0.0.1", "controller-cluster", {
+        statusTopic: "uns-infra/test/controller/",
+        mqttSubToTopics: ["sensors/#"],
+      });
+
+      const startPromise = proxy.start();
+      (proxy as any).handleMqttConnect();
+      await startPromise;
+
+      expect(proxy.isConnected).toBe(true);
+      const statusInterval = (proxy as any).statusUpdateInterval;
+      const statsInterval = (proxy as any).transformationStatsInterval;
+      const subscribeLogs = loggerMock.debug.mock.calls
+        .map(([message]) => String(message))
+        .filter((message) => message.includes("Subscribed to 1 topics."));
+      expect(subscribeLogs).toHaveLength(1);
+
+      proxy.isConnected = false;
+      expect(proxy.isConnected).toBe(false);
+
+      (proxy as any).handleMqttConnect();
+      expect(proxy.isConnected).toBe(true);
+      expect((proxy as any).statusUpdateInterval).toBe(statusInterval);
+      expect((proxy as any).transformationStatsInterval).toBe(statsInterval);
+      expect(
+        loggerMock.debug.mock.calls
+          .map(([message]) => String(message))
+          .filter((message) => message.includes("Subscribed to 1 topics.")),
+      ).toHaveLength(1);
+    } finally {
+      await proxy?.stop({ reason: "shutdown" });
+    }
   });
 });
 

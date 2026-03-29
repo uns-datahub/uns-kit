@@ -37,6 +37,9 @@ export default class MqttProxy {
   private rejectUnauthorized: boolean;
   private pendingReconnectWait: Promise<void> | null = null;
   private hasEstablishedConnection = false;
+  private startupSettled = false;
+  private startupResolve: (() => void) | null = null;
+  private startupReject: ((error: unknown) => void) | null = null;
 
   constructor(mqttHost: string, instanceName: string, mqttParameters: IMqttParameters, mqttWorker?: MqttWorker) {
     this.mqttSSL = mqttParameters?.mqttSSL ?? false;
@@ -67,6 +70,27 @@ export default class MqttProxy {
       case "mqtt":
       default:
         return 1883;
+    }
+  }
+
+  private ensureStatusUpdateInterval(): void {
+    if (this.statusTopic && !this.statusUpdateInterval) {
+      this.statusUpdateInterval = setInterval(() => this.emitStatusUpdates(), 10000);
+    }
+  }
+
+  private ensureTransformationStatsInterval(): void {
+    if (!this.transformationStatsInterval) {
+      this.transformationStatsInterval = setInterval(() => {
+        this.emitTransformationStatistics();
+      }, 60000);
+    }
+  }
+
+  private subscribeToTopics(): void {
+    if (this.mqttSubToTopics && this.mqttSubToTopics.length > 0) {
+      logger.debug(`${this.instanceName} - Subscribed to ${this.mqttSubToTopics.length} topics.`);
+      this.mqttClient.subscribe(this.mqttSubToTopics, { qos: 0 });
     }
   }
 
@@ -114,8 +138,11 @@ export default class MqttProxy {
 
   public async start(): Promise<void> {
     logger.debug(`${this.instanceName} - Connecting to MQTT broker...`);
+    this.startupSettled = false;
 
     return new Promise<void>((resolve, reject) => {
+      this.startupResolve = resolve;
+      this.startupReject = reject;
       try {
         const username = this.mqttParameters.username;
         const password = this.mqttParameters.password;
@@ -162,34 +189,7 @@ export default class MqttProxy {
           this.mqttClient = mqtt.connect(options);
         }
 
-        const onConnect = () => {
-          try {
-            this.mqttClient.stream.setMaxListeners(0);
-            this.hasEstablishedConnection = true;
-            logger.info(`${this.instanceName} - Connected to MQTT broker at ${this.mqttHost}`);
-
-            if (this.mqttSubToTopics && this.mqttSubToTopics.length > 0) {
-              logger.debug(`${this.instanceName} - Subscribed to ${this.mqttSubToTopics.length} topics.`);
-              this.mqttClient.subscribe(this.mqttSubToTopics, { qos: 0 });
-            }
-
-            if (this.statusTopic) {
-              this.statusUpdateInterval = setInterval(() => this.emitStatusUpdates(), 10000);
-            }
-
-            this.transformationStatsInterval = setInterval(() => {
-              this.emitTransformationStatistics();
-            }, 60000);
-
-            this.mqttClient.off("connect", onConnect);
-            this.isConnected = true;
-            resolve();
-          } catch (error) {
-            logger.error(`${this.instanceName} - Error in MQTT connect handler: ${formatMqttError(error).message}`);
-            this.isConnected = false;
-            reject(error);
-          }
-        };
+        const onConnect = () => this.handleMqttConnect();
 
         this.mqttClient.on("connect", onConnect);
 
@@ -313,6 +313,10 @@ export default class MqttProxy {
         this.mqttClient.end(false, () => {
           this.isConnected = false;
           this.pendingReconnectWait = null;
+          this.startupSettled = false;
+          this.hasEstablishedConnection = false;
+          this.startupResolve = null;
+          this.startupReject = null;
           if (shouldLogDisconnect) {
             logger.debug(`${this.instanceName} - Disconnected from MQTT broker.`);
           }
@@ -320,6 +324,10 @@ export default class MqttProxy {
       } else {
         this.isConnected = false;
         this.pendingReconnectWait = null;
+        this.startupSettled = false;
+        this.hasEstablishedConnection = false;
+        this.startupResolve = null;
+        this.startupReject = null;
       }
     } catch (error) {
       if (!silent) {
@@ -327,6 +335,46 @@ export default class MqttProxy {
       }
       this.isConnected = false;
       this.pendingReconnectWait = null;
+      this.startupSettled = false;
+      this.hasEstablishedConnection = false;
+      this.startupResolve = null;
+      this.startupReject = null;
+    }
+  }
+
+  private handleMqttConnect(): void {
+    const resolve = this.startupResolve;
+    const reject = this.startupReject;
+    if (!resolve || !reject) {
+      return;
+    }
+
+    try {
+      this.mqttClient.stream.setMaxListeners(0);
+      const isFirstConnect = !this.startupSettled;
+      this.startupSettled = true;
+      this.hasEstablishedConnection = true;
+      this.isConnected = true;
+
+      if (isFirstConnect) {
+        logger.info(`${this.instanceName} - Connected to MQTT broker at ${this.mqttHost}`);
+        this.subscribeToTopics();
+        this.ensureStatusUpdateInterval();
+        this.ensureTransformationStatsInterval();
+        resolve();
+        return;
+      }
+
+      logger.info(`${this.instanceName} - Reconnected to MQTT broker at ${this.mqttHost}`);
+      if (this.mqttParameters.resubscribe === false) {
+        this.subscribeToTopics();
+      }
+      this.ensureStatusUpdateInterval();
+      this.ensureTransformationStatsInterval();
+    } catch (error) {
+      logger.error(`${this.instanceName} - Error in MQTT connect handler: ${formatMqttError(error).message}`);
+      this.isConnected = false;
+      reject(error);
     }
   }
 
