@@ -7,21 +7,16 @@ import { fileURLToPath } from 'url';
 import { ConfigFile } from './config-file.js'
 
 function loadPackageMeta(): { name?: string; version?: string } {
-  const packageJsonPaths = [
-    path.join(process.cwd(), 'package.json'),
-    path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json')
-  ]
+  const packageJsonPath = path.join(process.cwd(), 'package.json')
 
-  for (const packageJsonPath of packageJsonPaths) {
-    try {
-      const raw = fs.readFileSync(packageJsonPath, 'utf8')
-      const packageMeta = JSON.parse(raw) as { name?: string; version?: string }
-      if (packageMeta.name || packageMeta.version) {
-        return packageMeta
-      }
-    } catch {
-      // Try the next candidate.
+  try {
+    const raw = fs.readFileSync(packageJsonPath, 'utf8')
+    const packageMeta = JSON.parse(raw) as { name?: string; version?: string }
+    if (packageMeta.name || packageMeta.version) {
+      return packageMeta
     }
+  } catch {
+    // Use unknown values when the application package metadata is unavailable.
   }
 
   return {}
