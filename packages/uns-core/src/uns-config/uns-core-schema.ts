@@ -21,6 +21,16 @@ const mqttConnectPropertiesSchema = z.object({
   userProperties: z.record(z.string()).optional(),
 }).strict();
 
+const loggingLevelSchema = z.enum([
+  "error",
+  "warn",
+  "info",
+  "http",
+  "verbose",
+  "debug",
+  "silly",
+]);
+
 export const mqttChannelSchema = z.object({
   host: hostValueSchema.optional(),
   hosts: z.array(hostValueSchema).optional(),
@@ -70,6 +80,7 @@ export const unsCoreSchema = z.object({
     adapter: z.string().min(1).default("udp"),
     host: hostValueSchema,
     port: z.number().int().positive().default(12201),
+    level: loggingLevelSchema.default("info"),
   }).strict().optional(),
 
   input: mqttChannelSchema.optional(),

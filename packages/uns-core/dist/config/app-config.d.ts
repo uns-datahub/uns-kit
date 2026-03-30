@@ -18,6 +18,7 @@ export interface ProjectAppConfig {
         adapter?: string;
         host: string;
         port?: number;
+        level?: "error" | "warn" | "info" | "http" | "verbose" | "debug" | "silly";
     } | undefined;
     input?: {
         host?: string | undefined;

@@ -297,21 +297,9 @@ export declare const mqttChannelSchema: z.ZodEffects<z.ZodObject<{
         requestProblemInformation?: boolean;
         userProperties?: Record<string, string>;
     };
-    host?: string | {
-        provider?: "inline";
-        value?: string;
-    } | {
-        provider?: "external";
-        key?: string;
-        optional?: boolean;
-        default?: string;
-    } | {
-        provider?: "system";
-        optional?: boolean;
-        default?: string;
-        family?: "IPv4" | "IPv6";
-        interfaceName?: string;
-    };
+    clientId?: string;
+    clean?: boolean;
+    keepalive?: number;
     username?: string;
     password?: string | {
         provider?: "env";
@@ -327,9 +315,21 @@ export declare const mqttChannelSchema: z.ZodEffects<z.ZodObject<{
         environment?: string;
         projectId?: string;
     };
-    clientId?: string;
-    clean?: boolean;
-    keepalive?: number;
+    host?: string | {
+        provider?: "inline";
+        value?: string;
+    } | {
+        provider?: "external";
+        key?: string;
+        optional?: boolean;
+        default?: string;
+    } | {
+        provider?: "system";
+        optional?: boolean;
+        default?: string;
+        family?: "IPv4" | "IPv6";
+        interfaceName?: string;
+    };
     connectTimeout?: number;
     reconnectPeriod?: number;
     reconnectOnConnackError?: boolean;
@@ -386,21 +386,9 @@ export declare const mqttChannelSchema: z.ZodEffects<z.ZodObject<{
         requestProblemInformation?: boolean;
         userProperties?: Record<string, string>;
     };
-    host?: string | {
-        provider?: "inline";
-        value?: string;
-    } | {
-        provider?: "external";
-        key?: string;
-        optional?: boolean;
-        default?: string;
-    } | {
-        provider?: "system";
-        optional?: boolean;
-        default?: string;
-        family?: "IPv4" | "IPv6";
-        interfaceName?: string;
-    };
+    clientId?: string;
+    clean?: boolean;
+    keepalive?: number;
     username?: string;
     password?: string | {
         provider?: "env";
@@ -416,9 +404,21 @@ export declare const mqttChannelSchema: z.ZodEffects<z.ZodObject<{
         environment?: string;
         projectId?: string;
     };
-    clientId?: string;
-    clean?: boolean;
-    keepalive?: number;
+    host?: string | {
+        provider?: "inline";
+        value?: string;
+    } | {
+        provider?: "external";
+        key?: string;
+        optional?: boolean;
+        default?: string;
+    } | {
+        provider?: "system";
+        optional?: boolean;
+        default?: string;
+        family?: "IPv4" | "IPv6";
+        interfaceName?: string;
+    };
     connectTimeout?: number;
     reconnectPeriod?: number;
     reconnectOnConnackError?: boolean;
@@ -475,21 +475,9 @@ export declare const mqttChannelSchema: z.ZodEffects<z.ZodObject<{
         requestProblemInformation?: boolean;
         userProperties?: Record<string, string>;
     };
-    host?: string | {
-        provider?: "inline";
-        value?: string;
-    } | {
-        provider?: "external";
-        key?: string;
-        optional?: boolean;
-        default?: string;
-    } | {
-        provider?: "system";
-        optional?: boolean;
-        default?: string;
-        family?: "IPv4" | "IPv6";
-        interfaceName?: string;
-    };
+    clientId?: string;
+    clean?: boolean;
+    keepalive?: number;
     username?: string;
     password?: string | {
         provider?: "env";
@@ -505,9 +493,21 @@ export declare const mqttChannelSchema: z.ZodEffects<z.ZodObject<{
         environment?: string;
         projectId?: string;
     };
-    clientId?: string;
-    clean?: boolean;
-    keepalive?: number;
+    host?: string | {
+        provider?: "inline";
+        value?: string;
+    } | {
+        provider?: "external";
+        key?: string;
+        optional?: boolean;
+        default?: string;
+    } | {
+        provider?: "system";
+        optional?: boolean;
+        default?: string;
+        family?: "IPv4" | "IPv6";
+        interfaceName?: string;
+    };
     connectTimeout?: number;
     reconnectPeriod?: number;
     reconnectOnConnackError?: boolean;
@@ -564,21 +564,9 @@ export declare const mqttChannelSchema: z.ZodEffects<z.ZodObject<{
         requestProblemInformation?: boolean;
         userProperties?: Record<string, string>;
     };
-    host?: string | {
-        provider?: "inline";
-        value?: string;
-    } | {
-        provider?: "external";
-        key?: string;
-        optional?: boolean;
-        default?: string;
-    } | {
-        provider?: "system";
-        optional?: boolean;
-        default?: string;
-        family?: "IPv4" | "IPv6";
-        interfaceName?: string;
-    };
+    clientId?: string;
+    clean?: boolean;
+    keepalive?: number;
     username?: string;
     password?: string | {
         provider?: "env";
@@ -594,9 +582,21 @@ export declare const mqttChannelSchema: z.ZodEffects<z.ZodObject<{
         environment?: string;
         projectId?: string;
     };
-    clientId?: string;
-    clean?: boolean;
-    keepalive?: number;
+    host?: string | {
+        provider?: "inline";
+        value?: string;
+    } | {
+        provider?: "external";
+        key?: string;
+        optional?: boolean;
+        default?: string;
+    } | {
+        provider?: "system";
+        optional?: boolean;
+        default?: string;
+        family?: "IPv4" | "IPv6";
+        interfaceName?: string;
+    };
     connectTimeout?: number;
     reconnectPeriod?: number;
     reconnectOnConnackError?: boolean;
@@ -661,7 +661,6 @@ export declare const unsCoreSchema: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
-        processName?: string;
         password?: string | {
             provider?: "env";
             key?: string;
@@ -676,6 +675,7 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
+        processName?: string;
         graphql?: string;
         rest?: string;
         email?: string;
@@ -685,7 +685,6 @@ export declare const unsCoreSchema: z.ZodObject<{
     }, {
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
-        processName?: string;
         password?: string | {
             provider?: "env";
             key?: string;
@@ -700,6 +699,7 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
+        processName?: string;
         graphql?: string;
         rest?: string;
         email?: string;
@@ -753,7 +753,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             interfaceName?: string;
         }>]>]>;
         port: z.ZodDefault<z.ZodNumber>;
+        level: z.ZodDefault<z.ZodEnum<["error", "warn", "info", "http", "verbose", "debug", "silly"]>>;
     }, "strict", z.ZodTypeAny, {
+        level?: "error" | "warn" | "info" | "http" | "verbose" | "debug" | "silly";
         port?: number;
         host?: string | {
             provider?: "inline";
@@ -772,6 +774,7 @@ export declare const unsCoreSchema: z.ZodObject<{
         };
         adapter?: string;
     }, {
+        level?: "error" | "warn" | "info" | "http" | "verbose" | "debug" | "silly";
         port?: number;
         host?: string | {
             provider?: "inline";
@@ -1088,21 +1091,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -1118,9 +1109,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -1177,21 +1180,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -1207,9 +1198,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -1266,21 +1269,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -1296,9 +1287,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -1355,21 +1358,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -1385,9 +1376,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -1696,21 +1699,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -1726,9 +1717,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -1785,21 +1788,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -1815,9 +1806,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -1874,21 +1877,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -1904,9 +1895,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -1963,21 +1966,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -1993,9 +1984,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -2304,21 +2307,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -2334,9 +2325,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -2393,21 +2396,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -2423,9 +2414,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -2482,21 +2485,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -2512,9 +2503,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -2571,21 +2574,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -2601,9 +2592,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -2631,7 +2634,6 @@ export declare const unsCoreSchema: z.ZodObject<{
     uns?: {
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
-        processName?: string;
         password?: string | {
             provider?: "env";
             key?: string;
@@ -2646,6 +2648,7 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
+        processName?: string;
         graphql?: string;
         rest?: string;
         email?: string;
@@ -2654,6 +2657,7 @@ export declare const unsCoreSchema: z.ZodObject<{
         kidWellKnownUrl?: string;
     };
     logging?: {
+        level?: "error" | "warn" | "info" | "http" | "verbose" | "debug" | "silly";
         port?: number;
         host?: string | {
             provider?: "inline";
@@ -2719,21 +2723,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -2749,9 +2741,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -2809,21 +2813,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -2839,9 +2831,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -2899,21 +2903,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -2929,9 +2921,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -2951,7 +2955,6 @@ export declare const unsCoreSchema: z.ZodObject<{
     uns?: {
         handover?: boolean;
         env?: "dev" | "staging" | "test" | "prod";
-        processName?: string;
         password?: string | {
             provider?: "env";
             key?: string;
@@ -2966,6 +2969,7 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
+        processName?: string;
         graphql?: string;
         rest?: string;
         email?: string;
@@ -2974,6 +2978,7 @@ export declare const unsCoreSchema: z.ZodObject<{
         kidWellKnownUrl?: string;
     };
     logging?: {
+        level?: "error" | "warn" | "info" | "http" | "verbose" | "debug" | "silly";
         port?: number;
         host?: string | {
             provider?: "inline";
@@ -3039,21 +3044,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -3069,9 +3062,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -3129,21 +3134,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -3159,9 +3152,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;
@@ -3219,21 +3224,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             requestProblemInformation?: boolean;
             userProperties?: Record<string, string>;
         };
-        host?: string | {
-            provider?: "inline";
-            value?: string;
-        } | {
-            provider?: "external";
-            key?: string;
-            optional?: boolean;
-            default?: string;
-        } | {
-            provider?: "system";
-            optional?: boolean;
-            default?: string;
-            family?: "IPv4" | "IPv6";
-            interfaceName?: string;
-        };
+        clientId?: string;
+        clean?: boolean;
+        keepalive?: number;
         username?: string;
         password?: string | {
             provider?: "env";
@@ -3249,9 +3242,21 @@ export declare const unsCoreSchema: z.ZodObject<{
             environment?: string;
             projectId?: string;
         };
-        clientId?: string;
-        clean?: boolean;
-        keepalive?: number;
+        host?: string | {
+            provider?: "inline";
+            value?: string;
+        } | {
+            provider?: "external";
+            key?: string;
+            optional?: boolean;
+            default?: string;
+        } | {
+            provider?: "system";
+            optional?: boolean;
+            default?: string;
+            family?: "IPv4" | "IPv6";
+            interfaceName?: string;
+        };
         connectTimeout?: number;
         reconnectPeriod?: number;
         reconnectOnConnackError?: boolean;

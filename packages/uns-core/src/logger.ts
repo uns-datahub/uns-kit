@@ -75,7 +75,7 @@ if (loggingConfig) {
 }
 
 const logger = createLogger({
-  level: 'info', // Default logging level
+  level: loggingConfig?.level ?? 'info',
 
   format: format.combine(
     format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),

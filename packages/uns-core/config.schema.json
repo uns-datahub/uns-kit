@@ -261,6 +261,19 @@
               "type": "integer",
               "exclusiveMinimum": 0,
               "default": 12201
+            },
+            "level": {
+              "type": "string",
+              "enum": [
+                "error",
+                "warn",
+                "info",
+                "http",
+                "verbose",
+                "debug",
+                "silly"
+              ],
+              "default": "info"
             }
           },
           "required": [
