@@ -6,21 +6,16 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { ConfigFile } from './config-file.js';
 function loadPackageMeta() {
-    const packageJsonPaths = [
-        path.join(process.cwd(), 'package.json'),
-        path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json')
-    ];
-    for (const packageJsonPath of packageJsonPaths) {
-        try {
-            const raw = fs.readFileSync(packageJsonPath, 'utf8');
-            const packageMeta = JSON.parse(raw);
-            if (packageMeta.name || packageMeta.version) {
-                return packageMeta;
-            }
+    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    try {
+        const raw = fs.readFileSync(packageJsonPath, 'utf8');
+        const packageMeta = JSON.parse(raw);
+        if (packageMeta.name || packageMeta.version) {
+            return packageMeta;
         }
-        catch {
-            // Try the next candidate.
-        }
+    }
+    catch {
+        // Use unknown values when the application package metadata is unavailable.
     }
     return {};
 }
