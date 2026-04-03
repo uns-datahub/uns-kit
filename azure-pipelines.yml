@@ -1,0 +1,46 @@
+variables:
+  privatePool: 'Azure private pool'
+
+trigger:
+- master
+
+stages:
+# - stage: dev_sec
+#   displayName: Development Security
+#   pool:
+#     vmImage: 'windows-latest'
+#   jobs:
+#   - job: test_sec
+#     steps:
+#     - task: UseDotNet@2
+#       displayName: 'Use dotnet'
+#       inputs:
+#         version: 3.1.x
+#     - task: UseDotNet@2
+#       displayName: 'Use dotnet'
+#       inputs:
+#         version: 5.0.x
+#     - task: UseDotNet@2
+#       displayName: 'Use dotnet'
+#       inputs:
+#         version: 6.0.x
+#     - task: MicrosoftSecurityDevOps@1
+#       displayName: 'Microsoft Security DevOps'
+- stage: version_tag
+  displayName: Add Version Tag
+  pool: $(privatePool)
+  jobs:
+  - job: add_tags
+    steps:
+    - checkout: self
+      persistCredentials: true
+      clean: true
+    - script: |
+        tag=$(node -pe "require('./package.json').version")
+        git tag $tag
+        git push origin $tag
+      displayName: "Add version tag from package.json"
+    
+    
+  
+

@@ -1,0 +1,64 @@
+{
+  "name": "@uns-kit/core",
+  "version": "2.0.30",
+  "description": "Core utilities and runtime building blocks for UNS-based realtime transformers.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Aljoša Vister <aljosa.vister@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uns-datahub/uns-kit.git",
+    "directory": "packages/uns-core"
+  },
+  "keywords": [
+    "uns",
+    "unified-namespace",
+    "mqtt",
+    "iot",
+    "typescript",
+    "realtime"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./*": "./dist/*",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node ./scripts/copy-static-assets.cjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "sync-uns-schema": "tsx src/tools/sync-uns-schema.ts",
+    "postversion": "node ../../scripts/update-cli-package-version.cjs"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.0",
+    "@grpc/proto-loader": "^0.8.0",
+    "@infisical/sdk": "^4.0.5",
+    "azure-devops-node-api": "^15.1.1",
+    "chalk": "^5.6.2",
+    "fs-extra": "^11.3.2",
+    "get-port": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mqtt": "^5.13.0",
+    "pkg-dir": "^9.0.0",
+    "prettier": "^3.6.2",
+    "simple-git": "^3.28.0",
+    "tsx": "^4.20.5",
+    "winston": "^3.17.0",
+    "winston-gelf": "^1.7.0",
+    "ws": "^8.18.3",
+    "zod": "^3",
+    "zod-to-json-schema": "^3.24.6",
+    "zod-to-ts": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/ws": "^8.18.1"
+  }
+}

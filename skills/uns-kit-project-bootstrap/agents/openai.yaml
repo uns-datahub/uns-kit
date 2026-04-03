@@ -1,0 +1,4 @@
+interface:
+  display_name: "UNS Kit Bootstrap"
+  short_description: "Scaffold and configure UNS projects with TS/Python CLI"
+  default_prompt: "Create and configure a new uns-kit project and leave it ready for implementation."

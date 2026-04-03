@@ -1,0 +1,30 @@
+{
+  "npm.exclude": [
+    "**/packages/**"
+  ],
+  "npm.packageManager": "pnpm",
+  "npm.scriptExplorerExclude": [
+    ".*darwin.*",
+    ".*win32.*",
+    ".*prebuild.*",
+    ".*lint.*",
+    ".*initialize.*",
+    "test:.*",
+    "make(:.*)?",
+    "update-uns-library",
+    "pr",
+    "init-python(:.*)?",
+    "typecheck:watch"
+  ],
+  "python.defaultInterpreterPath": "python/.venv/bin/python",
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "sandbox-app/config.json"
+      ],
+      "url": "./sandbox-app/config.schema.json"
+    }
+  ],
+  "python-envs.defaultEnvManager": "ms-python.python:poetry",
+  "python-envs.defaultPackageManager": "ms-python.python:poetry"
+}

@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package uns;
+
+service UnsGateway {
+  rpc Publish (PublishRequest) returns (Ack);
+  rpc Subscribe (SubscribeRequest) returns (stream MqttMessage);
+  rpc RegisterApiGet (RegisterApiGetRequest) returns (Ack);
+  rpc UnregisterApiGet (UnregisterApiGetRequest) returns (Ack);
+  rpc ApiEventStream (stream ApiEventResponse) returns (stream ApiEvent);
+  rpc Ready (ReadyRequest) returns (Ack);
+}
+
+message PublishRequest {
+  string topic = 1;
+  string attribute = 2;
+  string description = 3;
+  repeated string tags = 4;
+  bool attribute_needs_persistence = 5;
+  oneof content {
+    Data data = 6;
+    Table table = 7;
+  }
+  bool value_is_cumulative = 8; // for Data: publish as delta
+}
+
+message Data {
+  string time = 1;
+  double value_number = 2;
+  string value_string = 3;
+  string uom = 4;
+  string data_group = 5;
+  string foreign_event_key = 6;
+}
+
+message TableValue {
+  string key = 1;
+  double value_number = 2;
+  string value_string = 3;
+}
+
+message Table {
+  string time = 1;
+  repeated TableValue values = 2;
+  string data_group = 3;
+}
+
+message SubscribeRequest {
+  repeated string topics = 1;
+}
+
+message MqttMessage {
+  string topic = 1;
+  string payload = 2; // UNS packet JSON
+}
+
+message Ack {
+  bool ok = 1;
+  string error = 2;
+}
+
+message ReadyRequest {
+  int32 timeout_ms = 1;              // default 15000
+  bool wait_output = 2;              // wait for publisher active (output)
+  bool wait_input = 3;               // wait for subscriber active (input)
+  bool wait_api = 4;                 // wait for API server (optional)
+}
+
+message ApiQueryParam {
+  string name = 1;
+  string type = 2; // string | number | boolean
+  bool required = 3;
+  string description = 4;
+}
+
+message RegisterApiGetRequest {
+  string topic = 1;
+  string attribute = 2;
+  string api_description = 3;
+  repeated string tags = 4;
+  repeated ApiQueryParam query_params = 5;
+}
+
+message UnregisterApiGetRequest {
+  string topic = 1;
+  string attribute = 2;
+}
+
+message ApiEvent {
+  string id = 1;
+  string method = 2; // GET only for now
+  string path = 3;   // /{topic}{attribute}
+  map<string, string> query = 4;
+  string bearer = 5; // access token (optional)
+}
+
+message ApiEventResponse {
+  string id = 1;          // correlation
+  int32 status = 2;       // HTTP status
+  string body = 3;        // response body as string (JSON string if needed)
+  map<string, string> headers = 4; // optional extra headers
+}

@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+
+    "removeComments": true,
+    "sourceMap": true,
+    "allowJs": false
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "src/tools/generate-config-schema.ts"
+  ]
+}

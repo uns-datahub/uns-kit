@@ -1,0 +1,87 @@
+{
+  "name": "uns-kit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for the UNS toolkit (core runtime and plugin packages)",
+  "packageManager": "pnpm@9.12.1",
+  "scripts": {
+    
+    "py:install": "cd packages/uns-py && poetry install",
+    "py:lint": "cd packages/uns-py && poetry run ruff check .",
+    "py:version:patch": "cd packages/uns-py && poetry version patch",
+    "py:build": "cd packages/uns-py && poetry build", 
+    "py:publish": "cd packages/uns-py && poetry build --clean && PYPI_TOKEN=${PYPI_TOKEN} poetry publish --username __token__ --password $PYPI_TOKEN",
+    "py:publish-win": "cd packages/uns-py && poetry build --clean && poetry publish --username __token__ --password $env:PYPI_TOKEN",
+    "py:sandbox": "cd packages/uns-py && poetry install && poetry run uns-kit-py create ../../sandbox-app-py",
+    "py:sandbox:load-test": "cd sandbox-app-py && POETRY_VIRTUALENVS_IN_PROJECT=true poetry install && poetry add -e ../packages/uns-py && poetry run python src/load_test.py",
+    "py:sandbox:data-example": "cd sandbox-app-py && POETRY_VIRTUALENVS_IN_PROJECT=true poetry install && poetry add -e ../packages/uns-py && poetry run python src/data_example.py",
+    "py:configure:devops": "cd packages/uns-py && poetry run uns-kit-py configure-devops ../../sandbox-app-py",
+    "py:configure:vscode": "cd packages/uns-py && poetry run uns-kit-py configure-vscode ../../sandbox-app-py",
+    "py:configure:workspace": "cd packages/uns-py && poetry run uns-kit-py configure-workspace ../../sandbox-app-py",
+    "py:configure": "cd packages/uns-py && poetry run uns-kit-py configure-devops ../../sandbox-app-py && poetry run uns-kit-py configure-vscode ../../sandbox-app-py && poetry run uns-kit-py configure-workspace ../../sandbox-app-py",
+    "py:pull-request": "cd packages/uns-py && poetry run uns-kit-py pull-request ../../sandbox-app-py",
+    "ts:version:patch": "pnpm -r --filter \"@uns-kit/*\" exec pnpm version patch",
+    "ts:build": "pnpm -r --filter \"@uns-kit/*\" run build",
+    "ts:publish": "pnpm -r --filter \"@uns-kit/*\" publish --access public",
+    "ts:sandbox:create": "pnpm exec tsx packages/uns-cli/src/index.ts create sandbox-app",
+    "ts:sandbox:data": "cd sandbox-app && pnpm exec tsx src/examples/data-example.ts",
+    "ts:sandbox:load-test": "cd sandbox-app && pnpm exec tsx src/examples/load-test-data.ts",
+    "ts:sandbox:table": "cd sandbox-app && pnpm exec tsx src/examples/table-example.ts",
+    "ts:sandbox:table-window": "cd sandbox-app && pnpm exec tsx src/examples/table-window-load-test.ts",
+    "ts:sandbox:api": "cd sandbox-app && pnpm exec tsx src/examples/api-example.ts",
+    "ts:sandbox:cron": "cd sandbox-app && pnpm exec tsx src/examples/cron-example.ts",
+    "ts:sandbox:uns-gateway-cli": "cd sandbox-app && pnpm exec tsx src/examples/uns-gateway-cli.ts",
+    "ts:configure:devops": "pnpm exec tsx packages/uns-cli/src/index.ts configure-devops sandbox-app",
+    "ts:configure:vscode": "pnpm exec tsx packages/uns-cli/src/index.ts configure-vscode sandbox-app",
+    "ts:configure:codegen": "pnpm exec tsx packages/uns-cli/src/index.ts configure-codegen sandbox-app",
+    "ts:configure:api": "pnpm exec tsx packages/uns-cli/src/index.ts configure-api sandbox-app",
+    "ts:configure:cron": "pnpm exec tsx packages/uns-cli/src/index.ts configure-cron sandbox-app",
+    "ts:configure:templates": "pnpm exec tsx packages/uns-cli/src/index.ts configure-templates sandbox-app",
+    "ts:configure:temporal": "pnpm exec tsx packages/uns-cli/src/index.ts configure-temporal sandbox-app",
+    "ts:configure:python": "pnpm exec tsx packages/uns-cli/src/index.ts configure-python sandbox-app",
+    "ts:configure:uns-reference": "pnpm exec tsx packages/uns-cli/src/index.ts configure-uns-reference sandbox-app",
+    "ts:core:pull-request": "pnpm --filter @uns-kit/core build && pnpm exec tsx packages/uns-core/src/tools/pull-request.ts",
+    "ts:core:generate-uns-topics-tags": "pnpm --filter @uns-kit/core build && pnpm exec tsx packages/uns-core/src/tools/refresh-uns.ts",
+    "ts:core:sync-uns-schema": "pnpm exec tsx packages/uns-core/src/tools/sync-uns-schema.ts"
+  },
+  "author": "Aljosa Vister",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uns-datahub/uns-kit.git"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.36.0",
+    "@graphql-codegen/cli": "^5.0.7",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^22.18.6",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
+    "azure-devops-node-api": "^15.1.1",
+    "chalk": "^5.6.2",
+    "eslint": "^9.36.0",
+    "fs-extra": "^11.3.2",
+    "globals": "^16.4.0",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.2.0",
+    "prettier": "^3.6.2",
+    "simple-git": "^3.28.0",
+    "tsx": "^4.20.5",
+    "vite": "^6.3.6",
+    "vitest": "^3.2.4",
+    "zod-to-json-schema": "^3.24.6",
+    "zod-to-ts": "^1.2.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "sandbox-app>@uns-kit/core": "workspace:^",
+      "sandbox-app>@uns-kit/api": "workspace:^",
+      "sandbox-app>@uns-kit/cron": "workspace:^",
+      "sandbox-app>@uns-kit/temporal": "workspace:^"
+    }
+  },
+  "dependencies": {
+    "@uns-kit/api": "^0.0.1"
+  }
+}
