@@ -17,22 +17,13 @@ const unsApiPlugin = ({ define }) => {
             const internals = this;
             const unsApiProxy = new UnsApiProxy(internals.processName, instanceName, options);
             unsApiProxy.event.on("unsProxyProducedTopics", (event) => {
-                internals.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedTopics), {
-                    retain: true,
-                    properties: { messageExpiryInterval: 120000 },
-                });
+                internals.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedTopics));
             });
             unsApiProxy.event.on("unsProxyProducedApiEndpoints", (event) => {
-                internals.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedApiEndpoints), {
-                    retain: true,
-                    properties: { messageExpiryInterval: 120000 },
-                });
+                internals.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedApiEndpoints));
             });
             unsApiProxy.event.on("unsProxyProducedApiCatchAll", (event) => {
-                internals.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedCatchall), {
-                    retain: true,
-                    properties: { messageExpiryInterval: 120000 },
-                });
+                internals.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedCatchall));
             });
             unsApiProxy.event.on("mqttProxyStatus", (event) => {
                 const time = UnsPacket.formatToISO8601(new Date());

@@ -33,10 +33,6 @@ const unsApiPlugin: UnsProxyProcessPlugin = ({ define }) => {
         internals.processMqttProxy.publish(
           event.statusTopic,
           JSON.stringify(event.producedTopics),
-          {
-            retain: true,
-            properties: { messageExpiryInterval: 120000 },
-          },
         );
       });
 
@@ -44,10 +40,6 @@ const unsApiPlugin: UnsProxyProcessPlugin = ({ define }) => {
         internals.processMqttProxy.publish(
           event.statusTopic,
           JSON.stringify(event.producedApiEndpoints),
-          {
-            retain: true,
-            properties: { messageExpiryInterval: 120000 },
-          },
         );
       });
 
@@ -55,10 +47,6 @@ const unsApiPlugin: UnsProxyProcessPlugin = ({ define }) => {
         internals.processMqttProxy.publish(
           event.statusTopic,
           JSON.stringify(event.producedCatchall),
-          {
-            retain: true,
-            properties: { messageExpiryInterval: 120000 },
-          },
         );
       });
 

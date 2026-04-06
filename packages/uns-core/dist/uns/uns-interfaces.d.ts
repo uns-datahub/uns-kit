@@ -109,7 +109,6 @@ export interface UnsEvents {
     unsProxyProducedTopics: {
         producedTopics: ITopicObject[];
         statusTopic: string;
-        retain?: boolean;
     };
     unsProxyProducedApiEndpoints: {
         producedApiEndpoints: IApiObject[];

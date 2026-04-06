@@ -218,14 +218,9 @@ class UnsProxyProcess {
     
     // Listen for UNS proxy producing topics and publish them via MQTT.
     unsMqttProxy.event.on("unsProxyProducedTopics", (event) => {
-      const retain = event.retain ?? true;
       this.processMqttProxy.publish(
         event.statusTopic,
         JSON.stringify(event.producedTopics),
-        {
-          retain,
-          ...(retain ? { properties: { messageExpiryInterval: 120000 } } : {}),
-        },
       );
     });
 

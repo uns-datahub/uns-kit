@@ -155,11 +155,7 @@ class UnsProxyProcess {
         const unsMqttProxy = new UnsMqttProxy(mqttHost, this.processName, instanceName, resolvedUnsParameters);
         // Listen for UNS proxy producing topics and publish them via MQTT.
         unsMqttProxy.event.on("unsProxyProducedTopics", (event) => {
-            const retain = event.retain ?? true;
-            this.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedTopics), {
-                retain,
-                ...(retain ? { properties: { messageExpiryInterval: 120000 } } : {}),
-            });
+            this.processMqttProxy.publish(event.statusTopic, JSON.stringify(event.producedTopics));
         });
         // Listen for UNS proxy status events and publish them via MQTT.
         unsMqttProxy.event.on("mqttProxyStatus", (event) => {
