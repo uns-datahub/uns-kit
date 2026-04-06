@@ -93,8 +93,8 @@ export class UnsPacket {
 
     if (data) {
       if (data.dataGroup) {
-        if (!/^[A-Za-z0-9_]+$/.test(data.dataGroup)) {
-          throw new Error(`dataGroup must be a valid name (alphanumeric and underscores only, no spaces or special characters)`);
+        if (!/^[A-Za-z0-9_.\-]+$/.test(data.dataGroup)) {
+          throw new Error(`dataGroup must be a valid name (alphanumeric, underscores, hyphens and dots only)`);
         }
       }
 
@@ -137,8 +137,8 @@ export class UnsPacket {
     // Check table object
     if (table) {
       if (table.dataGroup) {
-        if (!/^[A-Za-z0-9_]+$/.test(table.dataGroup)) {
-          throw new Error(`dataGroup must be a valid name (alphanumeric and underscores only, no spaces or special characters)`);
+        if (!/^[A-Za-z0-9_.\-]+$/.test(table.dataGroup)) {
+          throw new Error(`dataGroup must be a valid name (alphanumeric, underscores, hyphens and dots only)`);
         }
       }
 
