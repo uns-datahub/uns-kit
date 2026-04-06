@@ -145,7 +145,7 @@ export interface UnsEvents {
   apiPostEvent: {req: any, res: any};
 
   // Emitters in UnsProxy
-  unsProxyProducedTopics: { producedTopics: ITopicObject[], statusTopic: string };
+  unsProxyProducedTopics: { producedTopics: ITopicObject[], statusTopic: string, retain?: boolean };
 
   // Emitters in UnsProxy
   unsProxyProducedApiEndpoints: { producedApiEndpoints: IApiObject[], statusTopic: string };

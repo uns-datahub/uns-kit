@@ -1,0 +1,1 @@
+{"version":3,"file":"uns-asset.js","sourceRoot":"","sources":["../../src/uns/uns-asset.ts"],"names":[],"mappings":"","sourcesContent":["export type UnsAsset = \"\" | (string & {});\n"]}

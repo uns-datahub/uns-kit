@@ -1,0 +1,1 @@
+{"version":3,"file":"schema-tolls.d.ts","sourceRoot":"","sources":["../../src/uns-config/schema-tolls.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,CAAC,EAAE,MAAM,KAAK,CAAC;AAGxB,wBAAgB,mBAAmB,CACjC,CAAC,SAAS,CAAC,CAAC,YAAY,EACxB,CAAC,SAAS,CAAC,CAAC,YAAY,EACxB,CAAC,EAAE,CAAC,EAAE,CAAC,EAAE,CAAC,GAAG,CAAC,CAAC,SAAS,CAAC,CAAC,CAAC,OAAO,CAAC,GAAG,CAAC,CAAC,OAAO,CAAC,CAAC,CAElD"}

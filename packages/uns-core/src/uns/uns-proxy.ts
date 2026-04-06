@@ -39,17 +39,32 @@ export default class UnsProxy {
    */
   private async emitProducedTopics(): Promise<void> {
     if (this.instanceStatusTopic !== "") {
-      const topicsArray = [...this.producedTopics.values()];
-      if (topicsArray.length > 0) {
-        try {
-          if (topicsArray.length > 0) {
-            this.event.emit("unsProxyProducedTopics", { producedTopics: topicsArray, statusTopic: this.instanceStatusTopic + "topics" });
-          }
-        } catch (error) {
-          logger.error(`${this.instanceNameWithSuffix} - Error publishing produced topics: ${error.message}`);
+      const allTopics = [...this.producedTopics.values()];
+      if (allTopics.length === 0) return;
+
+      const statusTopic = this.instanceStatusTopic + "topics";
+      const staticTopics = allTopics.filter(t => !t.dataGroup);
+      const dynamicTopics = allTopics.filter(t => !!t.dataGroup);
+
+      try {
+        if (staticTopics.length > 0) {
+          this.event.emit("unsProxyProducedTopics", {
+            producedTopics: staticTopics,
+            statusTopic,
+            retain: true,
+          });
         }
-        logger.debug(`${this.instanceNameWithSuffix} - Published produced topics.`);
+        if (dynamicTopics.length > 0) {
+          this.event.emit("unsProxyProducedTopics", {
+            producedTopics: dynamicTopics,
+            statusTopic,
+            retain: false,
+          });
+        }
+      } catch (error) {
+        logger.error(`${this.instanceNameWithSuffix} - Error publishing produced topics: ${error.message}`);
       }
+      logger.debug(`${this.instanceNameWithSuffix} - Published produced topics.`);
     }
   }
 
