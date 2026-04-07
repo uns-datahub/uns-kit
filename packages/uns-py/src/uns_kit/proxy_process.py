@@ -5,7 +5,9 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, List, Mapping, Optional
 
+from .api_proxy import ApiProxyOptions, UnsApiProxy
 from .client import UnsMqttClient
+from .cron_proxy import CronProxyOptions, CronScheduleInput, UnsCronProxy
 from .runtime_metadata import RUNTIME_METADATA
 from .status_monitor import StatusMonitor
 from .topic_builder import TopicBuilder
@@ -151,6 +153,8 @@ class UnsProxyProcess:
         )
         self._status_monitor = StatusMonitor(self._client, self.topic_builder, lambda: self.active)
         self._proxies: List[UnsMqttProxy] = []
+        self._api_proxies: List[UnsApiProxy] = []
+        self._cron_proxies: List[UnsCronProxy] = []
         self._activate_task: Optional[asyncio.Task] = None
 
     async def start(self) -> None:
@@ -166,6 +170,10 @@ class UnsProxyProcess:
                 await self._activate_task
             except asyncio.CancelledError:
                 pass
+        for proxy in list(self._api_proxies):
+            await proxy.stop()
+        for proxy in list(self._cron_proxies):
+            await proxy.stop()
         await self._status_monitor.stop()
         await self._client.close()
 
@@ -281,3 +289,43 @@ class UnsProxyProcess:
         **kwargs: Any,
     ) -> UnsMqttProxy:
         return await self.create_mqtt_proxy(instanceName, **kwargs)
+
+    async def create_api_proxy(
+        self,
+        instance_name: str,
+        options: Optional[ApiProxyOptions | Mapping[str, Any]] = None,
+    ) -> UnsApiProxy:
+        proxy = UnsApiProxy(
+            self._client,
+            process_name=self.process_name,
+            instance_name=instance_name,
+            topic_builder=self.topic_builder,
+            options=options,
+        )
+        await proxy.start()
+        self._api_proxies.append(proxy)
+        return proxy
+
+    async def createApiProxy(
+        self,
+        instanceName: str,
+        options: Optional[ApiProxyOptions | Mapping[str, Any]] = None,
+    ) -> UnsApiProxy:
+        return await self.create_api_proxy(instanceName, options)
+
+    async def create_cron_proxy(
+        self,
+        cron_input: CronScheduleInput,
+        options: Optional[CronProxyOptions | Mapping[str, Any]] = None,
+    ) -> UnsCronProxy:
+        proxy = UnsCronProxy(cron_input, options)
+        await proxy.start()
+        self._cron_proxies.append(proxy)
+        return proxy
+
+    async def createCrontabProxy(
+        self,
+        cronInput: CronScheduleInput,
+        options: Optional[CronProxyOptions | Mapping[str, Any]] = None,
+    ) -> UnsCronProxy:
+        return await self.create_cron_proxy(cronInput, options)

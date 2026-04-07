@@ -18,7 +18,13 @@ Avoid ad-hoc direct MQTT publishing in normal service code unless there is a spe
 ```bash
 poetry run uns-kit-py configure-vscode .
 poetry run uns-kit-py configure-devops .
+poetry run uns-kit-py configure-api .
+poetry run uns-kit-py configure-cron .
 ```
+
+`configure-api` copies a FastAPI starter and updates `pyproject.toml` to install `uns-kit` with the `api` extra.
+`configure-cron` copies an APScheduler starter and updates `pyproject.toml` to install `uns-kit` with the `cron` extra.
+The generated feature examples use `UnsProxyProcess.create_api_proxy(...)` and `create_cron_proxy(...)` so the runtime shape matches the TypeScript packages.
 
 ## Publish/Subscribe Helpers
 ```bash
