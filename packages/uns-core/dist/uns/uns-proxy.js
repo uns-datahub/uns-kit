@@ -84,7 +84,14 @@ export default class UnsProxy {
         }
     }
     /**
-     * Registers a unique topic so that it is tracked and published only once.
+     * Registers a unique topic and keeps its timestamp current.
+     *
+     * On first call the full entry is created and immediately emitted so the
+     * controller can persist the new schema node.  On subsequent calls only the
+     * timestamp is updated in-place; the 60-second heartbeat interval will carry
+     * the updated value to the controller, making the timestamp reflect the time
+     * of the most recent data publication rather than the one-off registration
+     * moment.
      *
      * @param topicObject - The object containing topic details.
      */
@@ -105,10 +112,15 @@ export default class UnsProxy {
                     assetDescription: topicObject.assetDescription,
                     objectType: topicObject.objectType,
                     objectTypeDescription: topicObject.objectTypeDescription,
-                    objectId: topicObject.objectId
+                    objectId: topicObject.objectId,
                 });
                 this.emitProducedTopics();
                 logger.info(`${this.instanceNameWithSuffix} - Registered new topic: ${fullTopic}`);
+            }
+            else {
+                // Already registered — refresh only the timestamp so the periodic
+                // heartbeat reflects actual data flow rather than frozen startup time.
+                this.producedTopics.get(fullTopic).timestamp = topicObject.timestamp;
             }
         }
     }

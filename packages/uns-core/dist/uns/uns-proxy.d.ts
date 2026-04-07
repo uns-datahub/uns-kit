@@ -29,7 +29,14 @@ export default class UnsProxy {
      */
     private emitProducedApiCatchall;
     /**
-     * Registers a unique topic so that it is tracked and published only once.
+     * Registers a unique topic and keeps its timestamp current.
+     *
+     * On first call the full entry is created and immediately emitted so the
+     * controller can persist the new schema node.  On subsequent calls only the
+     * timestamp is updated in-place; the 60-second heartbeat interval will carry
+     * the updated value to the controller, making the timestamp reflect the time
+     * of the most recent data publication rather than the one-off registration
+     * moment.
      *
      * @param topicObject - The object containing topic details.
      */
