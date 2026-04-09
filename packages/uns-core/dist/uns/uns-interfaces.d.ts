@@ -161,11 +161,35 @@ export interface IMqttAttributeMessage {
     description?: string;
     tags?: UnsTags[];
     attributeNeedsPersistence?: boolean | null;
-    /** Liveliness validity mode (optional — defaults to "interval" on the controller). */
+    /**
+     * How the controller determines if this attribute is live or stale.
+     * Defaults to `"interval"` with the controller's default interval (~120s) when omitted.
+     *
+     * @example
+     * // Sensor publishing every 2 seconds:
+     * { validityMode: "interval", expectedIntervalMs: 2000 }
+     *
+     * // Status that changes on events (never stale by time):
+     * { validityMode: "event" }
+     *
+     * // Material location with ENTERED/EXITED lifecycle:
+     * { validityMode: "lifecycle", lifecycleEndValue: "EXITED" }
+     *
+     * // Static configuration value:
+     * { validityMode: "static" }
+     */
     validityMode?: ValidityMode;
-    /** For interval mode: expected publish interval in ms. */
+    /**
+     * Expected publish interval in milliseconds. Only meaningful for `validityMode: "interval"`.
+     * The controller marks the attribute as stale after ~2× this value without a heartbeat update.
+     * Ignored for `"event"`, `"lifecycle"`, and `"static"` modes.
+     */
     expectedIntervalMs?: number;
-    /** For lifecycle mode: the value that marks the lifecycle as completed. */
+    /**
+     * The string value that marks a lifecycle as completed. Only meaningful for `validityMode: "lifecycle"`.
+     * When the attribute's current value matches this, the controller considers the lifecycle done.
+     * Example: `"EXITED"` for a location attribute with ENTERED/EXITED events.
+     */
     lifecycleEndValue?: string;
 }
 type AttributePayload = {
@@ -215,6 +239,22 @@ export interface IUnsMessage {
 export interface IUnsExtendedMessage extends IUnsMessage {
     data?: IUnsExtendedData;
 }
+/**
+ * Controls how the controller determines whether an attribute is live or stale.
+ *
+ * - `"interval"` — Attribute publishes periodically. Stale if no heartbeat within ~2× the expected interval.
+ *   Use with `expectedIntervalMs`. Example: temperature sensor publishing every 2s.
+ *
+ * - `"event"` — Attribute publishes on value change only. Never stale by time — only when the microservice stops.
+ *   Example: machine status ("HEATING" / "COOLING") that changes infrequently.
+ *
+ * - `"lifecycle"` — Attribute represents a lifecycle with a start and end event.
+ *   Use with `lifecycleEndValue` to mark the end state. Example: material location with "ENTERED" / "EXITED".
+ *
+ * - `"static"` — Attribute is set once and never changes (configuration, metadata). Always live.
+ *
+ * When omitted, defaults to `"interval"` with the controller's default interval (~120s).
+ */
 export type ValidityMode = "interval" | "event" | "lifecycle" | "static";
 export interface ITopicObject {
     timestamp: string;
