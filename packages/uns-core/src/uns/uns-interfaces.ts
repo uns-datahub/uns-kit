@@ -200,6 +200,12 @@ export interface IMqttAttributeMessage {
   description?: string;
   tags?: UnsTags[];
   attributeNeedsPersistence?: boolean | null;
+  /** Liveliness validity mode (optional — defaults to "interval" on the controller). */
+  validityMode?: ValidityMode;
+  /** For interval mode: expected publish interval in ms. */
+  expectedIntervalMs?: number;
+  /** For lifecycle mode: the value that marks the lifecycle as completed. */
+  lifecycleEndValue?: string;
 }
 
 type AttributePayload =
@@ -252,6 +258,8 @@ export interface IUnsExtendedMessage extends IUnsMessage {
   data?: IUnsExtendedData;
 }
 
+export type ValidityMode = "interval" | "event" | "lifecycle" | "static";
+
 export interface ITopicObject {
   timestamp: string;
   attribute:string;
@@ -266,6 +274,12 @@ export interface ITopicObject {
   objectType: UnsObjectType;
   objectTypeDescription?: string;
   objectId: UnsObjectId;
+  /** Liveliness validity mode — how the controller determines if this attribute is live/stale. */
+  validityMode?: ValidityMode;
+  /** For interval mode: expected publish interval in milliseconds (stale after ~2x this value). */
+  expectedIntervalMs?: number;
+  /** For lifecycle mode: the string value that marks the lifecycle as completed (e.g. "EXITED"). */
+  lifecycleEndValue?: string;
 }
 
 // API Interfaces below

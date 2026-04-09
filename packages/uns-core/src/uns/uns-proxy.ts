@@ -126,6 +126,9 @@ export default class UnsProxy {
           objectType: topicObject.objectType,
           objectTypeDescription: topicObject.objectTypeDescription,
           objectId: topicObject.objectId,
+          ...(topicObject.validityMode ? { validityMode: topicObject.validityMode } : {}),
+          ...(topicObject.expectedIntervalMs ? { expectedIntervalMs: topicObject.expectedIntervalMs } : {}),
+          ...(topicObject.lifecycleEndValue ? { lifecycleEndValue: topicObject.lifecycleEndValue } : {}),
         });
         this.emitProducedTopics();
         logger.info(`${this.instanceNameWithSuffix} - Registered new topic: ${fullTopic}`);
