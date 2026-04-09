@@ -374,9 +374,9 @@ export default class UnsMqttProxy extends UnsProxy {
             const objectTypeDescription = msg.objectTypeDescription ?? (objectType ? getObjectTypeDescription(objectType) : undefined);
             // Runtime validation for validity fields
             if (msg.validityMode) {
-                const validModes = new Set(["interval", "event", "lifecycle", "static"]);
+                const validModes = new Set(["interval", "lifecycle", "static"]);
                 if (!validModes.has(msg.validityMode)) {
-                    logger.warn(`${this.instanceNameWithSuffix} - Invalid validityMode "${msg.validityMode}" for attribute "${msg.attribute}". Expected: interval | event | lifecycle | static.`);
+                    logger.warn(`${this.instanceNameWithSuffix} - Invalid validityMode "${msg.validityMode}" for attribute "${msg.attribute}". Expected: interval | lifecycle | static.`);
                 }
                 if (msg.expectedIntervalMs && msg.validityMode !== "interval") {
                     logger.warn(`${this.instanceNameWithSuffix} - expectedIntervalMs is set but validityMode is "${msg.validityMode}" (only used with "interval") for attribute "${msg.attribute}".`);

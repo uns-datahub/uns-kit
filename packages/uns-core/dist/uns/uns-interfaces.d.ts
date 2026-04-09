@@ -169,8 +169,8 @@ export interface IMqttAttributeMessage {
      * // Sensor publishing every 2 seconds:
      * { validityMode: "interval", expectedIntervalMs: 2000 }
      *
-     * // Status that changes on events (never stale by time):
-     * { validityMode: "event" }
+     * // Status attribute publishing every 2 seconds (string values like "HEATING"):
+     * { validityMode: "interval", expectedIntervalMs: 2000 }
      *
      * // Material location with ENTERED/EXITED lifecycle:
      * { validityMode: "lifecycle", lifecycleEndValue: "EXITED" }
@@ -182,7 +182,7 @@ export interface IMqttAttributeMessage {
     /**
      * Expected publish interval in milliseconds. Only meaningful for `validityMode: "interval"`.
      * The controller marks the attribute as stale after ~2× this value without a heartbeat update.
-     * Ignored for `"event"`, `"lifecycle"`, and `"static"` modes.
+     * Ignored for `"lifecycle"` and `"static"` modes.
      */
     expectedIntervalMs?: number;
     /**
@@ -243,10 +243,9 @@ export interface IUnsExtendedMessage extends IUnsMessage {
  * Controls how the controller determines whether an attribute is live or stale.
  *
  * - `"interval"` — Attribute publishes periodically. Stale if no heartbeat within ~2× the expected interval.
- *   Use with `expectedIntervalMs`. Example: temperature sensor publishing every 2s.
- *
- * - `"event"` — Attribute publishes on value change only. Never stale by time — only when the microservice stops.
- *   Example: machine status ("HEATING" / "COOLING") that changes infrequently.
+ *   Use with `expectedIntervalMs`. Works for both numeric sensors (temperature every 2s)
+ *   and string status attributes (status every 2s). Example:
+ *   `{ validityMode: "interval", expectedIntervalMs: 2000 }`
  *
  * - `"lifecycle"` — Attribute represents a lifecycle with a start and end event.
  *   Use with `lifecycleEndValue` to mark the end state. Example: material location with "ENTERED" / "EXITED".
@@ -255,7 +254,7 @@ export interface IUnsExtendedMessage extends IUnsMessage {
  *
  * When omitted, defaults to `"interval"` with the controller's default interval (~120s).
  */
-export type ValidityMode = "interval" | "event" | "lifecycle" | "static";
+export type ValidityMode = "interval" | "lifecycle" | "static";
 export interface ITopicObject {
     timestamp: string;
     attribute: string;
