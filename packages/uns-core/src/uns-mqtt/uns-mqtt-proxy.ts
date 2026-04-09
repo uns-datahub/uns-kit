@@ -42,6 +42,9 @@ type InternalMqttMessage = {
   description?: string;
   tags?: UnsTags[];
   attributeNeedsPersistence?: boolean | null;
+  validityMode?: "interval" | "event" | "lifecycle" | "static";
+  expectedIntervalMs?: number;
+  lifecycleEndValue?: string;
   packet: IUnsPacket;
 };
 
@@ -338,6 +341,9 @@ export default class UnsMqttProxy extends UnsProxy {
         description: attrDescription,
         tags: attrEntry.tags,
         attributeNeedsPersistence: attrEntry.attributeNeedsPersistence,
+        ...(attrEntry.validityMode ? { validityMode: attrEntry.validityMode } : {}),
+        ...(attrEntry.expectedIntervalMs ? { expectedIntervalMs: attrEntry.expectedIntervalMs } : {}),
+        ...(attrEntry.lifecycleEndValue ? { lifecycleEndValue: attrEntry.lifecycleEndValue } : {}),
         packet,
       };
 
@@ -452,7 +458,10 @@ export default class UnsMqttProxy extends UnsProxy {
         assetDescription: msg.assetDescription,
         objectType,
         objectTypeDescription,
-        objectId
+        objectId,
+        ...(msg.validityMode ? { validityMode: msg.validityMode } : {}),
+        ...(msg.expectedIntervalMs ? { expectedIntervalMs: msg.expectedIntervalMs } : {}),
+        ...(msg.lifecycleEndValue ? { lifecycleEndValue: msg.lifecycleEndValue } : {}),
       });
 
       const publishTopic = `${msg.topic}${asset ? `${asset}/` : ""}${objectType ? `${objectType}/` : ""}${objectId ? `${objectId}/` : ""}${msg.attribute}`;
