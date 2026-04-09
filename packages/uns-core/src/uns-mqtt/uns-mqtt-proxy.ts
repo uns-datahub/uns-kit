@@ -445,6 +445,23 @@ export default class UnsMqttProxy extends UnsProxy {
       const description = msg.description ?? getAttributeDescription(msg.attribute as string) ?? "";
       const objectTypeDescription = msg.objectTypeDescription ?? (objectType ? getObjectTypeDescription(objectType) : undefined);
 
+      // Runtime validation for validity fields
+      if (msg.validityMode) {
+        const validModes = new Set(["interval", "event", "lifecycle", "static"]);
+        if (!validModes.has(msg.validityMode)) {
+          logger.warn(`${this.instanceNameWithSuffix} - Invalid validityMode "${msg.validityMode}" for attribute "${msg.attribute}". Expected: interval | event | lifecycle | static.`);
+        }
+        if (msg.expectedIntervalMs && msg.validityMode !== "interval") {
+          logger.warn(`${this.instanceNameWithSuffix} - expectedIntervalMs is set but validityMode is "${msg.validityMode}" (only used with "interval") for attribute "${msg.attribute}".`);
+        }
+        if (msg.lifecycleEndValue && msg.validityMode !== "lifecycle") {
+          logger.warn(`${this.instanceNameWithSuffix} - lifecycleEndValue is set but validityMode is "${msg.validityMode}" (only used with "lifecycle") for attribute "${msg.attribute}".`);
+        }
+        if (msg.validityMode === "interval" && !msg.expectedIntervalMs) {
+          logger.debug(`${this.instanceNameWithSuffix} - validityMode "interval" without expectedIntervalMs for attribute "${msg.attribute}" — controller will use its default.`);
+        }
+      }
+
       this.registerUniqueTopic({
         timestamp: time,
         topic: msg.topic,
