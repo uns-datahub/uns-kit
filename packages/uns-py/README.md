@@ -19,6 +19,18 @@ poetry run uns-kit-py publish --host localhost:1883 --topic raw/data/ --value 1
 poetry run uns-kit-py subscribe --host localhost:1883 --topic 'uns-infra/#'
 ```
 
+Feature-specific dependencies are exposed as optional extras:
+```bash
+pip install "uns-kit[api]"
+pip install "uns-kit[cron]"
+pip install "uns-kit[api,cron]"
+```
+
+Runtime feature APIs mirror the TypeScript surface:
+- `await process.create_api_proxy(...)`
+- `await process.create_cron_proxy(...)`
+- TS-style aliases are also available: `createApiProxy(...)`, `createCrontabProxy(...)`
+
 ## Quick start
 ```python
 import asyncio
@@ -119,6 +131,12 @@ uns-kit-py create my-uns-py-app
 cd my-uns-py-app
 poetry install
 poetry run python main.py
+```
+
+To add optional feature scaffolding later:
+```bash
+poetry run uns-kit-py configure-api .
+poetry run uns-kit-py configure-cron .
 ```
 
 ### Create a new project from a service bundle

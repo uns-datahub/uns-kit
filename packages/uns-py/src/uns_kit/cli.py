@@ -13,7 +13,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 import click
 
@@ -468,6 +468,34 @@ def _write_config_file(path: Path, project_name: Optional[str] = None) -> None:
     path.write_text(json.dumps(data, indent=2))
 
 
+@cli.command("configure-api", help="Copy UNS API examples and add the uns-kit api extra.")
+@click.argument("dest", required=False, default=".")
+@click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing API example files")
+def configure_api(dest: str, overwrite: bool):
+    _configure_python_feature(
+        Path(dest).resolve(),
+        template_name="api",
+        extras=["api"],
+        label="UNS API",
+        success_message="API configuration complete.",
+        overwrite=overwrite,
+    )
+
+
+@cli.command("configure-cron", help="Copy UNS cron examples and add the uns-kit cron extra.")
+@click.argument("dest", required=False, default=".")
+@click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing cron example files")
+def configure_cron(dest: str, overwrite: bool):
+    _configure_python_feature(
+        Path(dest).resolve(),
+        template_name="cron",
+        extras=["cron"],
+        label="UNS cron",
+        success_message="Cron configuration complete.",
+        overwrite=overwrite,
+    )
+
+
 @cli.command("configure-vscode", help="Add VS Code settings for Python development.")
 @click.argument("dest", required=False, default=".")
 @click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing .vscode files")
@@ -481,6 +509,47 @@ def configure_vscode(dest: str, overwrite: bool):
 def configure_workspace(dest: str, overwrite: bool):
     dest_path = Path(dest).resolve()
     _write_workspace_file(dest_path, overwrite)
+
+
+def _configure_python_feature(
+    dest_path: Path,
+    *,
+    template_name: str,
+    extras: list[str],
+    label: str,
+    success_message: str,
+    overwrite: bool,
+) -> None:
+    pyproject_path = dest_path / "pyproject.toml"
+    if not pyproject_path.exists():
+        raise click.ClickException(f"pyproject.toml not found at {pyproject_path}")
+
+    template_root = importlib.resources.files("uns_kit").joinpath("templates", template_name)
+    copied, overwritten, skipped = _copy_template_tree_to_path(template_root, dest_path, overwrite=overwrite)
+    resolved_extras = _ensure_uns_kit_dependency_extras(pyproject_path, extras)
+
+    click.echo(f"{label} assets processed.")
+    if copied:
+        click.echo("Added files:")
+        for file in copied:
+            click.echo(f"  {file}")
+    if overwritten:
+        click.echo("Overwritten files:")
+        for file in overwritten:
+            click.echo(f"  {file}")
+    if skipped:
+        click.echo("Skipped existing files:")
+        for file in skipped:
+            click.echo(f"  {file}")
+    if not copied and not overwritten and not skipped:
+        click.echo("No template files were copied.")
+
+    click.echo(
+        "Updated uns-kit dependency extras in pyproject.toml: {extras}".format(
+            extras=", ".join(resolved_extras)
+        )
+    )
+    click.echo(success_message)
 
 
 def _apply_vscode_configuration(dest_path: Path, overwrite: bool) -> None:
@@ -511,6 +580,134 @@ def _write_workspace_file(dest_path: Path, overwrite: bool) -> None:
     template = importlib.resources.files("uns_kit").joinpath("templates/workspace/workspace.json")
     shutil.copyfile(template, workspace_file)
     click.echo(f"Wrote {workspace_file}")
+
+
+def _copy_template_tree_to_path(source_root: Any, destination_root: Path, *, overwrite: bool) -> tuple[list[str], list[str], list[str]]:
+    copied: list[str] = []
+    overwritten: list[str] = []
+    skipped: list[str] = []
+
+    def _copy_dir_with_tracking(current_source: Any, current_destination: Path) -> None:
+        current_destination.mkdir(parents=True, exist_ok=True)
+        for entry in current_source.iterdir():
+            target = current_destination / entry.name
+            if entry.is_dir():
+                _copy_dir_with_tracking(entry, target)
+                continue
+
+            relative_name = str(target.relative_to(destination_root))
+            target_exists = target.exists()
+            if target_exists and not overwrite:
+                skipped.append(relative_name)
+                continue
+
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with entry.open("rb") as src_handle, target.open("wb") as dst_handle:
+                shutil.copyfileobj(src_handle, dst_handle)
+
+            if target_exists:
+                overwritten.append(relative_name)
+            else:
+                copied.append(relative_name)
+
+    _copy_dir_with_tracking(source_root, destination_root)
+    return copied, overwritten, skipped
+
+
+def _ensure_uns_kit_dependency_extras(pyproject_path: Path, extras: Iterable[str]) -> list[str]:
+    requested = [extra.strip() for extra in extras if extra and extra.strip()]
+    if not requested:
+        return []
+
+    lines = pyproject_path.read_text().splitlines()
+    out: list[str] = []
+    in_dependencies = False
+    changed = False
+    resolved_extras: list[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped == "[tool.poetry.dependencies]":
+            in_dependencies = True
+            out.append(line)
+            continue
+        if in_dependencies and stripped.startswith("[") and stripped.endswith("]"):
+            in_dependencies = False
+
+        if in_dependencies and re.match(r"^uns-kit\s*=", stripped):
+            updated_line, resolved_extras = _merge_uns_kit_dependency_extras(line, requested)
+            out.append(updated_line)
+            changed = changed or updated_line != line
+            continue
+
+        out.append(line)
+
+    if not resolved_extras:
+        raise click.ClickException(f"Could not find uns-kit dependency in {pyproject_path}")
+
+    if changed:
+        pyproject_path.write_text("\n".join(out) + "\n")
+
+    return resolved_extras
+
+
+def _merge_uns_kit_dependency_extras(line: str, requested_extras: list[str]) -> tuple[str, list[str]]:
+    indent_match = re.match(r"^(\s*)", line)
+    indent = indent_match.group(1) if indent_match else ""
+    current = line.strip()
+    _, _, rhs = current.partition("=")
+    dependency_spec = rhs.strip()
+
+    existing_extras = _parse_poetry_inline_extras(dependency_spec)
+    resolved_extras = _merge_extra_names(existing_extras, requested_extras)
+
+    if dependency_spec.startswith("{") and dependency_spec.endswith("}"):
+        path_match = re.search(r'path\s*=\s*"([^"]+)"', dependency_spec)
+        develop_match = re.search(r"develop\s*=\s*(true|false)", dependency_spec)
+        version_match = re.search(r'version\s*=\s*"([^"]+)"', dependency_spec)
+
+        if path_match:
+            parts = [f'path = "{path_match.group(1)}"']
+            if develop_match:
+                parts.append(f"develop = {develop_match.group(1)}")
+            parts.append(_format_poetry_extras(resolved_extras))
+            return f'{indent}uns-kit = {{ {", ".join(parts)} }}', resolved_extras
+
+        version = version_match.group(1) if version_match else "*"
+        return (
+            f'{indent}uns-kit = {{ version = "{version}", {_format_poetry_extras(resolved_extras)} }}',
+            resolved_extras,
+        )
+
+    version_match = re.match(r'"([^"]+)"', dependency_spec)
+    version = version_match.group(1) if version_match else "*"
+    return (
+        f'{indent}uns-kit = {{ version = "{version}", {_format_poetry_extras(resolved_extras)} }}',
+        resolved_extras,
+    )
+
+
+def _parse_poetry_inline_extras(spec: str) -> list[str]:
+    extras_match = re.search(r"extras\s*=\s*\[([^\]]*)\]", spec)
+    if not extras_match:
+        return []
+
+    values = re.findall(r'"([^"]+)"', extras_match.group(1))
+    return _merge_extra_names(values, [])
+
+
+def _merge_extra_names(existing: Iterable[str], requested: Iterable[str]) -> list[str]:
+    merged: list[str] = []
+    for value in [*existing, *requested]:
+        normalized = value.strip()
+        if normalized and normalized not in merged:
+            merged.append(normalized)
+    return merged
+
+
+def _format_poetry_extras(extras: Iterable[str]) -> str:
+    rendered = ", ".join(f'"{extra}"' for extra in extras)
+    return f"extras = [{rendered}]"
 
 @cli.command("pull-request", help="Create an Azure DevOps pull request for a Python project (bumps version, commits, pushes, opens PR).")
 @click.argument("dest", required=False, default=".")
@@ -942,6 +1139,8 @@ def render_cli_help(prog_name: str = CLI_PROG_NAME) -> str:
         "Commands:\n"
         "  create <name>           Scaffold a new UNS Python application\n"
         "  create --bundle <path>  Scaffold a new UNS Python application from service.bundle.json\n"
+        "  configure-api [dir]     Copy UNS API examples and add the api extra\n"
+        "  configure-cron [dir]    Copy UNS cron examples and add the cron extra\n"
         "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n"
         "  configure-vscode [dir]  Add VS Code workspace configuration files\n"
         "  configure-workspace [dir] Create a VS Code workspace file\n"

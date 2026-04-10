@@ -28,10 +28,13 @@ if sys.platform.startswith("win"):
         pass
 
 if TYPE_CHECKING:
+    from .api_proxy import ApiEventContext, ApiProxyOptions, GetEndpointOptions, PostEndpointOptions, QueryParamDef, UnsApiProxy
+    from .cron_proxy import CronProxyOptions, CronSchedule, UnsCronProxy
     from .proxy_process import UnsParameters, UnsProcessParameters, UnsProxyProcess
     from .status_monitor import StatusMonitor
     from .uns_mqtt_proxy import MessageMode, UnsMqttProxy
     from .client import UnsMqttClient
+    from .uns_path import build_uns_identity_path, build_uns_route_path
 
 __all__ = [
     "TopicBuilder",
@@ -52,6 +55,17 @@ __all__ = [
     "UnsProxyProcess",
     "UnsProcessParameters",
     "UnsParameters",
+    "UnsApiProxy",
+    "ApiProxyOptions",
+    "GetEndpointOptions",
+    "PostEndpointOptions",
+    "QueryParamDef",
+    "ApiEventContext",
+    "UnsCronProxy",
+    "CronProxyOptions",
+    "CronSchedule",
+    "build_uns_identity_path",
+    "build_uns_route_path",
     "client",  # for backward compatibility
 ]
 
@@ -63,6 +77,17 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "UnsProxyProcess": ("uns_kit.proxy_process", "UnsProxyProcess"),
     "UnsProcessParameters": ("uns_kit.proxy_process", "UnsProcessParameters"),
     "UnsParameters": ("uns_kit.proxy_process", "UnsParameters"),
+    "UnsApiProxy": ("uns_kit.api_proxy", "UnsApiProxy"),
+    "ApiProxyOptions": ("uns_kit.api_proxy", "ApiProxyOptions"),
+    "GetEndpointOptions": ("uns_kit.api_proxy", "GetEndpointOptions"),
+    "PostEndpointOptions": ("uns_kit.api_proxy", "PostEndpointOptions"),
+    "QueryParamDef": ("uns_kit.api_proxy", "QueryParamDef"),
+    "ApiEventContext": ("uns_kit.api_proxy", "ApiEventContext"),
+    "UnsCronProxy": ("uns_kit.cron_proxy", "UnsCronProxy"),
+    "CronProxyOptions": ("uns_kit.cron_proxy", "CronProxyOptions"),
+    "CronSchedule": ("uns_kit.cron_proxy", "CronSchedule"),
+    "build_uns_identity_path": ("uns_kit.uns_path", "build_uns_identity_path"),
+    "build_uns_route_path": ("uns_kit.uns_path", "build_uns_route_path"),
 }
 
 
