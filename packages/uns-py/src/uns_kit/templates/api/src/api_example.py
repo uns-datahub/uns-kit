@@ -2,6 +2,10 @@ import asyncio
 from pathlib import Path
 
 from uns_kit import ConfigFile, UnsProxyProcess
+from uns_kit.logger import configure_logger
+
+
+configure_logger(settings={"level": "INFO", "console": True})
 
 
 async def run() -> None:

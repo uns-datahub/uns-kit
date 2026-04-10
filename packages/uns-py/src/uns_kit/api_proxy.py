@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import socket
 import threading
 from dataclasses import dataclass, field
@@ -15,6 +16,9 @@ from .topic_builder import TopicBuilder
 from .topic_matcher import matches_topic_filter
 from .uns_path import build_uns_route_path
 from .version import __package_name__, __version__
+
+
+logger = logging.getLogger(__name__)
 
 
 def _normalize_base_prefix(value: Optional[str], default: str) -> str:
@@ -221,6 +225,8 @@ class UnsApiProxy(UnsProxy):
         await super().start()
         self._start_server()
         await self._wait_until_ready()
+        logger.info("API listening on http://%s:%s%s", self._public_ip, self._port, self.api_base_prefix)
+        logger.info("Swagger openAPI on http://%s:%s%s", self._public_ip, self._port, self.swagger_json_path)
         self._status_task = asyncio.create_task(self._status_loop())
 
     async def stop(self) -> None:
@@ -385,6 +391,14 @@ class UnsApiProxy(UnsProxy):
         normalized_swagger_path = swagger_path if str(swagger_path).startswith("/") else f"/{swagger_path}"
         self._app.router.routes = [route for route in self._app.router.routes if getattr(route, "path", None) != normalized_swagger_path]
         self._add_route(normalized_swagger_path, swagger_handler, ["GET"])
+        logger.info(
+            "%s-%s - Catch-all Swagger available at %s (target %s%s)",
+            self.process_name,
+            self.instance_name,
+            normalized_swagger_path,
+            str(api_base).rstrip("/"),
+            normalized_swagger_path,
+        )
         await self.register_api_catchall(
             {
                 "topic": normalized,
@@ -529,14 +543,43 @@ class UnsApiProxy(UnsProxy):
             return None
 
         auth_header = request.headers.get("authorization")
+        endpoint = f"{request.method} {request.url.path}"
         if not auth_header or not auth_header.startswith("Bearer "):
+            logger.warning(
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "user": "Anonymous",
+                    "endpoint": endpoint,
+                    "message": "Access attempted without token",
+                }
+            )
             return JSONResponse({"error": "Missing or invalid Authorization header"}, status_code=401)
 
         token = auth_header[7:]
+        logger.debug("Bearer token extracted successfully.")
         try:
             payload = await self._decode_token(token)
-        except Exception:
+        except Exception as exc:
+            logger.error(
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "user": "Unknown",
+                    "endpoint": endpoint,
+                    "message": "JWT verification failed",
+                    "error": str(exc),
+                }
+            )
             return JSONResponse({"error": "Invalid token"}, status_code=401)
+
+        user_email = str(payload.get("email") or "Unknown")
+        logger.info(
+            {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "user": user_email,
+                "endpoint": endpoint,
+                "message": "Access granted",
+            }
+        )
 
         access_rules = payload.get("accessRules")
         if not isinstance(access_rules, list):
@@ -549,22 +592,44 @@ class UnsApiProxy(UnsProxy):
         return None
 
     async def _decode_token(self, token: str) -> dict[str, Any]:
-        try:
-            import jwt
-        except ImportError as exc:  # pragma: no cover
-            raise RuntimeError(
-                'JWT validation requires the "api" extra. Install with `pip install "uns-kit[api]"`.'
-            ) from exc
+        import jwt
 
         if self.options.jwks:
-            from jwt import PyJWKClient
-
-            jwks_client = PyJWKClient(self.options.jwks["wellKnownJwksUrl"])
+            jwks_client = jwt.PyJWKClient(self.options.jwks["wellKnownJwksUrl"])
             signing_key = jwks_client.get_signing_key_from_jwt(token)
             algorithms = self.options.jwks.get("algorithms") or ["RS256"]
-            return dict(jwt.decode(token, signing_key.key, algorithms=algorithms))
+            return dict(
+                jwt.decode(
+                    token,
+                    signing_key.key,
+                    algorithms=algorithms,
+                    options={"verify_aud": False},
+                )
+            )
 
-        return dict(jwt.decode(token, self.options.jwt_secret, algorithms=["HS256", "HS384", "HS512"]))
+        header = jwt.get_unverified_header(token)
+        algorithm = header.get("alg")
+        if not algorithm:
+            raise ValueError("JWT header is missing alg.")
+        if algorithm.startswith(("RS", "ES", "PS")) and not self._looks_like_asymmetric_key(self.options.jwt_secret):
+            raise ValueError(
+                f"JWT algorithm {algorithm} requires JWKS or a public key. "
+                "Set uns.jwksWellKnownUrl in config.json or pass a PEM public key as jwtSecret."
+            )
+
+        return dict(
+            jwt.decode(
+                token,
+                self.options.jwt_secret,
+                algorithms=[algorithm],
+                options={"verify_aud": False},
+            )
+        )
+
+    def _looks_like_asymmetric_key(self, value: Optional[str]) -> bool:
+        if not value:
+            return False
+        return "-----BEGIN PUBLIC KEY-----" in value or "-----BEGIN CERTIFICATE-----" in value
 
     def _validate_query_params(self, request: Any, query_params: list[QueryParamDef]) -> Any:
         from fastapi.responses import JSONResponse

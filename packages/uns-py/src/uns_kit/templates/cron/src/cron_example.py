@@ -1,8 +1,14 @@
 import asyncio
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
 from uns_kit import ConfigFile, UnsProxyProcess
+from uns_kit.logger import configure_logger
+
+
+configure_logger(settings={"level": "INFO", "console": True})
+logger = logging.getLogger("uns_kit").getChild(__name__)
 
 
 async def run() -> None:
@@ -19,26 +25,30 @@ async def run() -> None:
     cron = await process.create_cron_proxy("* * * * * *")
 
     async def handle_cron(_event):
-        await mqtt_output.publish_mqtt_message(
-            {
-                "topic": "example/site/area/line/",
-                "asset": "demo-asset",
-                "objectType": "energy-resource",
-                "objectId": "main-bus",
-                "attributes": [
-                    {
-                        "attribute": "current",
-                        "description": "Cron sample current",
-                        "data": {
-                            "time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-                            "value": 42,
-                            "uom": "Ampere",
-                            "dataGroup": "sensor",
-                        },
-                    }
-                ],
-            }
-        )
+        try:
+            await mqtt_output.publish_mqtt_message(
+                {
+                    "topic": "example/site/area/line/",
+                    "asset": "demo-asset",
+                    "objectType": "energy-resource",
+                    "objectId": "main-bus",
+                    "attributes": [
+                        {
+                            "attribute": "current",
+                            "description": "Cron sample current",
+                            "data": {
+                                "time": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                                "value": 42,
+                                "uom": "Ampere",
+                                "dataGroup": "sensor",
+                            },
+                        }
+                    ],
+                }
+            )
+        except Exception as exc:
+            logger.error("Error publishing message to MQTT: %s", exc)
+            raise
 
     cron.event.on("cronEvent", handle_cron)
 
