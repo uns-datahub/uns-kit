@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Optional
 
 from .events import EventEmitter
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -46,6 +50,11 @@ class UnsCronProxy:
                     "event_name": schedule.event,
                     "cron_expression": schedule.cron_expression,
                 },
+            )
+            logger.info(
+                "Created cron job with expression %s%s",
+                schedule.cron_expression,
+                f" (event: {schedule.event})" if schedule.event else "",
             )
 
     async def start(self) -> None:
