@@ -30,6 +30,7 @@ if sys.platform.startswith("win"):
 if TYPE_CHECKING:
     from .api_proxy import ApiEventContext, ApiProxyOptions, GetEndpointOptions, PostEndpointOptions, QueryParamDef, UnsApiProxy
     from .cron_proxy import CronProxyOptions, CronSchedule, UnsCronProxy
+    from .datahub_client import LastValueClientError, LastValueResult, UnsClient
     from .proxy_process import UnsParameters, UnsProcessParameters, UnsProxyProcess
     from .status_monitor import StatusMonitor
     from .uns_mqtt_proxy import MessageMode, UnsMqttProxy
@@ -64,6 +65,9 @@ __all__ = [
     "UnsCronProxy",
     "CronProxyOptions",
     "CronSchedule",
+    "UnsClient",
+    "LastValueResult",
+    "LastValueClientError",
     "build_uns_identity_path",
     "build_uns_route_path",
     "client",  # for backward compatibility
@@ -86,6 +90,9 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "UnsCronProxy": ("uns_kit.cron_proxy", "UnsCronProxy"),
     "CronProxyOptions": ("uns_kit.cron_proxy", "CronProxyOptions"),
     "CronSchedule": ("uns_kit.cron_proxy", "CronSchedule"),
+    "UnsClient": ("uns_kit.datahub_client", "UnsClient"),
+    "LastValueResult": ("uns_kit.datahub_client", "LastValueResult"),
+    "LastValueClientError": ("uns_kit.datahub_client", "LastValueClientError"),
     "build_uns_identity_path": ("uns_kit.uns_path", "build_uns_identity_path"),
     "build_uns_route_path": ("uns_kit.uns_path", "build_uns_route_path"),
 }

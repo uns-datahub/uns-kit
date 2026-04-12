@@ -68,6 +68,46 @@ If your service publishes UNS topics, prefer:
 
 That is the default application pattern for generated Python services and the path that also maintains the retained `.../topics` registry used for discovery. Direct `UnsMqttClient` publishing is lower-level and should not be the default service pattern unless you have a specific reason.
 
+### Validity / Liveliness
+
+UNS attributes can declare how the controller decides whether they are live or stale. These fields are optional and default to `"interval"` with the controller default (~120s) if omitted.
+
+- `validityMode`: `"interval" | "lifecycle" | "static"`
+- `expectedIntervalMs`: required for `"interval"` mode (controller marks stale after ~2x this interval)
+- `lifecycleEndValue`: required for `"lifecycle"` mode (end-state marker, e.g. `"EXITED"`)
+
+```python
+await proxy.publish_mqtt_message({
+    "topic": "raw/data/",
+    "asset": "line-1",
+    "objectType": "motor",
+    "objectId": "main",
+    "attributes": {
+        "attribute": "status",
+        "data": {"time": "2025-01-01T00:00:00Z", "value": "RUNNING"},
+        "validityMode": "lifecycle",
+        "lifecycleEndValue": "STOPPED",
+    },
+})
+```
+
+### Datahub client (last value)
+
+`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint.
+
+```python
+from uns_kit import UnsClient
+
+client = UnsClient("https://datahub.example.com", api_base_path="/api")
+client.login("service@example.com", "password")
+
+values = client.last_value([
+    "raw/data/line-1/motor/main/temperature",
+    "raw/data/line-1/motor/main/status",
+])
+print(values)
+```
+
 ## Config placeholders (env + Infisical)
 `uns-py` now resolves config placeholders in the same style as `uns-core`.
 For Infisical placeholders, install the optional extra:
