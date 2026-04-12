@@ -25,11 +25,10 @@ Update `config.json` with your broker, UNS URLs, and credentials. The generated 
 
 ## Validity / Liveliness
 
-UNS attributes can declare how the controller decides whether they are live or stale. These fields are optional and default to `"interval"` with the controller default (~120s) if omitted.
+UNS attributes can declare how the controller decides whether they are live or stale; in most apps this is primarily used to drive UI liveliness/activity indicators. In app-level modeling we use two modes only:
 
-- `validityMode`: `"interval" | "lifecycle" | "static"`
-- `expectedIntervalMs`: required for `"interval"` mode (controller marks stale after ~2x this interval)
-- `lifecycleEndValue`: required for `"lifecycle"` mode (end-state marker, e.g. `"EXITED"`)
+- `interval`: continuously refreshed values (stale after ~2× `expectedIntervalMs`)
+- `lifecycle`: event-driven activity that stays active until a defined end value (`lifecycleEndValue`)
 
 Example:
 
