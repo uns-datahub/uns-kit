@@ -676,9 +676,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             projectId?: string;
         };
         processName?: string;
+        email?: string;
         graphql?: string;
         rest?: string;
-        email?: string;
         instanceMode?: "wait" | "force" | "handover";
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
@@ -700,9 +700,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             projectId?: string;
         };
         processName?: string;
+        email?: string;
         graphql?: string;
         rest?: string;
-        email?: string;
         instanceMode?: "wait" | "force" | "handover";
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
@@ -2649,9 +2649,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             projectId?: string;
         };
         processName?: string;
+        email?: string;
         graphql?: string;
         rest?: string;
-        email?: string;
         instanceMode?: "wait" | "force" | "handover";
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
@@ -2970,9 +2970,9 @@ export declare const unsCoreSchema: z.ZodObject<{
             projectId?: string;
         };
         processName?: string;
+        email?: string;
         graphql?: string;
         rest?: string;
-        email?: string;
         instanceMode?: "wait" | "force" | "handover";
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;

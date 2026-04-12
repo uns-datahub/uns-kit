@@ -119,7 +119,7 @@ export class UnsClient {
   async get(endpoint: string, params?: Record<string, string | number | boolean>, options: { baseUrl?: string; authorize?: boolean } = {}): Promise<Record<string, unknown>> {
     const authorize = options.authorize ?? true;
     const token = authorize ? await this.ensureToken() : undefined;
-    const search = params ? `?${new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]))}` : "";
+    const search = params ? `?${new URLSearchParams(this.stringifyQueryParams(params))}` : "";
     return this.requestJson("GET", `${this.buildUrl(endpoint, options.baseUrl)}${search}`, undefined, token);
   }
 
@@ -211,6 +211,10 @@ export class UnsClient {
       path = path.slice(this.apiBasePath.length) || "/";
     }
     return `${root}${path}`;
+  }
+
+  private stringifyQueryParams(params: Record<string, string | number | boolean>): Record<string, string> {
+    return Object.fromEntries(Object.entries(params).map(([key, value]) => [key, String(value)]));
   }
 
   private static normalizeBasePath(value: string): string {
