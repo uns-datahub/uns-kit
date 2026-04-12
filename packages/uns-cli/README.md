@@ -37,6 +37,8 @@ pnpm run dev
 
 The scaffold creates a project directory from the default TypeScript template, pins `@uns-kit/core` to the current version, and initialises a git repository if `git` is available.
 
+The default template includes a Datahub REST client example (`UnsClient`) for last-value lookups, using a token-first pattern suitable for long-lived service tokens.
+
 ### Create from a service bundle
 
 ```bash

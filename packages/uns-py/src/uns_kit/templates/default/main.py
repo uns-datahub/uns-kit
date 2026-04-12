@@ -52,6 +52,8 @@ async def run():
                         "uom": "state",
                         "dataGroup": "runtime",
                     },
+                    "validityMode": "lifecycle",
+                    "lifecycleEndValue": "stopped",
                 },
             }
         )
