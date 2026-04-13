@@ -56,28 +56,6 @@ class _LastValueHandler(BaseHTTPRequestHandler):
         return
 
 
-class _AuthHandler(BaseHTTPRequestHandler):
-    received_path = ""
-    received_body: dict[str, object] = {}
-
-    def do_POST(self) -> None:
-        type(self).received_path = self.path
-        length = int(self.headers.get("Content-Length", "0"))
-        raw_body = self.rfile.read(length).decode("utf-8")
-        type(self).received_body = json.loads(raw_body) if raw_body else {}
-        payload = {"accessToken": "new-access-token", "expiresIn": 3600}
-        data = json.dumps(payload).encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Set-Cookie", "RefreshToken=refresh-token; Path=/; HttpOnly")
-        self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
-
-    def log_message(self, format: str, *args: object) -> None:
-        return
-
-
 class _MissingLastValueHandler(BaseHTTPRequestHandler):
     received_paths: list[str] = []
 
@@ -161,29 +139,60 @@ def test_uns_client_last_value_returns_none_when_endpoint_is_missing() -> None:
     assert response is None
 
 
-def test_uns_client_login_is_explicit() -> None:
-    server = HTTPServer(("127.0.0.1", 0), _AuthHandler)
+def test_uns_client_requires_token_or_auth_client() -> None:
+    client = UnsClient("https://unsdatahub.sij.digital/api")
+
+    with pytest.raises(RuntimeError, match="No access token available"):
+        client.ensure_token()
+
+
+def test_uns_client_uses_auth_client_for_lazy_auth() -> None:
+    class _StubAuthClient:
+        def get_access_token(self) -> str:
+            return "token-from-auth-client"
+
+    auth_client = _StubAuthClient()
+    client = UnsClient("https://unsdatahub.sij.digital/api", auth_client=auth_client)
+
+    client.ensure_token()
+
+    assert client.access_token == "token-from-auth-client"
+
+
+def test_uns_client_last_value_uses_auth_client_token() -> None:
+    server = HTTPServer(("127.0.0.1", 0), _LastValueHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
 
+    class _StubAuthClient:
+        def get_access_token(self) -> str:
+            return "token-from-auth-client"
+
     try:
         client = UnsClient(
-            f"http://127.0.0.1:{server.server_port}/api",
+            f"http://127.0.0.1:{server.server_port}",
+            auth_client=_StubAuthClient(),
         )
-        data = client.login("user@example.com", "secret")
+        response = client.last_value("plant/line/asset/type/id/current")
     finally:
         server.shutdown()
         thread.join(timeout=5)
 
-    assert _AuthHandler.received_path == "/api/auth/login"
-    assert _AuthHandler.received_body == {"email": "user@example.com", "password": "secret"}
-    assert data == {"accessToken": "new-access-token", "expiresIn": 3600}
-    assert client.access_token == "new-access-token"
-    assert client.refresh_token == "refresh-token"
+    assert _LastValueHandler.received_auth == "Bearer token-from-auth-client"
+    assert response["plant/line/asset/type/id/current"]["value"] == 42
 
 
-def test_uns_client_refresh_requires_existing_refresh_token() -> None:
+def test_uns_client_creates_auth_client_in_background(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _StubAuthClient:
+        def get_access_token(self) -> str:
+            return "background-token"
+
+    def _create():
+        return _StubAuthClient()
+
+    monkeypatch.setattr("uns_kit.datahub_client.AuthClient.create", _create)
     client = UnsClient("https://unsdatahub.sij.digital/api")
 
-    with pytest.raises(RuntimeError, match="No refresh token available"):
-        client.refresh()
+    client.ensure_token()
+
+    assert client.access_token == "background-token"

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
-import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from http.cookiejar import CookieJar
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional
+
+from .auth_client import AuthClient
 
 
 @dataclass(frozen=True)
@@ -64,6 +64,7 @@ class UnsClient:
         *,
         api_base_path: str = "/api",
         token: Optional[str] = None,
+        auth_client: Optional[AuthClient] = None,
         timeout: float = 10.0,
     ) -> None:
         self.api_base_path = self._normalize_base_path(api_base_path)
@@ -75,31 +76,23 @@ class UnsClient:
             self.base_url = stripped_base_url
             self.api_url = f"{stripped_base_url}{self.api_base_path}"
         self.access_token = token
-        self.token_expires_at = 0.0
-        self.refresh_token: Optional[str] = None
         self.timeout = timeout
-        self._cookies = CookieJar()
-        self._opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self._cookies))
+        self.auth_client = auth_client
+        self._opener = urllib.request.build_opener()
 
-    def login(self, email: str, password: str) -> dict[str, Any]:
-        data = self.post("/auth/login", {"email": email, "password": password}, authorize=False)
-        self.access_token = str(data["accessToken"])
-        self.token_expires_at = time.time() + float(data.get("expiresIn") or 0)
-        self.refresh_token = self._read_refresh_token_cookie()
-        return data
-
-    def refresh(self) -> dict[str, Any]:
-        if not self.refresh_token and not list(self._cookies):
-            raise RuntimeError("No refresh token available, please login again.")
-        data = self.post("/auth/refresh", authorize=False)
-        self.access_token = str(data["accessToken"])
-        self.token_expires_at = time.time() + float(data.get("expiresIn") or 0)
-        self.refresh_token = self._read_refresh_token_cookie() or self.refresh_token
-        return data
+    def set_token(self, token: Optional[str]) -> None:
+        self.access_token = token
 
     def ensure_token(self) -> None:
-        if not self.access_token or time.time() >= self.token_expires_at:
-            self.refresh()
+        if self.access_token:
+            return
+        try:
+            if self.auth_client is None:
+                self.auth_client = AuthClient.create()
+            self.access_token = self.auth_client.get_access_token()
+
+        except Exception as exc:
+            raise RuntimeError("No access token available, please login again.") from exc
 
     def get(self, endpoint: str, params: Optional[dict[str, Any]] = None, *, base_url: Optional[str] = None, authorize: bool = True) -> dict[str, Any]:
         if authorize:
@@ -122,21 +115,16 @@ class UnsClient:
             token=self.access_token if authorize else None,
         )
 
-    def logout(self) -> dict[str, Any]:
-        data = self.post("/auth/logout", authorize=False)
-        self.access_token = None
-        self.refresh_token = None
-        self.token_expires_at = 0.0
-        self._cookies.clear()
-        return data
-
     def last_value(self, topics: str | list[str], *, token: Optional[str] = None) -> Optional[dict[str, dict[str, Any]]]:
         topic_list = [topics] if isinstance(topics, str) else topics
         if not topic_list:
             raise ValueError("topics must contain at least one topic.")
         if len(topic_list) > 500:
             raise ValueError("Maximum 500 topics per request.")
-        effective_token = token or self.access_token
+        effective_token = token
+        if effective_token is None:
+            self.ensure_token()
+            effective_token = self.access_token
         try:
             payload = self._request_json(
                 "POST",
@@ -198,12 +186,6 @@ class UnsClient:
         if not isinstance(parsed, dict):
             raise LastValueClientError("UNS response must be a JSON object.")
         return parsed
-
-    def _read_refresh_token_cookie(self) -> Optional[str]:
-        for cookie in self._cookies:
-            if cookie.name in {"RefreshToken", "rt"}:
-                return cookie.value
-        return None
 
     def _build_url(self, endpoint: str, *, base_url: Optional[str] = None) -> str:
         if endpoint.startswith("http://") or endpoint.startswith("https://"):

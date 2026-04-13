@@ -92,13 +92,14 @@ await proxy.publish_mqtt_message({
 
 ### Datahub client (last value)
 
-`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint.
+`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. For production use, pair it with `AuthClient`, which reads `config.json`, reuses the current token, tries refresh, then falls back to `uns.email` / `uns.password`.
 
 ```python
-from uns_kit import UnsClient
+from pathlib import Path
+from uns_kit import ConfigFile, UnsClient
 
-client = UnsClient("https://datahub.example.com", api_base_path="/api")
-client.login("service@example.com", "password")
+cfg = ConfigFile.load_config(Path("config.json"))
+client = UnsClient(cfg["uns"]["rest"], api_base_path="/api")
 
 values = client.last_value([
     "raw/data/line-1/motor/main/temperature",
