@@ -128,7 +128,7 @@ class UnsClient:
         try:
             payload = self._request_json(
                 "POST",
-                self._build_url("/batch/last"),
+                self._build_url("catchall//batch/last"),
                 body={"topics": topic_list},
                 token=effective_token,
             )

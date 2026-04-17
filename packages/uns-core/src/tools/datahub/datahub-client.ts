@@ -139,7 +139,7 @@ export class UnsClient {
     }
     const token = options.token ?? (await this.ensureToken());
     try {
-      const payload = await this.requestJson("POST", this.buildUrl("/batch/last"), { topics: topicList }, token);
+      const payload = await this.requestJson("POST", this.buildUrl("catchall//batch/last"), { topics: topicList }, token);
       const rawResults = payload.results;
       if (!Array.isArray(rawResults)) {
         throw new LastValueClientError("Last-value response did not include a results array.");
