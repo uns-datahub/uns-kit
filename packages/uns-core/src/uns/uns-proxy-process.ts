@@ -11,6 +11,11 @@ import { PACKAGE_INFO, MQTT_UPDATE_INTERVAL } from "./process-config.js";
 import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
 import { StatusMonitor } from "./status-monitor.js";
 import { UnsPacket } from "./uns-packet.js";
+import {
+  buildUnsServiceMetadata,
+  type UnsServiceMetadata,
+  type UnsServiceMetadataInput,
+} from "./service-metadata.js";
 
 
 /**
@@ -43,6 +48,7 @@ class UnsProxyProcess {
   private processMqttProxy: MqttProxy;
   private handoverManager: HandoverManager;
   private statusMonitor: StatusMonitor;
+  private serviceMetadataTopic: string;
 
   // Plugin
   static pluginApiVersion = 1;
@@ -112,8 +118,10 @@ class UnsProxyProcess {
     const processStatusTopic = topicBuilder.getProcessStatusTopic();
     const handoverTopic = topicBuilder.getHandoverTopic();
     const wildcardActiveTopic = topicBuilder.getWildcardActiveTopic();
+    const serviceMetadataTopic = topicBuilder.getServiceMetadataTopic();
 
     this.processStatusTopic = processStatusTopic;
+    this.serviceMetadataTopic = serviceMetadataTopic;
 
     // Configure MQTT topics for subscription.
     const mqttSubToTopics = unsProxyProcessParameters?.mqttSubToTopics ?? [
@@ -247,6 +255,28 @@ class UnsProxyProcess {
   }
 
   /**
+   * Publishes retained product/system service metadata for controller discovery.
+   *
+   * The payload is intentionally separate from the volatile active/alive status
+   * topics. Controllers can combine this retained identity/capability metadata
+   * with live process status to decide whether a service is currently healthy.
+   */
+  public async publishServiceMetadata(metadata: UnsServiceMetadataInput): Promise<UnsServiceMetadata> {
+    await this.waitForProcessConnection();
+    const resolved = buildUnsServiceMetadata({
+      processName: this.processName,
+      processId: this.processId,
+      metadata,
+    });
+    await this.processMqttProxy.publish(
+      this.serviceMetadataTopic,
+      JSON.stringify(resolved),
+      { retain: true },
+    );
+    return resolved;
+  }
+
+  /**
    * Shuts down the process by clearing intervals, timeouts, and removing
    * MQTT event listeners, and stopping the StatusMonitor.
    */
@@ -278,4 +308,5 @@ class UnsProxyProcess {
 interface UnsProxyProcess {}
 
 export default UnsProxyProcess;
+export type { UnsServiceMetadata, UnsServiceMetadataInput };
 export { UnsProxyProcess };

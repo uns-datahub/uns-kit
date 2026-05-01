@@ -39,6 +39,12 @@ export declare class MqttTopicBuilder {
      */
     getHandoverTopic(): string;
     /**
+     * Returns the retained metadata topic for product/system service discovery.
+     *
+     * Example: "uns-infra/packageName/version/processName/service-metadata"
+     */
+    getServiceMetadataTopic(): string;
+    /**
      * Returns a wildcard topic for active status messages from any process.
      * Useful for subscriptions that must capture status from multiple processes.
      *

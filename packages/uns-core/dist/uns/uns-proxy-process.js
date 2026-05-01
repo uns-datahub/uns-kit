@@ -8,6 +8,7 @@ import { PACKAGE_INFO, MQTT_UPDATE_INTERVAL } from "./process-config.js";
 import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
 import { StatusMonitor } from "./status-monitor.js";
 import { UnsPacket } from "./uns-packet.js";
+import { buildUnsServiceMetadata, } from "./service-metadata.js";
 class UnsProxyProcess {
     active = false;
     processStatusTopic;
@@ -19,6 +20,7 @@ class UnsProxyProcess {
     processMqttProxy;
     handoverManager;
     statusMonitor;
+    serviceMetadataTopic;
     // Plugin
     static pluginApiVersion = 1;
     static registered = new Set();
@@ -82,7 +84,9 @@ class UnsProxyProcess {
         const processStatusTopic = topicBuilder.getProcessStatusTopic();
         const handoverTopic = topicBuilder.getHandoverTopic();
         const wildcardActiveTopic = topicBuilder.getWildcardActiveTopic();
+        const serviceMetadataTopic = topicBuilder.getServiceMetadataTopic();
         this.processStatusTopic = processStatusTopic;
+        this.serviceMetadataTopic = serviceMetadataTopic;
         // Configure MQTT topics for subscription.
         const mqttSubToTopics = unsProxyProcessParameters?.mqttSubToTopics ?? [
             wildcardActiveTopic,
@@ -172,6 +176,23 @@ class UnsProxyProcess {
         while (!this.processMqttProxy?.isConnected) {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
+    }
+    /**
+     * Publishes retained product/system service metadata for controller discovery.
+     *
+     * The payload is intentionally separate from the volatile active/alive status
+     * topics. Controllers can combine this retained identity/capability metadata
+     * with live process status to decide whether a service is currently healthy.
+     */
+    async publishServiceMetadata(metadata) {
+        await this.waitForProcessConnection();
+        const resolved = buildUnsServiceMetadata({
+            processName: this.processName,
+            processId: this.processId,
+            metadata,
+        });
+        await this.processMqttProxy.publish(this.serviceMetadataTopic, JSON.stringify(resolved), { retain: true });
+        return resolved;
     }
     /**
      * Shuts down the process by clearing intervals, timeouts, and removing

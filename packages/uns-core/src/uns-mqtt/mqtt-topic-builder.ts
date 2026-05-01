@@ -62,6 +62,15 @@ export class MqttTopicBuilder {
     public getHandoverTopic(): string {
       return this.getProcessStatusTopic() + "handover";
     }
+
+    /**
+     * Returns the retained metadata topic for product/system service discovery.
+     *
+     * Example: "uns-infra/packageName/version/processName/service-metadata"
+     */
+    public getServiceMetadataTopic(): string {
+      return this.getProcessStatusTopic() + "service-metadata";
+    }
     
     /**
      * Returns a wildcard topic for active status messages from any process.
@@ -89,4 +98,3 @@ export class MqttTopicBuilder {
       return parts.slice(0, 4).join('/') + '/';
     }
   }
-  

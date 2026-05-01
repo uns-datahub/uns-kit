@@ -41,6 +41,29 @@ const config = await ConfigFile.loadConfig();
 const proc = new UnsProxyProcess(config.infra.host!, { processName: config.uns.processName });
 ```
 
+Publish retained service metadata when a runtime should be discoverable by the
+controller as a core service, addon, or built-in capability:
+
+```ts
+await proc.publishServiceMetadata({
+  serviceId: "uns-bridge-mqtt",
+  kind: "addon",
+  addonId: "uns-bridge-mqtt",
+  capabilities: ["mqtt-source-browser", "runtime-mappings"],
+  apiRoutes: [
+    {
+      path: "/api/system/bridge/mqtt/runtime/service/bridge/health",
+      kind: "health",
+    },
+  ],
+});
+```
+
+The metadata is retained on
+`uns-infra/<package>/<version>/<processName>/service-metadata`. Controllers
+combine this identity/capability payload with live process telemetry and route
+health before marking a service healthy.
+
 Extend it with plugins:
 
 ```ts

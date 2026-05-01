@@ -1,5 +1,6 @@
 import { IUnsParameters, IUnsProcessParameters } from "./uns-interfaces.js";
 import UnsMqttProxy from "../uns-mqtt/uns-mqtt-proxy.js";
+import { type UnsServiceMetadata, type UnsServiceMetadataInput } from "./service-metadata.js";
 /**
  * UnsProxyProcess is responsible for managing the process lifecycle,
  * configuring MQTT (subscriptions and publishing for status updates), and
@@ -26,6 +27,7 @@ declare class UnsProxyProcess {
     private processMqttProxy;
     private handoverManager;
     private statusMonitor;
+    private serviceMetadataTopic;
     static pluginApiVersion: number;
     private static registered;
     private static registeredMethodNames;
@@ -46,6 +48,14 @@ declare class UnsProxyProcess {
     createUnsMqttProxy(mqttHost: string, instanceName: string, instanceMode: string, handover: boolean, unsParameters?: IUnsParameters): Promise<UnsMqttProxy>;
     waitForProcessConnection(): Promise<void>;
     /**
+     * Publishes retained product/system service metadata for controller discovery.
+     *
+     * The payload is intentionally separate from the volatile active/alive status
+     * topics. Controllers can combine this retained identity/capability metadata
+     * with live process status to decide whether a service is currently healthy.
+     */
+    publishServiceMetadata(metadata: UnsServiceMetadataInput): Promise<UnsServiceMetadata>;
+    /**
      * Shuts down the process by clearing intervals, timeouts, and removing
      * MQTT event listeners, and stopping the StatusMonitor.
      */
@@ -54,5 +64,6 @@ declare class UnsProxyProcess {
 interface UnsProxyProcess {
 }
 export default UnsProxyProcess;
+export type { UnsServiceMetadata, UnsServiceMetadataInput };
 export { UnsProxyProcess };
 //# sourceMappingURL=uns-proxy-process.d.ts.map
