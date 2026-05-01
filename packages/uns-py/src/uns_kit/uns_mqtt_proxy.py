@@ -100,6 +100,9 @@ class UnsMqttProxy(UnsProxy):
             description = attr.get("description")
             tags = attr.get("tags")
             attribute_needs_persistence = attr.get("attributeNeedsPersistence")
+            validity_mode = attr.get("validityMode")
+            expected_interval_ms = attr.get("expectedIntervalMs")
+            lifecycle_end_value = attr.get("lifecycleEndValue")
 
             message = attr.get("message")
             if message is None:
@@ -133,6 +136,13 @@ class UnsMqttProxy(UnsProxy):
                 "attributeNeedsPersistence": attribute_needs_persistence,
                 "packet": packet,
             }
+
+            if validity_mode is not None:
+                msg["validityMode"] = validity_mode
+            if expected_interval_ms is not None:
+                msg["expectedIntervalMs"] = expected_interval_ms
+            if lifecycle_end_value is not None:
+                msg["lifecycleEndValue"] = lifecycle_end_value
 
             if mode == MessageMode.RAW:
                 await self._process_and_publish(msg, value_is_cumulative=False)
@@ -197,6 +207,13 @@ class UnsMqttProxy(UnsProxy):
                 "tags": msg.get("tags"),
                 "attributeNeedsPersistence": msg.get("attributeNeedsPersistence"),
                 "dataGroup": data_group,
+                **({"validityMode": msg.get("validityMode")} if msg.get("validityMode") is not None else {}),
+                **(
+                    {"expectedIntervalMs": msg.get("expectedIntervalMs")}
+                    if msg.get("expectedIntervalMs") is not None
+                    else {}
+                ),
+                **({"lifecycleEndValue": msg.get("lifecycleEndValue")} if msg.get("lifecycleEndValue") is not None else {}),
             }
         )
 

@@ -1,9 +1,10 @@
 import asyncio
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
 from uns_kit import ConfigFile, UnsProcessParameters, UnsProxyProcess
-from uns_kit.logger import configure_logger, get_logger
+from uns_kit.logger import configure_logger
 
 configure_logger(
     settings={
@@ -11,7 +12,7 @@ configure_logger(
         "console": True,
     }
 )
-log = get_logger(__name__)
+log = logging.getLogger("uns_kit").getChild(__name__)
 
 
 async def run():
@@ -51,6 +52,8 @@ async def run():
                         "uom": "state",
                         "dataGroup": "runtime",
                     },
+                    "validityMode": "lifecycle",
+                    "lifecycleEndValue": "stopped",
                 },
             }
         )

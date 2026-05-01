@@ -19,6 +19,18 @@ poetry run uns-kit-py publish --host localhost:1883 --topic raw/data/ --value 1
 poetry run uns-kit-py subscribe --host localhost:1883 --topic 'uns-infra/#'
 ```
 
+Feature-specific dependencies are exposed as optional extras:
+```bash
+pip install "uns-kit[api]"
+pip install "uns-kit[cron]"
+pip install "uns-kit[api,cron]"
+```
+
+Runtime feature APIs mirror the TypeScript surface:
+- `await process.create_api_proxy(...)`
+- `await process.create_cron_proxy(...)`
+- TS-style aliases are also available: `createApiProxy(...)`, `createCrontabProxy(...)`
+
 ## Quick start
 ```python
 import asyncio
@@ -55,6 +67,46 @@ If your service publishes UNS topics, prefer:
 - `await proxy.publish_mqtt_message(...)`
 
 That is the default application pattern for generated Python services and the path that also maintains the retained `.../topics` registry used for discovery. Direct `UnsMqttClient` publishing is lower-level and should not be the default service pattern unless you have a specific reason.
+
+### Validity / Liveliness
+
+UNS attributes can declare how the controller decides whether they are live or stale; in most apps this is primarily used to drive UI liveliness/activity indicators. In app-level modeling we use two modes only:
+
+- `interval`: continuously refreshed values (stale after ~2× `expectedIntervalMs`)
+- `lifecycle`: event-driven activity that stays active until a defined end value (`lifecycleEndValue`)
+
+```python
+await proxy.publish_mqtt_message({
+    "topic": "raw/data/",
+    "asset": "line-1",
+    "objectType": "motor",
+    "objectId": "main",
+    "attributes": {
+        "attribute": "status",
+        "data": {"time": "2025-01-01T00:00:00Z", "value": "RUNNING"},
+        "validityMode": "lifecycle",
+        "lifecycleEndValue": "STOPPED",
+    },
+})
+```
+
+### Datahub client (last value)
+
+`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. For production use, pair it with `AuthClient`, which reads `config.json`, reuses the current token, tries refresh, then falls back to `uns.email` / `uns.password`.
+
+```python
+from pathlib import Path
+from uns_kit import ConfigFile, UnsClient
+
+cfg = ConfigFile.load_config(Path("config.json"))
+client = UnsClient(cfg["uns"]["rest"], api_base_path="/api")
+
+values = client.last_value([
+    "raw/data/line-1/motor/main/temperature",
+    "raw/data/line-1/motor/main/status",
+])
+print(values)
+```
 
 ## Config placeholders (env + Infisical)
 `uns-py` now resolves config placeholders in the same style as `uns-core`.
@@ -119,6 +171,12 @@ uns-kit-py create my-uns-py-app
 cd my-uns-py-app
 poetry install
 poetry run python main.py
+```
+
+To add optional feature scaffolding later:
+```bash
+poetry run uns-kit-py configure-api .
+poetry run uns-kit-py configure-cron .
 ```
 
 ### Create a new project from a service bundle

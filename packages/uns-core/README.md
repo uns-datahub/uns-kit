@@ -79,6 +79,46 @@ const api  = await proc.createApiProxy("my-service", { jwtSecret: "CHANGEME" });
 const cron = await proc.createCrontabProxy("*/5 * * * *", { event: "tick" });
 ```
 
+## Datahub client (last value)
+
+`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. Prefer a long-lived service token if available; you can pass it directly and skip username/password auth.
+
+```ts
+import { UnsClient } from "@uns-kit/core";
+
+const client = new UnsClient("https://datahub.example.com", {
+  token: process.env.UNS_SERVICE_TOKEN,
+});
+
+const values = await client.lastValue([
+  "raw/data/line-1/motor/main/temperature",
+  "raw/data/line-1/motor/main/status",
+]);
+console.log(values);
+```
+
+## Validity / Liveliness
+
+UNS attributes can declare how the controller decides whether they are live or stale; in most apps this is primarily used to drive UI liveliness/activity indicators. In app-level modeling we use two modes only:
+
+- `interval`: continuously refreshed values (stale after ~2× `expectedIntervalMs`)
+- `lifecycle`: event-driven activity that stays active until a defined end value (`lifecycleEndValue`)
+
+```ts
+await proxy.publishMqttMessage({
+  topic: "raw/data/",
+  asset: "line-1",
+  objectType: "motor",
+  objectId: "main",
+  attributes: {
+    attribute: "status",
+    data: { time: new Date().toISOString(), value: "RUNNING" },
+    validityMode: "lifecycle",
+    lifecycleEndValue: "STOPPED",
+  },
+});
+```
+
 ## Sync UNS schema from the controller
 
 `sync-uns-schema` fetches the canonical UNS dictionary and measurements from the controller REST API and refreshes local JSON files and generated TypeScript artifacts.
