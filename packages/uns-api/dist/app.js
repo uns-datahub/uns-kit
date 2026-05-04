@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import { basePath } from "@uns-kit/core/base-path.js";
 import logger from "@uns-kit/core/logger.js";
 import os from 'os';
+import { logRequestContext } from "./request-log.js";
 const normalizeBasePrefix = (value) => {
     if (!value)
         return "";
@@ -67,10 +68,7 @@ export default class App {
             : process.env.PUBLIC_HOME;
         this.expressApplication.use(express.static(path.join(basePath, publicHome)));
         // Map routes
-        this.router.use((_req, _res, next) => {
-            logger.info("Time: ", Date.now());
-            next();
-        });
+        this.router.use(logRequestContext);
         if (!mountConfig?.disableDefaultApiMount) {
             this.expressApplication.use(this.apiBasePrefix, this.router);
         }

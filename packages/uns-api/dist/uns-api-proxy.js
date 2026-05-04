@@ -44,7 +44,7 @@ export default class UnsApiProxy extends UnsProxy {
     catchAllRouteRegistered = false;
     startedAt;
     statusInterval = null;
-    statusIntervalMs = 10_000;
+    statusIntervalMs = 10000;
     constructor(processName, instanceName, options) {
         super();
         this.options = options;

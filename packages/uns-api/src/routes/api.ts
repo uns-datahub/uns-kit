@@ -1,4 +1,4 @@
-import express, { type NextFunction, type Request, type Response, type Router } from "express";
+import express, { type Response, type Router } from "express";
 import multer from "multer";
 import logger from "@uns-kit/core/logger.js";
 
@@ -21,17 +21,6 @@ export default class Api {
     this.upload = multer({ storage: storage });
 
     this.router = express.Router();
-    this.router.use(
-      (
-        req: Request,
-        res: Response,
-        next: NextFunction
-      ) => {
-        logger.info("Time: ", Date.now());
-        next();
-      }
-    );
-
 
     /**
      * Open for all

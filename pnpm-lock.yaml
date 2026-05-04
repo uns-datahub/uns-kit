@@ -209,6 +209,9 @@ importers:
 
   sandbox-app:
     dependencies:
+      '@uns-kit/api':
+        specifier: workspace:^
+        version: link:../packages/uns-api
       '@uns-kit/core':
         specifier: workspace:^
         version: link:../packages/uns-core

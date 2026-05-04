@@ -16,10 +16,6 @@ export default class Api {
         });
         this.upload = multer({ storage: storage });
         this.router = express.Router();
-        this.router.use((req, res, next) => {
-            logger.info("Time: ", Date.now());
-            next();
-        });
         /**
          * Open for all
          *

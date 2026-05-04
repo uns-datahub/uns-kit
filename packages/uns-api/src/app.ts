@@ -1,13 +1,14 @@
 /**
  * Module dependencies.
  */
-import express, { type Application, type NextFunction, type Request, type Response, type Router } from "express";
+import express, { type Application, type NextFunction, type Response, type Router } from "express";
 import * as http from "http";
 import * as path from "path";
 import cookieParser from "cookie-parser";
 import { basePath } from "@uns-kit/core/base-path.js";
 import logger from "@uns-kit/core/logger.js";
 import os from 'os';
+import { logRequestContext } from "./request-log.js";
 
 type MountConfig = {
   apiBasePrefix?: string;
@@ -96,16 +97,7 @@ export default class App {
     );
 
     // Map routes
-    this.router.use(
-      (
-        _req: Request,
-        _res: Response,
-        next: NextFunction
-      ) => {
-        logger.info("Time: ", Date.now());
-        next();
-      }
-    );    
+    this.router.use(logRequestContext);
     if (!mountConfig?.disableDefaultApiMount) {
       this.expressApplication.use(this.apiBasePrefix, this.router);
     }

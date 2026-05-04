@@ -1,3 +1,4 @@
+/// <reference types="node" resolution-mode="require"/>
 /**
  * Module dependencies.
  */
@@ -38,9 +39,9 @@ export default class App {
             version: string;
         };
         paths: Record<string, any>;
-        servers?: Array<{
+        servers?: {
             url: string;
-        }>;
+        }[];
     };
     registerSwaggerDoc(path: string, doc: Record<string, unknown>): void;
     start(): Promise<void>;
