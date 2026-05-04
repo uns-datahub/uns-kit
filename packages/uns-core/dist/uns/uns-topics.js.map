@@ -1,1 +1,1 @@
-{"version":3,"file":"uns-topics.js","sourceRoot":"","sources":["../../src/uns/uns-topics.ts"],"names":[],"mappings":"","sourcesContent":["export type UnsTopics = \"\" |\r\n(string & {});"]}
+{"version":3,"file":"uns-topics.js","sourceRoot":"","sources":["../../src/uns/uns-topics.ts"],"names":[],"mappings":"","sourcesContent":["export type UnsTopics = \"\" |\n(string & {});"]}
