@@ -655,6 +655,28 @@ export declare const unsCoreSchema: z.ZodObject<{
         instanceMode: z.ZodDefault<z.ZodEnum<["wait", "force", "handover"]>>;
         processName: z.ZodString;
         handover: z.ZodDefault<z.ZodBoolean>;
+        supervisor: z.ZodOptional<z.ZodObject<{
+            enabled: z.ZodDefault<z.ZodBoolean>;
+            restartOnExit: z.ZodDefault<z.ZodBoolean>;
+            maxMemoryMb: z.ZodOptional<z.ZodNumber>;
+            restartOnUnhealthy: z.ZodDefault<z.ZodBoolean>;
+            unhealthyAfterMs: z.ZodDefault<z.ZodNumber>;
+            restartCooldownMs: z.ZodDefault<z.ZodNumber>;
+        }, "strict", z.ZodTypeAny, {
+            enabled?: boolean;
+            restartOnExit?: boolean;
+            maxMemoryMb?: number;
+            restartOnUnhealthy?: boolean;
+            unhealthyAfterMs?: number;
+            restartCooldownMs?: number;
+        }, {
+            enabled?: boolean;
+            restartOnExit?: boolean;
+            maxMemoryMb?: number;
+            restartOnUnhealthy?: boolean;
+            unhealthyAfterMs?: number;
+            restartCooldownMs?: number;
+        }>>;
         jwksWellKnownUrl: z.ZodOptional<z.ZodString>;
         kidWellKnownUrl: z.ZodOptional<z.ZodString>;
         env: z.ZodDefault<z.ZodEnum<["dev", "staging", "test", "prod"]>>;
@@ -680,6 +702,14 @@ export declare const unsCoreSchema: z.ZodObject<{
         graphql?: string;
         rest?: string;
         instanceMode?: "wait" | "force" | "handover";
+        supervisor?: {
+            enabled?: boolean;
+            restartOnExit?: boolean;
+            maxMemoryMb?: number;
+            restartOnUnhealthy?: boolean;
+            unhealthyAfterMs?: number;
+            restartCooldownMs?: number;
+        };
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     }, {
@@ -704,6 +734,14 @@ export declare const unsCoreSchema: z.ZodObject<{
         graphql?: string;
         rest?: string;
         instanceMode?: "wait" | "force" | "handover";
+        supervisor?: {
+            enabled?: boolean;
+            restartOnExit?: boolean;
+            maxMemoryMb?: number;
+            restartOnUnhealthy?: boolean;
+            unhealthyAfterMs?: number;
+            restartCooldownMs?: number;
+        };
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     }>;
@@ -2653,6 +2691,14 @@ export declare const unsCoreSchema: z.ZodObject<{
         graphql?: string;
         rest?: string;
         instanceMode?: "wait" | "force" | "handover";
+        supervisor?: {
+            enabled?: boolean;
+            restartOnExit?: boolean;
+            maxMemoryMb?: number;
+            restartOnUnhealthy?: boolean;
+            unhealthyAfterMs?: number;
+            restartCooldownMs?: number;
+        };
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     };
@@ -2974,6 +3020,14 @@ export declare const unsCoreSchema: z.ZodObject<{
         graphql?: string;
         rest?: string;
         instanceMode?: "wait" | "force" | "handover";
+        supervisor?: {
+            enabled?: boolean;
+            restartOnExit?: boolean;
+            maxMemoryMb?: number;
+            restartOnUnhealthy?: boolean;
+            unhealthyAfterMs?: number;
+            restartCooldownMs?: number;
+        };
         jwksWellKnownUrl?: string;
         kidWellKnownUrl?: string;
     };

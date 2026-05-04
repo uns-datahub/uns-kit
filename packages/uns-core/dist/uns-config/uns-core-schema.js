@@ -26,6 +26,38 @@ const loggingLevelSchema = z.enum([
     "debug",
     "silly",
 ]);
+const supervisorSchema = z.object({
+    enabled: z
+        .boolean()
+        .default(false)
+        .describe("Enable controller/PM2 supervisor handling for this RTT instance."),
+    restartOnExit: z
+        .boolean()
+        .default(false)
+        .describe("Let PM2 restart the process when it exits unexpectedly."),
+    maxMemoryMb: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Optional PM2 memory restart limit in megabytes."),
+    restartOnUnhealthy: z
+        .boolean()
+        .default(false)
+        .describe("Let the controller auto-start this instance when required system-service runtime signals are absent."),
+    unhealthyAfterMs: z
+        .number()
+        .int()
+        .positive()
+        .default(60_000)
+        .describe("How long runtime signals must stay unhealthy before the controller supervisor can act."),
+    restartCooldownMs: z
+        .number()
+        .int()
+        .positive()
+        .default(300_000)
+        .describe("Minimum time between controller supervisor restart attempts for this instance."),
+}).strict().describe("Optional PM2/controller supervisor guard settings for this RTT instance.");
 export const mqttChannelSchema = z.object({
     host: hostValueSchema.optional(),
     hosts: z.array(hostValueSchema).optional(),
@@ -65,6 +97,7 @@ export const unsCoreSchema = z.object({
             .min(1)
             .describe("Process name used in MQTT topics and logs."),
         handover: z.boolean().default(true),
+        supervisor: supervisorSchema.optional(),
         jwksWellKnownUrl: z.string().url().optional(),
         kidWellKnownUrl: z.string().url().optional(),
         env: z.enum(["dev", "staging", "test", "prod"]).default("dev"),
