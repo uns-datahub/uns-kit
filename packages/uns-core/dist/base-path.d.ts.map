@@ -1,1 +1,0 @@
-{"version":3,"file":"base-path.d.ts","sourceRoot":"","sources":["../src/base-path.ts"],"names":[],"mappings":"AAsDA,MAAM,WAAW,sBAAsB;IACrC,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,WAAW,CAAC,EAAE,MAAM,GAAG,IAAI,CAAC;IAC5B,GAAG,CAAC,EAAE,MAAM,CAAC;CACd;AAED,wBAAgB,eAAe,CAAC,OAAO,GAAE,sBAA2B,GAAG,MAAM,CAa5E;AAED,eAAO,MAAM,QAAQ,QAAoB,CAAC"}
