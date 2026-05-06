@@ -1,1 +1,1 @@
-{"version":3,"file":"uns-tags.js","sourceRoot":"","sources":["../../src/uns/uns-tags.ts"],"names":[],"mappings":"","sourcesContent":["export type UnsTags = \"\" |\r\n(string & {});"]}
+{"version":3,"file":"uns-tags.js","sourceRoot":"","sources":["../../src/uns/uns-tags.ts"],"names":[],"mappings":"","sourcesContent":["export type UnsTags = \"\" |\n(string & {});"]}

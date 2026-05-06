@@ -10,6 +10,21 @@ export interface ProjectAppConfig {
         /** Process name used in MQTT topics and logs. */
         processName: string;
         handover?: boolean;
+        /** Optional PM2/controller supervisor guard settings for this RTT instance. */
+        supervisor?: {
+            /** Enable controller/PM2 supervisor handling for this RTT instance. */
+            enabled?: boolean;
+            /** Let PM2 restart the process when it exits unexpectedly. */
+            restartOnExit?: boolean;
+            /** Optional PM2 memory restart limit in megabytes. */
+            maxMemoryMb?: number | undefined;
+            /** Let the controller auto-start this instance when required system-service runtime signals are absent. */
+            restartOnUnhealthy?: boolean;
+            /** How long runtime signals must stay unhealthy before the controller supervisor can act. */
+            unhealthyAfterMs?: number;
+            /** Minimum time between controller supervisor restart attempts for this instance. */
+            restartCooldownMs?: number;
+        } | undefined;
         jwksWellKnownUrl?: string | undefined;
         kidWellKnownUrl?: string | undefined;
         env?: "dev" | "staging" | "test" | "prod";

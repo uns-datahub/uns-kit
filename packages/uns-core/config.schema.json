@@ -122,6 +122,45 @@
               "type": "boolean",
               "default": true
             },
+            "supervisor": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Enable controller/PM2 supervisor handling for this RTT instance."
+                },
+                "restartOnExit": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Let PM2 restart the process when it exits unexpectedly."
+                },
+                "maxMemoryMb": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "description": "Optional PM2 memory restart limit in megabytes."
+                },
+                "restartOnUnhealthy": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Let the controller auto-start this instance when required system-service runtime signals are absent."
+                },
+                "unhealthyAfterMs": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "default": 60000,
+                  "description": "How long runtime signals must stay unhealthy before the controller supervisor can act."
+                },
+                "restartCooldownMs": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "default": 300000,
+                  "description": "Minimum time between controller supervisor restart attempts for this instance."
+                }
+              },
+              "additionalProperties": false,
+              "description": "Optional PM2/controller supervisor guard settings for this RTT instance."
+            },
             "jwksWellKnownUrl": {
               "type": "string",
               "format": "uri"
