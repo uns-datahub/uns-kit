@@ -40,6 +40,8 @@ def test_create_from_valid_python_bundle(tmp_path: Path, monkeypatch) -> None:
     assert config["devops"]["provider"] == "azure-devops"
     assert config["devops"]["organization"] == "sijit"
     assert config["devops"]["project"] == "industry40"
+    assert config["uns"]["supervisor"]["enabled"] is False
+    assert config["uns"]["supervisor"]["maxMemoryMb"] == 512
 
 
 def test_create_rejects_invalid_bundle(tmp_path: Path, monkeypatch) -> None:
@@ -163,6 +165,7 @@ def test_generate_config_schema_merges_project_extension(tmp_path: Path, monkeyp
     assert "service" in schema["properties"]
     assert "service" in schema["required"]
     assert schema["properties"]["service"]["required"] == ["mode"]
+    assert "supervisor" in schema["properties"]["uns"]["properties"]
 
 
 def test_configure_vscode_adds_json_schema_mapping(tmp_path: Path, monkeypatch) -> None:

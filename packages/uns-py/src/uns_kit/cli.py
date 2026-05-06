@@ -469,6 +469,14 @@ def _write_config_file(path: Path, project_name: Optional[str] = None) -> None:
             "email": "user@example.com",
             "password": "change-me",
             "processName": sanitized,
+            "supervisor": {
+                "enabled": False,
+                "restartOnExit": False,
+                "maxMemoryMb": 512,
+                "restartOnUnhealthy": False,
+                "unhealthyAfterMs": 60000,
+                "restartCooldownMs": 300000,
+            },
         },
     }
     path.write_text(json.dumps(data, indent=2) + "\n")

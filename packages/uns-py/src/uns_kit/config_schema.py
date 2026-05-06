@@ -243,6 +243,38 @@ secret_value_schema = any_of(
 
 _mqtt_protocol_schema = enum_schema(["mqtt", "mqtts", "ws", "wss", "tcp", "ssl"])
 
+_supervisor_schema = strict_object(
+    {
+        "enabled": boolean_schema(
+            default=False,
+            description="Enable controller/PM2 supervisor handling for this RTT instance.",
+        ),
+        "restartOnExit": boolean_schema(
+            default=False,
+            description="Let PM2 restart the process when it exits unexpectedly.",
+        ),
+        "maxMemoryMb": integer_schema(
+            exclusive_minimum=0,
+            description="Optional PM2 memory restart limit in megabytes.",
+        ),
+        "restartOnUnhealthy": boolean_schema(
+            default=False,
+            description="Let the controller auto-start this instance when required system-service runtime signals are absent.",
+        ),
+        "unhealthyAfterMs": integer_schema(
+            exclusive_minimum=0,
+            default=60_000,
+            description="How long runtime signals must stay unhealthy before the controller supervisor can act.",
+        ),
+        "restartCooldownMs": integer_schema(
+            exclusive_minimum=0,
+            default=300_000,
+            description="Minimum time between controller supervisor restart attempts for this instance.",
+        ),
+    },
+    description="Optional PM2/controller supervisor guard settings for this RTT instance.",
+)
+
 _mqtt_server_schema = strict_object(
     {
         "host": host_value_schema,
@@ -324,6 +356,7 @@ base_config_schema = {
                         description="Process name used in MQTT topics and logs.",
                     ),
                     "handover": boolean_schema(default=True),
+                    "supervisor": _supervisor_schema,
                     "jwksWellKnownUrl": string_schema(fmt="uri"),
                     "kidWellKnownUrl": string_schema(fmt="uri"),
                     "env": enum_schema(["dev", "staging", "test", "prod"], default="dev"),
