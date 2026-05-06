@@ -6,6 +6,14 @@
   "editor.codeActionsOnSave": {
     "source.organizeImports": true
   },
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "config.json"
+      ],
+      "url": "./config.schema.json"
+    }
+  ],
   "ruff.enable": true,
   "ruff.organizeImports": true
 }

@@ -92,3 +92,12 @@ The default `main.py` starts an `UnsProxyProcess`, creates an output proxy, and 
 
 ## Config
 Edit `config.json` with your MQTT host/auth (TS-style nested infra/uns structure).
+
+## Extend the config schema
+Edit `src/config/project_config_extension.py` and run:
+
+```bash
+poetry run uns-kit-py generate-config-schema
+```
+
+This regenerates `config.schema.json` so editors can show completions, required-field errors, and validation in `config.json`.

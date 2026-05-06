@@ -154,6 +154,15 @@ resolved = ConfigFile.load_config(
 )
 ```
 
+## Extend the config schema
+Edit `src/config/project_config_extension.py` inside your Python project and run:
+
+```bash
+poetry run uns-kit-py generate-config-schema
+```
+
+This regenerates `config.schema.json` so editors can validate `config.json`, flag missing required fields, and offer completions for project-specific sections.
+
 ### Resilient subscriber
 ```python
 async for msg in client.resilient_messages("uns-infra/#"):

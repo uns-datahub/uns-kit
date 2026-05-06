@@ -23,6 +23,7 @@ from .service_bundle import (
     generate_service_spec_markdown,
     load_service_bundle,
 )
+from .config_schema import generate_config_schema
 from .topic_builder import TopicBuilder
 from .version import __package_name__, __version__
 
@@ -210,6 +211,7 @@ def _scaffold_python_project(target_path: Path, project_name: str, *, allow_exis
 
     config_path = target_path / "config.json"
     _write_config_file(config_path, project_name)
+    generate_config_schema(target_path)
 
     if pyproject_path.exists():
         try:
@@ -462,10 +464,22 @@ def _write_config_file(path: Path, project_name: Optional[str] = None) -> None:
             "clean": True,
         },
         "uns": {
+            "graphql": "http://localhost:3200/graphql",
+            "rest": "http://localhost:3200/api",
+            "email": "user@example.com",
+            "password": "change-me",
             "processName": sanitized,
         },
     }
-    path.write_text(json.dumps(data, indent=2))
+    path.write_text(json.dumps(data, indent=2) + "\n")
+
+
+@cli.command("generate-config-schema", help="Generate config.schema.json from the core schema and project extension.")
+@click.argument("dest", required=False, default=".")
+def generate_config_schema_cmd(dest: str):
+    dest_path = Path(dest).resolve()
+    output_path = generate_config_schema(dest_path)
+    click.echo(f"Generated {output_path}")
 
 
 @cli.command("configure-api", help="Copy UNS API examples and add the uns-kit api extra.")
@@ -567,8 +581,32 @@ def _apply_vscode_configuration(dest_path: Path, overwrite: bool) -> None:
             shutil.copyfileobj(src_handle, dst_handle)
         click.echo(f"Wrote {dst}")
 
+    _merge_vscode_schema_mapping(vscode_dir / "settings.json")
     _write_workspace_file(dest_path, overwrite)
     click.echo("VS Code configuration complete.")
+
+
+def _merge_vscode_schema_mapping(settings_path: Path) -> None:
+    settings: dict[str, Any] = {}
+    if settings_path.exists():
+        try:
+            settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise click.ClickException(f"Expected valid JSON in {settings_path}: {exc}") from exc
+        if not isinstance(settings, dict):
+            raise click.ClickException(f"Expected a JSON object in {settings_path}.")
+
+    schemas = settings.setdefault("json.schemas", [])
+    if not isinstance(schemas, list):
+        raise click.ClickException(f"Expected json.schemas to be an array in {settings_path}.")
+
+    mapping = {
+        "fileMatch": ["config.json"],
+        "url": "./config.schema.json",
+    }
+    if mapping not in schemas:
+        schemas.append(mapping)
+        settings_path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
 
 
 def _write_workspace_file(dest_path: Path, overwrite: bool) -> None:

@@ -5,6 +5,18 @@ from importlib import import_module
 from typing import TYPE_CHECKING
 
 from .config_file import ConfigFile
+from .config_schema import (
+    base_config_schema,
+    boolean_schema,
+    compose_config_schema,
+    generate_config_schema,
+    host_value_schema,
+    integer_schema,
+    load_project_extras_schema,
+    secret_value_schema,
+    strict_object,
+    string_schema,
+)
 from .packet import DataPayload, TablePayload, UnsPacket
 from .runtime_metadata import RUNTIME_METADATA
 from .secret_resolver import (
@@ -44,6 +56,16 @@ __all__ = [
     "DataPayload",
     "TablePayload",
     "ConfigFile",
+    "base_config_schema",
+    "compose_config_schema",
+    "generate_config_schema",
+    "load_project_extras_schema",
+    "strict_object",
+    "string_schema",
+    "integer_schema",
+    "boolean_schema",
+    "host_value_schema",
+    "secret_value_schema",
     "RUNTIME_METADATA",
     "SecretResolverOptions",
     "InfisicalResolverOptions",

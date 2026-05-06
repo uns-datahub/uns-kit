@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 
 from click.testing import CliRunner
 
@@ -25,6 +26,8 @@ def test_create_from_valid_python_bundle(tmp_path: Path, monkeypatch) -> None:
     assert (target / "AGENTS.md").exists()
     assert (target / ".vscode" / "settings.json").exists()
     assert (target / "azure-pipelines.yml").exists()
+    assert (target / "config.schema.json").exists()
+    assert (target / "src" / "config" / "project_config_extension.py").exists()
 
     assert (target / "service.bundle.json").read_text() == bundle_path.read_text()
     assert "UNS Example Service" in (target / "SERVICE_SPEC.md").read_text()
@@ -123,7 +126,59 @@ def test_legacy_create_name_still_works(tmp_path: Path, monkeypatch) -> None:
 
     assert result.exit_code == 0, result.output
     assert (tmp_path / "legacy-app" / "pyproject.toml").exists()
+    assert (tmp_path / "legacy-app" / "config.schema.json").exists()
     assert not (tmp_path / "legacy-app" / "service.bundle.json").exists()
+
+
+def test_generate_config_schema_merges_project_extension(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["create", "legacy-app"])
+    assert result.exit_code == 0, result.output
+
+    extension_path = tmp_path / "legacy-app" / "src" / "config" / "project_config_extension.py"
+    extension_path.write_text(
+        "\n".join(
+            [
+                "from uns_kit.config_schema import strict_object, string_schema",
+                "",
+                "project_extras_schema = strict_object(",
+                "    {",
+                '        "service": strict_object(',
+                '            {"mode": string_schema(enum=["demo", "prod"])},',
+                '            required=["mode"],',
+                "        )",
+                "    },",
+                '    required=["service"],',
+                ")",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    generate_result = CliRunner().invoke(cli, ["generate-config-schema", str(tmp_path / "legacy-app")])
+    assert generate_result.exit_code == 0, generate_result.output
+
+    schema = json.loads((tmp_path / "legacy-app" / "config.schema.json").read_text())
+    assert "service" in schema["properties"]
+    assert "service" in schema["required"]
+    assert schema["properties"]["service"]["required"] == ["mode"]
+
+
+def test_configure_vscode_adds_json_schema_mapping(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["create", "legacy-app"])
+    assert result.exit_code == 0, result.output
+
+    vscode_dir = tmp_path / "legacy-app" / ".vscode"
+    if vscode_dir.exists():
+        shutil.rmtree(vscode_dir)
+
+    vscode_result = CliRunner().invoke(cli, ["configure-vscode", str(tmp_path / "legacy-app")])
+    assert vscode_result.exit_code == 0, vscode_result.output
+
+    settings = json.loads((vscode_dir / "settings.json").read_text())
+    assert {"fileMatch": ["config.json"], "url": "./config.schema.json"} in settings["json.schemas"]
 
 
 def test_legacy_create_uses_proxy_based_uns_publishing_pattern(tmp_path: Path, monkeypatch) -> None:
