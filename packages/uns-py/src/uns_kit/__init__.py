@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from .auth_client import AuthClient
     from .api_proxy import ApiEventContext, ApiProxyOptions, GetEndpointOptions, PostEndpointOptions, QueryParamDef, UnsApiProxy
     from .cron_proxy import CronProxyOptions, CronSchedule, UnsCronProxy
-    from .datahub_client import BatchRangeResponse, BatchRangeTopicResult, LastValueClientError, LastValueResult, RangeResult, UnsClient
+    from .datahub_client import BatchRangeResponse, BatchRangeTopicResult, ClientError, LastValueResult, RangeResult, RawResponse, UnsClient
     from .proxy_process import UnsParameters, UnsProcessParameters, UnsProxyProcess
     from .status_monitor import StatusMonitor
     from .uns_mqtt_proxy import MessageMode, UnsMqttProxy
@@ -90,11 +90,12 @@ __all__ = [
     "CronSchedule",
     "UnsClient",
     "AuthClient",
+    "RawResponse",
     "RangeResult",
     "BatchRangeTopicResult",
     "BatchRangeResponse",
     "LastValueResult",
-    "LastValueClientError",
+    "ClientError",
     "build_uns_identity_path",
     "build_uns_route_path",
     "client",  # for backward compatibility
@@ -119,11 +120,12 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "CronSchedule": ("uns_kit.cron_proxy", "CronSchedule"),
     "UnsClient": ("uns_kit.datahub_client", "UnsClient"),
     "AuthClient": ("uns_kit.auth_client", "AuthClient"),
+    "RawResponse": ("uns_kit.datahub_client", "RawResponse"),
     "RangeResult": ("uns_kit.datahub_client", "RangeResult"),
     "BatchRangeTopicResult": ("uns_kit.datahub_client", "BatchRangeTopicResult"),
     "BatchRangeResponse": ("uns_kit.datahub_client", "BatchRangeResponse"),
     "LastValueResult": ("uns_kit.datahub_client", "LastValueResult"),
-    "LastValueClientError": ("uns_kit.datahub_client", "LastValueClientError"),
+    "ClientError": ("uns_kit.datahub_client", "ClientError"),
     "build_uns_identity_path": ("uns_kit.uns_path", "build_uns_identity_path"),
     "build_uns_route_path": ("uns_kit.uns_path", "build_uns_route_path"),
 }
@@ -143,3 +145,4 @@ def __getattr__(name: str):
     value = getattr(module, attr)
     globals()[name] = value
     return value
+

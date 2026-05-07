@@ -121,9 +121,10 @@ describe("UnsClient datahub endpoints", () => {
     const response = await client.getData("/projects/project-name/path-to-data/data", {
       fromDate: "20260325",
     });
+    const payload = await response.json();
 
     expect(receivedUrl).toBe("/api/projects/project-name/path-to-data/data?fromDate=20260325");
-    expect(response.items).toEqual([{ id: "pdo-1", grade: "A" }]);
+    expect(payload.items).toEqual([{ id: "pdo-1", grade: "A" }]);
   });
 
   it("fetches history results with request metadata", async () => {

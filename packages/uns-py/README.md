@@ -95,6 +95,7 @@ await proxy.publish_mqtt_message({
 `UnsClient` provides a minimal REST client for the UNS Datahub API, including batch last-value, single-topic catch-all history, and batch range endpoints. For production use, pair it with `AuthClient`, which reads `config.json`, reuses the current token, tries refresh, then falls back to `uns.email` / `uns.password`.
 
 ```python
+import pandas as pd
 from pathlib import Path
 from uns_kit import ConfigFile, UnsClient
 
@@ -123,7 +124,10 @@ custom_data = client.get_data(
     "/projects/project-name/path-to-data/data",
     params={"fromDate": "20260325"},
 )
-print(custom_data)
+print(custom_data.json())
+
+df = pd.read_parquet(custom_data.content)
+print(df)
 
 batch_history = client.history(
     [

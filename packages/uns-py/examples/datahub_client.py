@@ -40,7 +40,7 @@ def main() -> None:
         params={"fromDate": "20260325"},
     )
     print("get_data:")
-    print(custom_data)
+    print(custom_data.json())
     print()
 
     history = client.history(

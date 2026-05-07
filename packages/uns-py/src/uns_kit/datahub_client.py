@@ -163,10 +163,24 @@ class BatchRangeResponse:
         }
 
 
-class LastValueClientError(RuntimeError):
+class ClientError(RuntimeError):
     def __init__(self, message: str, *, status_code: Optional[int] = None) -> None:
         super().__init__(message)
         self.status_code = status_code
+
+
+@dataclass(frozen=True)
+class RawResponse:
+    status_code: int
+    headers: dict[str, str]
+    content: bytes
+
+    @property
+    def text(self) -> str:
+        return self.content.decode("utf-8", errors="replace")
+
+    def json(self) -> Any:
+        return json.loads(self.text) if self.content else None
 
 
 class UnsClient:
@@ -206,12 +220,12 @@ class UnsClient:
         except Exception as exc:
             raise RuntimeError("No access token available, please login again.") from exc
 
-    def get(self, endpoint: str, params: Optional[dict[str, Any]] = None, *, base_url: Optional[str] = None, authorize: bool = True) -> dict[str, Any]:
+    def get(self, endpoint: str, params: Optional[dict[str, Any]] = None, *, base_url: Optional[str] = None, authorize: bool = True) -> RawResponse:
         if authorize:
             self.ensure_token()
         query = urllib.parse.urlencode(params or {})
         suffix = f"?{query}" if query else ""
-        return self._request_json(
+        return self._request(
             "GET",
             f"{self._build_url(endpoint, base_url=base_url)}{suffix}",
             token=self.access_token if authorize else None,
@@ -234,7 +248,7 @@ class UnsClient:
         *,
         base_url: Optional[str] = None,
         authorize: bool = True,
-    ) -> dict[str, Any]:
+    ) -> RawResponse:
         return self.get(endpoint, params, base_url=base_url, authorize=authorize)
 
     def last_value(self, topics: str | list[str], *, token: Optional[str] = None) -> Optional[dict[str, dict[str, Any]]]:
@@ -254,13 +268,13 @@ class UnsClient:
                 body={"topics": topic_list},
                 token=effective_token,
             )
-        except LastValueClientError as exc:
+        except ClientError as exc:
             if exc.status_code == 404:
                 return None
             raise
         raw_results = payload.get("results")
         if not isinstance(raw_results, list):
-            raise LastValueClientError("Last-value response did not include a results array.")
+            raise ClientError("Last-value response did not include a results array.")
         results = [
             LastValueResult.from_mapping(item)
             for item in raw_results
@@ -283,7 +297,7 @@ class UnsClient:
         url = f"{self._build_url(f'catchall/{encoded_topic_path}')}{self._build_query_suffix(self._normalize_range_query(query))}"
         try:
             payload = self._request_json("GET", url, token=effective_token)
-        except LastValueClientError as exc:
+        except ClientError as exc:
             if exc.status_code == 404:
                 return None
             raise
@@ -312,13 +326,13 @@ class UnsClient:
                 body={"topics": topic_list, **self._normalize_range_query(query)},
                 token=effective_token,
             )
-        except LastValueClientError as exc:
+        except ClientError as exc:
             if exc.status_code == 404:
                 return None
             raise
         raw_results = payload.get("results")
         if not isinstance(raw_results, list):
-            raise LastValueClientError("Batch-range response did not include a results array.")
+            raise ClientError("Batch-range response did not include a results array.")
         return BatchRangeResponse.from_mapping(payload)
 
     def _request_json(
@@ -329,38 +343,52 @@ class UnsClient:
         body: Optional[dict[str, Any]] = None,
         token: Optional[str] = None,
     ) -> dict[str, Any]:
+        response = self._request(method, url, body=body, token=token)
+        decoded = response.text
+        if not decoded:
+            return {}
+        try:
+            parsed = json.loads(decoded)
+        except json.JSONDecodeError as exc:
+            raise ClientError("UNS response was not valid JSON.") from exc
+        if not isinstance(parsed, dict):
+            raise ClientError("UNS response must be a JSON object.")
+        return parsed
+
+    def _request(
+        self,
+        method: str,
+        url: str,
+        *,
+        body: Optional[dict[str, Any]] = None,
+        token: Optional[str] = None,
+    ) -> RawResponse:
         data = None if body is None else json.dumps(body).encode("utf-8")
         request = urllib.request.Request(
             url,
             data=data,
             method=method,
             headers={
-                "Accept": "application/json",
+                "Accept": "*/*",
                 **({"Content-Type": "application/json"} if data is not None else {}),
                 **({"Authorization": f"Bearer {token}"} if token else {}),
             },
         )
         try:
             with self._opener.open(request, timeout=self.timeout) as response:
-                decoded = response.read().decode("utf-8")
+                content = response.read()
+                status_code = getattr(response, "status", response.getcode())
+                headers = dict(response.headers.items())
         except urllib.error.HTTPError as exc:
             message = exc.read().decode("utf-8", errors="replace")
-            raise LastValueClientError(
+            raise ClientError(
                 f"UNS request failed with HTTP {exc.code}: {message}",
                 status_code=exc.code,
             ) from exc
         except urllib.error.URLError as exc:
-            raise LastValueClientError(f"UNS request failed: {exc.reason}") from exc
+            raise ClientError(f"UNS request failed: {exc.reason}") from exc
 
-        if not decoded:
-            return {}
-        try:
-            parsed = json.loads(decoded)
-        except json.JSONDecodeError as exc:
-            raise LastValueClientError("UNS response was not valid JSON.") from exc
-        if not isinstance(parsed, dict):
-            raise LastValueClientError("UNS response must be a JSON object.")
-        return parsed
+        return RawResponse(status_code=status_code, headers=headers, content=content)
 
     def _build_url(self, endpoint: str, *, base_url: Optional[str] = None) -> str:
         if endpoint.startswith("http://") or endpoint.startswith("https://"):
@@ -391,3 +419,4 @@ class UnsClient:
         if not stripped:
             return ""
         return stripped if stripped.startswith("/") else f"/{stripped}"
+

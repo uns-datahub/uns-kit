@@ -343,7 +343,7 @@ def test_uns_client_get_data_fetches_generic_custom_data() -> None:
         thread.join(timeout=5)
 
     assert _CatchAllHandler.received_paths[-1] == "/api/projects/project-name/path-to-data/data?fromDate=20260325"
-    assert response["items"] == [{"id": "pdo-1", "grade": "A"}]
+    assert response.json()["items"] == [{"id": "pdo-1", "grade": "A"}]
 
 
 def test_catchall_result_to_dataframe_uses_pandas_when_available(monkeypatch: pytest.MonkeyPatch) -> None:

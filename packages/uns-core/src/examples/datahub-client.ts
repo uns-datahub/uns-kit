@@ -36,7 +36,7 @@ async function main(): Promise<void> {
     fromDate: "20260325",
   });
   console.log("getData:");
-  console.dir(customData, { depth: null });
+  console.dir(await customData.json(), { depth: null });
   console.log();
 
   const history = await client.history([valueTopic, tableTopic], {

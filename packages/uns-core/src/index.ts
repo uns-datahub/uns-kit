@@ -14,7 +14,7 @@ export { resolveInfisicalConfig } from "./uns-config/secret-resolver.js";
 export {
   UnsClient,
   LastValueResult,
-  LastValueClientError,
+  ClientError,
   RangeResult,
   BatchRangeTopicResult,
   BatchRangeResponse,
@@ -30,3 +30,4 @@ export type {
   BatchRangeTopicPayload,
   BatchRangeResponsePayload,
 } from "./tools/datahub/datahub-client.js";
+

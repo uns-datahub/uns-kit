@@ -211,7 +211,7 @@ export class LastValueResult {
   }
 }
 
-export class LastValueClientError extends Error {
+export class ClientError extends Error {
   readonly statusCode?: number;
 
   constructor(message: string, statusCode?: number) {
@@ -225,6 +225,11 @@ export type UnsClientOptions = {
   token?: string;
   timeoutMs?: number;
   authClient?: AuthClient;
+};
+
+export type RequestOptions = {
+  baseUrl?: string;
+  authorize?: boolean;
 };
 
 export class UnsClient {
@@ -263,22 +268,22 @@ export class UnsClient {
     return token;
   }
 
-  async get(endpoint: string, params?: Record<string, string | number | boolean>, options: { baseUrl?: string; authorize?: boolean } = {}): Promise<Record<string, unknown>> {
+  async get(endpoint: string, params?: Record<string, string | number | boolean>, options: RequestOptions = {}): Promise<Response> {
     const authorize = options.authorize ?? true;
     const token = authorize ? await this.ensureToken() : undefined;
     const search = params ? `?${new URLSearchParams(this.stringifyQueryParams(params))}` : "";
-    return this.requestJson("GET", `${this.buildUrl(endpoint, options.baseUrl)}${search}`, undefined, token);
+    return this.request("GET", `${this.buildUrl(endpoint, options.baseUrl)}${search}`, undefined, token);
   }
 
   async getData(
     endpoint: string,
     params?: Record<string, string | number | boolean>,
-    options: { baseUrl?: string; authorize?: boolean } = {},
-  ): Promise<Record<string, unknown>> {
+    options: RequestOptions = {},
+  ): Promise<Response> {
     return this.get(endpoint, params, options);
   }
 
-  async post(endpoint: string, body?: Record<string, unknown>, options: { baseUrl?: string; authorize?: boolean } = {}): Promise<Record<string, unknown>> {
+  async post(endpoint: string, body?: Record<string, unknown>, options: RequestOptions = {}): Promise<Record<string, unknown>> {
     const authorize = options.authorize ?? true;
     const token = authorize ? await this.ensureToken() : undefined;
     return this.requestJson("POST", this.buildUrl(endpoint, options.baseUrl), body ?? {}, token);
@@ -297,14 +302,14 @@ export class UnsClient {
       const payload = await this.requestJson("POST", this.buildUrl("catchall/batch/last"), { topics: topicList }, token);
       const rawResults = payload.results;
       if (!Array.isArray(rawResults)) {
-        throw new LastValueClientError("Last-value response did not include a results array.");
+        throw new ClientError("Last-value response did not include a results array.");
       }
       const results = rawResults
         .filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item))
         .map((item) => LastValueResult.fromMapping(item));
       return Object.fromEntries(results.map((result) => [result.topic, result.toObject()]));
     } catch (error) {
-      if (error instanceof LastValueClientError && error.statusCode === 404) {
+      if (error instanceof ClientError && error.statusCode === 404) {
         return null;
       }
       throw error;
@@ -326,7 +331,7 @@ export class UnsClient {
       );
       return RangeResult.fromMapping<Row>(payload);
     } catch (error) {
-      if (error instanceof LastValueClientError && error.statusCode === 404) {
+      if (error instanceof ClientError && error.statusCode === 404) {
         return null;
       }
       throw error;
@@ -355,11 +360,11 @@ export class UnsClient {
       );
       const rawResults = payload.results;
       if (!Array.isArray(rawResults)) {
-        throw new LastValueClientError("Batch-range response did not include a results array.");
+        throw new ClientError("Batch-range response did not include a results array.");
       }
       return BatchRangeResponse.fromMapping<Row>(payload);
     } catch (error) {
-      if (error instanceof LastValueClientError && error.statusCode === 404) {
+      if (error instanceof ClientError && error.statusCode === 404) {
         return null;
       }
       throw error;
@@ -372,40 +377,53 @@ export class UnsClient {
     body?: Record<string, unknown>,
     token?: string,
   ): Promise<Record<string, unknown>> {
+    try {
+      const resp = await this.request(method, url, body, token);
+      const text = await resp.text();
+      if (!text) return {};
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new ClientError("UNS response must be a JSON object.");
+      }
+      return parsed as Record<string, unknown>;
+    } catch (error: any) {
+      if (error instanceof ClientError) {
+        throw error;
+      }
+      if (error?.name === "AbortError") {
+        throw new ClientError("UNS request timed out.");
+      }
+      throw new ClientError(`UNS request failed: ${error?.message ?? String(error)}`);
+    }
+  }
+
+  private async request(
+    method: "GET" | "POST",
+    url: string,
+    body?: Record<string, unknown>,
+    token?: string,
+  ): Promise<Response> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
       const resp = await fetch(url, {
         method,
         headers: {
-          "Accept": "application/json",
+          "Accept": "*/*",
           ...(body ? { "Content-Type": "application/json" } : {}),
           ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
         ...(body ? { body: JSON.stringify(body) } : {}),
         signal: controller.signal,
       });
-      const text = await resp.text();
       if (!resp.ok) {
-        throw new LastValueClientError(
+        const text = await resp.text();
+        throw new ClientError(
           `UNS request failed with HTTP ${resp.status}: ${text || resp.statusText}`,
           resp.status,
         );
       }
-      if (!text) return {};
-      const parsed = JSON.parse(text);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        throw new LastValueClientError("UNS response must be a JSON object.");
-      }
-      return parsed as Record<string, unknown>;
-    } catch (error: any) {
-      if (error instanceof LastValueClientError) {
-        throw error;
-      }
-      if (error?.name === "AbortError") {
-        throw new LastValueClientError("UNS request timed out.");
-      }
-      throw new LastValueClientError(`UNS request failed: ${error?.message ?? String(error)}`);
+      return resp;
     } finally {
       clearTimeout(timeout);
     }
@@ -444,3 +462,4 @@ export class UnsClient {
     return stripped.startsWith("/") ? stripped : `/${stripped}`;
   }
 }
+

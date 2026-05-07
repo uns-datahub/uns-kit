@@ -108,7 +108,7 @@ console.log(data?.toRecords());
 const customData = await client.getData("/projects/project-name/path-to-data/data", {
   fromDate: "20260325",
 });
-console.log(customData);
+console.log(await customData.json());
 
 const batchHistory = await client.history([
   "sij/acroni/vv/hrm-furnace/equipment/zone-1/temperature",
