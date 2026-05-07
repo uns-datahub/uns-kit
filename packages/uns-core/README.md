@@ -79,9 +79,9 @@ const api  = await proc.createApiProxy("my-service", { jwtSecret: "CHANGEME" });
 const cron = await proc.createCrontabProxy("*/5 * * * *", { event: "tick" });
 ```
 
-## Datahub client (last value)
+## Datahub client (last value + history)
 
-`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. Prefer a long-lived service token if available; you can pass it directly and skip username/password auth.
+`UnsClient` provides a minimal REST client for the UNS Datahub API, including batch last-value, single-topic catch-all history, and batch range endpoints. Prefer a long-lived service token if available; you can pass it directly and skip username/password auth.
 
 ```ts
 import { UnsClient } from "@uns-kit/core";
@@ -95,6 +95,30 @@ const values = await client.lastValue([
   "raw/data/line-1/motor/main/status",
 ]);
 console.log(values);
+
+const data = await client.getAttributeData("sij/acroni/vv/hrm-furnace/equipment/pusher/output-quantity", {
+  from: "2026-05-07T11:17:01.157Z",
+  to: "2026-05-07T11:22:01.157Z",
+  table: "uns_sij_hrm_furnace_data",
+  aggregate: "last",
+  dedupe: false,
+});
+console.log(data?.toRecords());
+
+const customData = await client.getData("/projects/project-name/path-to-data/data", {
+  fromDate: "20260325",
+});
+console.log(customData);
+
+const batchHistory = await client.history([
+  "sij/acroni/vv/hrm-furnace/equipment/zone-1/temperature",
+  "sij/acroni/vv/hrm-furnace/equipment/zone-2/temperature",
+], {
+  from: "2026-04-09T06:00:00Z",
+  to: "2026-04-09T07:00:00Z",
+  limit: 500,
+});
+console.log(batchHistory?.byTopic);
 ```
 
 ## Validity / Liveliness

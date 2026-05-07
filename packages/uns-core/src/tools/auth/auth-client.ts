@@ -1,7 +1,6 @@
 import { ConfigFile } from "../../config-file.js";
 import { SecureStoreFactory, ISecureStore } from "./secure-store.js";
 import jwt from "jsonwebtoken";
-import readline from "readline";
 
 const cfg = await ConfigFile.loadConfig();
 
@@ -59,16 +58,18 @@ export class AuthClient {
         const loggedIn = await this.login(configEmail, configPassword);
         await this.persistTokens(loggedIn.accessToken, loggedIn.refreshToken);
         return loggedIn.accessToken;
-      } catch {
-        // ignore, fallback to interactive login
+      } catch (error) {
+        throw new Error(
+          `Authentication failed using config.json credentials from uns.email/uns.password: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
       }
     }
 
-    // Interactive login
-    const { email, password } = await AuthClient.promptCredentials();
-    const loggedIn = await this.login(email, password);
-    await this.persistTokens(loggedIn.accessToken, loggedIn.refreshToken);
-    return loggedIn.accessToken;
+    throw new Error(
+      "No access token available. AuthClient reads config.json and expected valid uns.email and uns.password.",
+    );
   }
 
   private static isExpired(token: string, skewSeconds = 30): boolean {
@@ -152,48 +153,5 @@ export class AuthClient {
   private async persistTokens(accessToken: string, refreshToken: string): Promise<void> {
     await this.store.set("accessToken", accessToken);
     await this.store.set("refreshToken", refreshToken);
-  }
-
-  static async promptCredentials(): Promise<{ email: string; password: string }> {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-
-    const ask = (q: string) => new Promise<string>((resolve) => rl.question(q, (ans) => resolve(ans.trim())));
-
-    const askMasked = (q: string) => new Promise<string>((resolve) => {
-      const anyRl = rl as any;
-      const out: any = anyRl.output || process.stdout;
-      const origWrite = (anyRl._writeToOutput as ((str: string) => void))?.bind(rl) || ((s: string) => out.write(s));
-      anyRl.stdoutMuted = true;
-      anyRl._writeToOutput = function (stringToWrite: string) {
-        // Keep prompt text intact; mask user input
-        if (anyRl.stdoutMuted) {
-          if (stringToWrite.startsWith(q)) {
-            out.write(stringToWrite);
-          } else if (stringToWrite.endsWith("\n")) {
-            out.write("\n");
-          } else {
-            out.write("*");
-          }
-        } else {
-          origWrite(stringToWrite);
-        }
-      };
-      rl.question(q, (value) => {
-        anyRl.stdoutMuted = false;
-        anyRl._writeToOutput = origWrite;
-        out.write("\n");
-        resolve(value.trim());
-      });
-    });
-
-    try {
-      const email = await ask("Email: ");
-      const password = await askMasked("Password: ");
-      rl.close();
-      return { email, password };
-    } catch (e) {
-      rl.close();
-      throw e;
-    }
   }
 }

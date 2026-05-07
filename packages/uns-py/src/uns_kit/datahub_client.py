@@ -5,10 +5,26 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional, Sequence, TYPE_CHECKING, TypedDict, Unpack
 
 from .auth_client import AuthClient
 
+if TYPE_CHECKING:
+    import pandas as pd
+
+
+class RangeQuery(TypedDict, total=False):
+    table: str
+    from_: str
+    to: str
+    timeField: Literal["auto", "timestamp", "interval"]
+    limit: int
+    maxPoints: int
+    bucketMs: int
+    aggregate: Literal["avg", "min", "max", "last", "sum", "count"]
+    column: str
+    summaryOnly: bool
+    dedupe: bool
 
 @dataclass(frozen=True)
 class LastValueResult:
@@ -50,6 +66,102 @@ class LastValueResult:
             "ageMs": self.age_ms,
             "source": self.source,
         }
+
+
+@dataclass(frozen=True)
+class RangeResult:
+    data: list[list[Any]]
+    stats: Optional[dict[str, Any]]
+
+    @staticmethod
+    def from_mapping(value: Mapping[str, Any]) -> "RangeResult":
+        raw_data = value.get("data")
+        rows = [list(row) for row in raw_data if isinstance(row, Sequence) and not isinstance(row, (str, bytes, bytearray))] if isinstance(raw_data, list) else []
+        raw_stats = value.get("stats")
+        stats = dict(raw_stats) if isinstance(raw_stats, Mapping) else None
+        return RangeResult(data=rows, stats=stats)
+
+    @property
+    def columns(self) -> list[dict[str, Any]]:
+        raw = self.stats.get("raw") if isinstance(self.stats, Mapping) else None
+        columns = raw.get("columns") if isinstance(raw, Mapping) else None
+        return [dict(column) for column in columns] if isinstance(columns, list) else []
+
+    def records(self) -> list[dict[str, Any]]:
+        columns = self.columns
+        if not columns:
+            return [{str(index): cell for index, cell in enumerate(row)} for row in self.data]
+        return [
+            {(columns[index].get("name") or str(index)): cell for index, cell in enumerate(row)}
+            for row in self.data
+        ]
+
+    def to_dataframe(self) -> "pd.DataFrame":
+        try:
+            import pandas as pd
+        except ImportError as exc:  # pragma: no cover - exercised via stubbed import in tests
+            raise RuntimeError("pandas is required for to_dataframe(). Install pandas first.") from exc
+        column_names = [str(column.get("name") or index) for index, column in enumerate(self.columns)]
+        return pd.DataFrame(self.data, columns=column_names or None)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "data": [list(row) for row in self.data],
+            "stats": dict(self.stats) if isinstance(self.stats, Mapping) else None,
+        }
+
+
+@dataclass(frozen=True)
+class BatchRangeTopicResult(RangeResult):
+    topic: str
+    error: Optional[str]
+
+    @staticmethod
+    def from_mapping(value: Mapping[str, Any]) -> "BatchRangeTopicResult":
+        base = RangeResult.from_mapping(value)
+        return BatchRangeTopicResult(
+            topic=str(value.get("topic") or ""),
+            error=value.get("error") if isinstance(value.get("error"), str) else None,
+            data=base.data,
+            stats=base.stats,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "topic": self.topic,
+            "error": self.error,
+            "data": [list(row) for row in self.data],
+            "stats": dict(self.stats) if isinstance(self.stats, Mapping) else None,
+        }
+
+
+@dataclass(frozen=True)
+class BatchRangeResponse:
+    results: list[BatchRangeTopicResult]
+    stats: Optional[dict[str, Any]]
+
+    @staticmethod
+    def from_mapping(value: Mapping[str, Any]) -> "BatchRangeResponse":
+        raw_results = value.get("results")
+        results = [
+            BatchRangeTopicResult.from_mapping(item)
+            for item in raw_results
+            if isinstance(raw_results, list) and isinstance(item, Mapping)
+        ]
+        raw_stats = value.get("stats")
+        stats = dict(raw_stats) if isinstance(raw_stats, Mapping) else None
+        return BatchRangeResponse(results=results, stats=stats)
+
+    @property
+    def by_topic(self) -> dict[str, dict[str, Any]]:
+        return {result.topic: result.to_dict() for result in self.results}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "results": [result.to_dict() for result in self.results],
+            "stats": dict(self.stats) if isinstance(self.stats, Mapping) else None,
+        }
+
 
 class LastValueClientError(RuntimeError):
     def __init__(self, message: str, *, status_code: Optional[int] = None) -> None:
@@ -115,6 +227,16 @@ class UnsClient:
             token=self.access_token if authorize else None,
         )
 
+    def get_data(
+        self,
+        endpoint: str,
+        params: Optional[dict[str, Any]] = None,
+        *,
+        base_url: Optional[str] = None,
+        authorize: bool = True,
+    ) -> dict[str, Any]:
+        return self.get(endpoint, params, base_url=base_url, authorize=authorize)
+
     def last_value(self, topics: str | list[str], *, token: Optional[str] = None) -> Optional[dict[str, dict[str, Any]]]:
         topic_list = [topics] if isinstance(topics, str) else topics
         if not topic_list:
@@ -128,7 +250,7 @@ class UnsClient:
         try:
             payload = self._request_json(
                 "POST",
-                self._build_url("catchall//batch/last"),
+                self._build_url("catchall/batch/last"),
                 body={"topics": topic_list},
                 token=effective_token,
             )
@@ -145,6 +267,59 @@ class UnsClient:
             if isinstance(item, Mapping)
         ]
         return {result.topic: result.to_dict() for result in results}
+
+    def get_attribute_data(
+        self,
+        topic_path: str,
+        *,
+        token: Optional[str] = None,
+        **query: Unpack[RangeQuery],
+    ) -> Optional[RangeResult]:
+        effective_token = token
+        if effective_token is None:
+            self.ensure_token()
+            effective_token = self.access_token
+        encoded_topic_path = urllib.parse.quote(topic_path, safe="")
+        url = f"{self._build_url(f'catchall/{encoded_topic_path}')}{self._build_query_suffix(self._normalize_range_query(query))}"
+        try:
+            payload = self._request_json("GET", url, token=effective_token)
+        except LastValueClientError as exc:
+            if exc.status_code == 404:
+                return None
+            raise
+        return RangeResult.from_mapping(payload)
+
+    def history(
+        self,
+        topics: str | list[str],
+        *,
+        token: Optional[str] = None,
+        **query: Unpack[RangeQuery],
+    ) -> Optional[BatchRangeResponse]:
+        topic_list = [topics] if isinstance(topics, str) else topics
+        if not topic_list:
+            raise ValueError("topics must contain at least one topic.")
+        if len(topic_list) > 500:
+            raise ValueError("Maximum 500 topics per request.")
+        effective_token = token
+        if effective_token is None:
+            self.ensure_token()
+            effective_token = self.access_token
+        try:
+            payload = self._request_json(
+                "POST",
+                self._build_url("catchall/batch/range"),
+                body={"topics": topic_list, **self._normalize_range_query(query)},
+                token=effective_token,
+            )
+        except LastValueClientError as exc:
+            if exc.status_code == 404:
+                return None
+            raise
+        raw_results = payload.get("results")
+        if not isinstance(raw_results, list):
+            raise LastValueClientError("Batch-range response did not include a results array.")
+        return BatchRangeResponse.from_mapping(payload)
 
     def _request_json(
         self,
@@ -197,6 +372,18 @@ class UnsClient:
         ):
             path = path[len(self.api_base_path):] or "/"
         return f"{root}{path}"
+
+    def _build_query_suffix(self, params: Mapping[str, Any]) -> str:
+        filtered = {key: value for key, value in params.items() if value is not None}
+        if not filtered:
+            return ""
+        return f"?{urllib.parse.urlencode(filtered)}"
+
+    def _normalize_range_query(self, query: Mapping[str, Any]) -> dict[str, Any]:
+        normalized = dict(query)
+        if "from_" in normalized:
+            normalized["from"] = normalized.pop("from_")
+        return normalized
 
     @staticmethod
     def _normalize_base_path(value: str) -> str:

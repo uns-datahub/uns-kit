@@ -11,6 +11,153 @@ export type LastValuePayload = {
   source: string;
 };
 
+export type CatchAllTimeField = "auto" | "timestamp" | "interval";
+export type CatchAllAggregate = "avg" | "min" | "max" | "last" | "sum" | "count";
+
+export type RangeQueryOptions = {
+  table?: string;
+  from?: string;
+  to?: string;
+  timeField?: CatchAllTimeField;
+  limit?: number;
+  maxPoints?: number;
+  bucketMs?: number;
+  aggregate?: CatchAllAggregate;
+  column?: string;
+  summaryOnly?: boolean;
+  dedupe?: boolean;
+};
+
+export type RangeColumn = {
+  name: string;
+  type?: string;
+};
+
+export type RangeStats = Record<string, unknown> & {
+  raw?: {
+    columns?: RangeColumn[];
+  };
+};
+
+export type RangePayload<Row extends unknown[] = unknown[]> = {
+  data: Row[];
+  stats?: RangeStats | null;
+};
+
+export type BatchRangeTopicPayload<Row extends unknown[] = unknown[]> = {
+  topic: string;
+  error?: string | null;
+  data: Row[];
+  stats?: RangeStats | null;
+};
+
+export type BatchRangeResponsePayload<Row extends unknown[] = unknown[]> = {
+  results: BatchRangeTopicPayload<Row>[];
+  stats?: Record<string, unknown> | null;
+};
+
+export class RangeResult<Row extends unknown[] = unknown[]> {
+  readonly data: Row[];
+  readonly stats?: RangeStats | null;
+
+  constructor(payload: RangePayload<Row>) {
+    this.data = payload.data;
+    this.stats = payload.stats ?? null;
+  }
+
+  static fromMapping<Row extends unknown[] = unknown[]>(value: Record<string, unknown>): RangeResult<Row> {
+    return new RangeResult<Row>({
+      data: Array.isArray(value.data) ? (value.data.filter(Array.isArray) as Row[]) : [],
+      stats: value.stats && typeof value.stats === "object" && !Array.isArray(value.stats) ? (value.stats as RangeStats) : null,
+    });
+  }
+
+  get columns(): RangeColumn[] {
+    const columns = this.stats?.raw?.columns;
+    return Array.isArray(columns) ? columns : [];
+  }
+
+  toRecords(): Array<Record<string, unknown>> {
+    const columns = this.columns;
+    if (!columns.length) {
+      return this.data.map((row) => Object.fromEntries(row.map((value, index) => [String(index), value])));
+    }
+    return this.data.map((row) =>
+      Object.fromEntries(row.map((value, index) => [columns[index]?.name ?? String(index), value])),
+    );
+  }
+
+  toObject(): RangePayload<Row> {
+    return {
+      data: this.data,
+      stats: this.stats ?? null,
+    };
+  }
+}
+
+export class BatchRangeTopicResult<Row extends unknown[] = unknown[]> extends RangeResult<Row> {
+  readonly topic: string;
+  readonly error?: string | null;
+
+  constructor(payload: BatchRangeTopicPayload<Row>) {
+    super({
+      data: payload.data ?? [],
+      stats: payload.stats ?? null,
+    });
+    this.topic = payload.topic;
+    this.error = payload.error ?? null;
+  }
+
+  static fromMapping<Row extends unknown[] = unknown[]>(value: Record<string, unknown>): BatchRangeTopicResult<Row> {
+    return new BatchRangeTopicResult<Row>({
+      topic: typeof value.topic === "string" ? value.topic : "",
+      error: typeof value.error === "string" ? value.error : null,
+      data: Array.isArray(value.data) ? (value.data.filter(Array.isArray) as Row[]) : [],
+      stats: value.stats && typeof value.stats === "object" && !Array.isArray(value.stats) ? (value.stats as RangeStats) : null,
+    });
+  }
+
+  override toObject(): BatchRangeTopicPayload<Row> {
+    return {
+      topic: this.topic,
+      error: this.error ?? null,
+      data: this.data,
+      stats: this.stats ?? null,
+    };
+  }
+}
+
+export class BatchRangeResponse<Row extends unknown[] = unknown[]> {
+  readonly results: BatchRangeTopicResult<Row>[];
+  readonly stats?: Record<string, unknown> | null;
+
+  constructor(payload: BatchRangeResponsePayload<Row>) {
+    this.results = payload.results.map((item) => new BatchRangeTopicResult<Row>(item));
+    this.stats = payload.stats ?? null;
+  }
+
+  static fromMapping<Row extends unknown[] = unknown[]>(value: Record<string, unknown>): BatchRangeResponse<Row> {
+    const rawResults = Array.isArray(value.results)
+      ? value.results.filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item))
+      : [];
+    return new BatchRangeResponse<Row>({
+      results: rawResults.map((item) => BatchRangeTopicResult.fromMapping<Row>(item).toObject()),
+      stats: value.stats && typeof value.stats === "object" && !Array.isArray(value.stats) ? (value.stats as Record<string, unknown>) : null,
+    });
+  }
+
+  get byTopic(): Record<string, BatchRangeTopicPayload<Row>> {
+    return Object.fromEntries(this.results.map((result) => [result.topic, result.toObject()]));
+  }
+
+  toObject(): BatchRangeResponsePayload<Row> {
+    return {
+      results: this.results.map((result) => result.toObject()),
+      stats: this.stats ?? null,
+    };
+  }
+}
+
 export class LastValueResult {
   readonly topic: string;
   readonly value: unknown;
@@ -123,6 +270,14 @@ export class UnsClient {
     return this.requestJson("GET", `${this.buildUrl(endpoint, options.baseUrl)}${search}`, undefined, token);
   }
 
+  async getData(
+    endpoint: string,
+    params?: Record<string, string | number | boolean>,
+    options: { baseUrl?: string; authorize?: boolean } = {},
+  ): Promise<Record<string, unknown>> {
+    return this.get(endpoint, params, options);
+  }
+
   async post(endpoint: string, body?: Record<string, unknown>, options: { baseUrl?: string; authorize?: boolean } = {}): Promise<Record<string, unknown>> {
     const authorize = options.authorize ?? true;
     const token = authorize ? await this.ensureToken() : undefined;
@@ -139,7 +294,7 @@ export class UnsClient {
     }
     const token = options.token ?? (await this.ensureToken());
     try {
-      const payload = await this.requestJson("POST", this.buildUrl("catchall//batch/last"), { topics: topicList }, token);
+      const payload = await this.requestJson("POST", this.buildUrl("catchall/batch/last"), { topics: topicList }, token);
       const rawResults = payload.results;
       if (!Array.isArray(rawResults)) {
         throw new LastValueClientError("Last-value response did not include a results array.");
@@ -148,6 +303,61 @@ export class UnsClient {
         .filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item))
         .map((item) => LastValueResult.fromMapping(item));
       return Object.fromEntries(results.map((result) => [result.topic, result.toObject()]));
+    } catch (error) {
+      if (error instanceof LastValueClientError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getAttributeData<Row extends unknown[] = unknown[]>(
+    topicPath: string,
+    options: RangeQueryOptions & { token?: string } = {},
+  ): Promise<RangeResult<Row> | null> {
+    const token = options.token ?? (await this.ensureToken());
+    const { token: _token, ...query } = options;
+    try {
+      const payload = await this.requestJson(
+        "GET",
+        this.buildUrl(`catchall/${encodeURIComponent(topicPath)}`) + this.buildQuerySuffix(query),
+        undefined,
+        token,
+      );
+      return RangeResult.fromMapping<Row>(payload);
+    } catch (error) {
+      if (error instanceof LastValueClientError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async history<Row extends unknown[] = unknown[]>(
+    topics: string | string[],
+    options: RangeQueryOptions & { token?: string } = {},
+  ): Promise<BatchRangeResponse<Row> | null> {
+    const topicList = Array.isArray(topics) ? topics : [topics];
+    if (!topicList.length) {
+      throw new Error("topics must contain at least one topic.");
+    }
+    if (topicList.length > 500) {
+      throw new Error("Maximum 500 topics per request.");
+    }
+    const token = options.token ?? (await this.ensureToken());
+    const { token: _token, ...body } = options;
+    try {
+      const payload = await this.requestJson(
+        "POST",
+        this.buildUrl("catchall/batch/range"),
+        { topics: topicList, ...body },
+        token,
+      );
+      const rawResults = payload.results;
+      if (!Array.isArray(rawResults)) {
+        throw new LastValueClientError("Batch-range response did not include a results array.");
+      }
+      return BatchRangeResponse.fromMapping<Row>(payload);
     } catch (error) {
       if (error instanceof LastValueClientError && error.statusCode === 404) {
         return null;
@@ -215,6 +425,17 @@ export class UnsClient {
 
   private stringifyQueryParams(params: Record<string, string | number | boolean>): Record<string, string> {
     return Object.fromEntries(Object.entries(params).map(([key, value]) => [key, String(value)]));
+  }
+
+  private buildQuerySuffix(params: Record<string, unknown>): string {
+    const filteredEntries = Object.entries(params).filter(([, value]) => value !== undefined && value !== null);
+    if (!filteredEntries.length) {
+      return "";
+    }
+    const search = new URLSearchParams(
+      Object.fromEntries(filteredEntries.map(([key, value]) => [key, String(value)])),
+    );
+    return `?${search.toString()}`;
   }
 
   private static normalizeBasePath(value: string): string {

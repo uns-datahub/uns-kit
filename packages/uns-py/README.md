@@ -90,9 +90,9 @@ await proxy.publish_mqtt_message({
 })
 ```
 
-### Datahub client (last value)
+### Datahub client (last value + history)
 
-`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. For production use, pair it with `AuthClient`, which reads `config.json`, reuses the current token, tries refresh, then falls back to `uns.email` / `uns.password`.
+`UnsClient` provides a minimal REST client for the UNS Datahub API, including batch last-value, single-topic catch-all history, and batch range endpoints. For production use, pair it with `AuthClient`, which reads `config.json`, reuses the current token, tries refresh, then falls back to `uns.email` / `uns.password`.
 
 ```python
 from pathlib import Path
@@ -106,6 +106,37 @@ values = client.last_value([
     "raw/data/line-1/motor/main/status",
 ])
 print(values)
+
+history = client.get_attribute_data(
+    "sij/acroni/vv/hrm-furnace/equipment/pusher/output-quantity",
+    **{
+        "from": "2026-05-07T11:17:01.157Z",
+        "to": "2026-05-07T11:22:01.157Z",
+        "table": "uns_sij_hrm_furnace_data",
+        "aggregate": "last",
+        "dedupe": False,
+    }
+)
+print(history.records())
+
+custom_data = client.get_data(
+    "/projects/project-name/path-to-data/data",
+    params={"fromDate": "20260325"},
+)
+print(custom_data)
+
+batch_history = client.history(
+    [
+        "sij/acroni/vv/hrm-furnace/equipment/zone-1/temperature",
+        "sij/acroni/vv/hrm-furnace/equipment/zone-2/temperature",
+    ],
+    **{
+        "from": "2026-04-09T06:00:00Z",
+        "to": "2026-04-09T07:00:00Z",
+        "limit": 500,
+    }
+)
+print(batch_history.by_topic)
 ```
 
 ## Config placeholders (env + Infisical)
