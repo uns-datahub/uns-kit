@@ -98,6 +98,7 @@ await proxy.publish_mqtt_message({
 import pandas as pd
 from pathlib import Path
 from uns_kit import ConfigFile, UnsClient
+import io
 
 cfg = ConfigFile.load_config(Path("config.json"))
 client = UnsClient(cfg["uns"]["rest"], api_base_path="/api")
@@ -126,7 +127,7 @@ custom_data = client.get_data(
 )
 print(custom_data.json())
 
-df = pd.read_parquet(custom_data.content)
+df = pd.read_parquet(io.BytesIO(data.content))
 print(df)
 
 batch_history = client.history(
