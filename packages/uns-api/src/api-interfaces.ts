@@ -258,10 +258,13 @@ export function defineDataCatalogSchema(input: {
     ...field,
     path: field.path ?? buildSchemaFieldPath(field.name, field.type ?? "string", fieldPathPrefix),
   }));
+  const shouldAutogenerateExamples = !isBinaryCatalogContentType(input.contentType);
   const examplePayloads =
     Array.isArray(input.examplePayloads) && input.examplePayloads.length
       ? input.examplePayloads
-      : buildExamplePayloadsFromFields(fields);
+      : shouldAutogenerateExamples
+        ? buildExamplePayloadsFromFields(fields)
+        : [];
   return {
     id: input.id,
     title: input.title,
@@ -274,6 +277,11 @@ export function defineDataCatalogSchema(input: {
     fields,
     ...(examplePayloads?.length ? { examplePayloads } : {}),
   };
+}
+
+function isBinaryCatalogContentType(contentType: string | null | undefined): boolean {
+  const normalized = String(contentType ?? "").toLowerCase();
+  return normalized.includes("parquet") || normalized.includes("octet-stream");
 }
 
 export function buildDataCatalogOfferOperation(
