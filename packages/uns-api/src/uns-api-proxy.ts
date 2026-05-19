@@ -14,12 +14,26 @@ import UnsProxy from "@uns-kit/core/uns/uns-proxy.js";
 import { UnsTags } from "@uns-kit/core/uns/uns-tags.js";
 import { UnsTopicMatcher } from "@uns-kit/core/uns/uns-topic-matcher.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
-import { IApiProxyOptions, IGetEndpointOptions, IPostEndpointOptions } from "@uns-kit/core/uns/uns-interfaces.js";
+import {
+  IApiObject,
+  IApiProxyOptions,
+  IGetEndpointOptions,
+  IPostEndpointOptions,
+} from "@uns-kit/core/uns/uns-interfaces.js";
 import { DataSizeMeasurements, PhysicalMeasurements } from "@uns-kit/core/uns/uns-measurements.js";
 import { buildUnsRoutePath } from "@uns-kit/core/uns/uns-path.js";
 import App from "./app.js";
 import { UnsAsset } from "@uns-kit/core/uns/uns-asset.js";
 import { UnsObjectType, UnsObjectId } from "@uns-kit/core/uns/uns-object.js";
+import type {
+  DataCatalogOfferRegistration,
+  DataCatalogOperationRegistration,
+  DataCatalogParameterRegistration,
+  DataCatalogRequestBodyRegistration,
+  DataCatalogResponseRegistration,
+  DataCatalogSchemaFieldRegistration,
+  DataCatalogSchemaRegistration,
+} from "./api-interfaces.js";
 
 const packageJsonPath = path.join(basePath, "package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
@@ -38,6 +52,26 @@ const buildSwaggerPath = (base: string, processName: string, instanceName: strin
   }
   return `${baseWithProcess}/${instanceName}/swagger.json`.replace(/\/{2,}/g, "/");
 };
+const normalizeStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? Array.from(
+        new Set(
+          value
+            .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+            .filter((entry) => entry.length > 0),
+        ),
+      )
+    : [];
+const normalizePathValue = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+};
 
 export default class UnsApiProxy extends UnsProxy {
   public instanceName: string;
@@ -53,6 +87,7 @@ export default class UnsApiProxy extends UnsProxy {
   private startedAt: number;
   private statusInterval: NodeJS.Timeout | null = null;
   private readonly statusIntervalMs = 10_000;
+  private readonly dataCatalogOffers = new Map<string, Record<string, unknown>>();
 
   constructor(processName: string, instanceName: string, options: IApiProxyOptions) {
     super();
@@ -90,6 +125,10 @@ export default class UnsApiProxy extends UnsProxy {
     // Emit once after listeners are attached in the plugin, then on the regular cadence.
     setTimeout(() => this.emitStatusMetrics(), 0);
     this.statusInterval = setInterval(() => this.emitStatusMetrics(), this.statusIntervalMs);
+  }
+
+  public getProcessName(): string {
+    return this.processName;
   }
 
   /**
@@ -168,6 +207,7 @@ export default class UnsApiProxy extends UnsProxy {
         timestamp: time,
         topic: topic,
         attribute: attribute,
+        routeOnly: (options as { routeOnly?: boolean } | undefined)?.routeOnly === true,
         apiHost: `http://${ip}:${port}`,
         apiEndpoint: apiPath,
         apiMethod: "GET",
@@ -178,7 +218,7 @@ export default class UnsApiProxy extends UnsProxy {
         asset,
         objectType,
         objectId
-      });
+      } as IApiObject);
 
       const handler = (req: any, res: any) => {
         // Query param validation
@@ -451,15 +491,31 @@ export default class UnsApiProxy extends UnsProxy {
     });
   }
 
-  /**
-   * Register a POST endpoint.
-   * @param topic - The API topic
-   * @param attribute - The attribute for the topic.
-   * @param options.apiDescription - Optional description.
-   * @param options.tags - Optional tags.
-   * @param options.requestBody - Optional request body schema for Swagger.
-   */
   public async post(topic: UnsTopics, asset: UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: UnsAttribute, options?: IPostEndpointOptions): Promise<void> {
+    await this.registerMutationEndpoint("POST", topic, asset, objectType, objectId, attribute, options);
+  }
+
+  public async put(topic: UnsTopics, asset: UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: UnsAttribute, options?: IPostEndpointOptions): Promise<void> {
+    await this.registerMutationEndpoint("PUT", topic, asset, objectType, objectId, attribute, options);
+  }
+
+  public async patch(topic: UnsTopics, asset: UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: UnsAttribute, options?: IPostEndpointOptions): Promise<void> {
+    await this.registerMutationEndpoint("PATCH", topic, asset, objectType, objectId, attribute, options);
+  }
+
+  public async delete(topic: UnsTopics, asset: UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: UnsAttribute, options?: IPostEndpointOptions): Promise<void> {
+    await this.registerMutationEndpoint("DELETE", topic, asset, objectType, objectId, attribute, options);
+  }
+
+  private async registerMutationEndpoint(
+    method: "POST" | "PUT" | "PATCH" | "DELETE",
+    topic: UnsTopics,
+    asset: UnsAsset,
+    objectType: UnsObjectType,
+    objectId: UnsObjectId,
+    attribute: UnsAttribute,
+    options?: IPostEndpointOptions,
+  ): Promise<void> {
     while (this.app.server.listening === false) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
@@ -468,6 +524,7 @@ export default class UnsApiProxy extends UnsProxy {
     const fullPath = buildUnsRoutePath(topic, asset, objectType, objectId, attribute);
     const apiPath = `${this.apiBasePrefix}${fullPath}`.replace(/\/{2,}/g, "/");
     const swaggerPath = buildSwaggerPath(this.swaggerBasePrefix, this.processName, this.instanceName);
+    const methodKey = method.toLowerCase() as "post" | "put" | "patch" | "delete";
 
     try {
       const addressInfo = this.app.server.address();
@@ -485,9 +542,10 @@ export default class UnsApiProxy extends UnsProxy {
         timestamp: time,
         topic,
         attribute,
+        routeOnly: (options as { routeOnly?: boolean } | undefined)?.routeOnly === true,
         apiHost: `http://${ip}:${port}`,
         apiEndpoint: apiPath,
-        apiMethod: "POST",
+        apiMethod: method as any,
         apiQueryParams: [],
         apiDescription: options?.apiDescription,
         attributeType: UnsAttributeType.Api,
@@ -495,14 +553,15 @@ export default class UnsApiProxy extends UnsProxy {
         asset,
         objectType,
         objectId,
-      });
+      } as IApiObject);
 
       const handler = (req: any, res: any) => {
-        this.event.emit("apiPostEvent", { req, res });
+        this.event.emit(this.getApiEventName(method) as any, { req, res });
       };
 
+      const routerMethod = this.app.router[methodKey].bind(this.app.router) as (path: string, handler: any) => void;
       if (this.options?.jwks?.wellKnownJwksUrl) {
-        this.app.router.post(fullPath, async (req: any, res: any) => {
+        routerMethod(fullPath, async (req: any, res: any) => {
           try {
             const token = this.extractBearerToken(req, res);
             if (!token) return;
@@ -526,12 +585,12 @@ export default class UnsApiProxy extends UnsProxy {
             }
 
             handler(req, res);
-          } catch (err: any) {
+          } catch (_err: any) {
             return res.status(401).json({ error: "Invalid token" });
           }
         });
       } else if (this.options?.jwtSecret) {
-        this.app.router.post(fullPath, (req: any, res: any) => {
+        routerMethod(fullPath, (req: any, res: any) => {
           const authHeader = req.headers["authorization"];
           if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return res.status(401).json({ error: "Missing or invalid Authorization header" });
@@ -556,19 +615,19 @@ export default class UnsApiProxy extends UnsProxy {
             }
 
             handler(req, res);
-          } catch (err) {
+          } catch (_err) {
             return res.status(401).json({ error: "Invalid token" });
           }
         });
       } else {
-        this.app.router.post(fullPath, handler);
+        routerMethod(fullPath, handler);
       }
 
       if (this.app.swaggerSpec) {
         const requestBody = options?.requestBody;
         this.app.swaggerSpec.paths = this.app.swaggerSpec.paths || {};
         this.app.swaggerSpec.paths[apiPath] = this.app.swaggerSpec.paths[apiPath] || {};
-        this.app.swaggerSpec.paths[apiPath].post = {
+        this.app.swaggerSpec.paths[apiPath][methodKey] = {
           summary: options?.apiDescription || "No description",
           tags: options?.tags || [],
           ...(requestBody
@@ -593,8 +652,66 @@ export default class UnsApiProxy extends UnsProxy {
         };
       }
     } catch (error) {
-      logger.error(`${this.instanceNameWithSuffix} - Error registering POST route ${fullPath}: ${error.message}`);
+      logger.error(`${this.instanceNameWithSuffix} - Error registering ${method} route ${fullPath}: ${error.message}`);
     }
+  }
+
+  public registerDataOffer(input: DataCatalogOfferRegistration): void {
+    const offerId = typeof input.offerId === "string" ? input.offerId.trim() : "";
+    const displayName = typeof input.displayName === "string" ? input.displayName.trim() : "";
+    if (!offerId || !displayName) {
+      throw new Error("Data catalog offer requires non-empty offerId and displayName.");
+    }
+
+    const offerSchemas = (Array.isArray(input.schemas) ? input.schemas : []).map((schema) => this.normalizeDataOfferSchema(schema));
+    const offerSchemaIndex = new Map(offerSchemas.map((schema) => [schema.id, schema] as const));
+    const normalizedOperations = (Array.isArray(input.operations) ? input.operations : [])
+      .map((operation, index) => this.normalizeDataOfferOperation(operation, offerId, index, offerSchemaIndex))
+      .filter((operation): operation is ReturnType<UnsApiProxy["normalizeDataOfferOperation"]> => Boolean(operation));
+
+    if (!normalizedOperations.length) {
+      throw new Error(`Data catalog offer ${offerId} requires at least one operation.`);
+    }
+
+    const basePaths = Array.from(
+      new Set(
+        [
+          ...(Array.isArray(input.basePaths) ? input.basePaths.map((entry) => normalizePathValue(entry)) : []),
+          ...normalizedOperations.map((operation) => {
+            const segments = operation.path.split("/").filter(Boolean);
+            if (segments.length <= 1) {
+              return operation.path;
+            }
+            return `/${segments.slice(0, -1).join("/")}`;
+          }),
+        ].filter((value): value is string => Boolean(value)),
+      ),
+    );
+
+    this.publishDataCatalogOffer({
+      offerId,
+      displayName,
+      description: typeof input.description === "string" ? input.description.trim() || null : null,
+      owner: typeof input.owner === "string" ? input.owner.trim() || null : null,
+      status: typeof input.status === "string" && input.status.trim() ? input.status.trim() : "available",
+      tags: normalizeStringArray(input.tags),
+      categories: normalizeStringArray(input.categories),
+      microserviceName: typeof input.microserviceName === "string" && input.microserviceName.trim()
+        ? input.microserviceName.trim()
+        : this.processName,
+      version: typeof input.version === "string" && input.version.trim() ? input.version.trim() : packageJson.version,
+      swaggerPath: normalizePathValue(input.swaggerPath),
+      basePaths,
+      operations: normalizedOperations,
+      schemas: offerSchemas,
+      metadata: input.metadata ?? null,
+      packageName: packageJson.name,
+      processName: this.processName,
+      processVersion: packageJson.version,
+      instanceName: this.instanceName,
+      controllerName: process.env["UNS_CONTROLLER_NAME"] ?? null,
+      controllerPublicBase: process.env["UNS_CONTROLLER_PUBLIC_BASE"] ?? process.env["UNS_PUBLIC_BASE"] ?? null,
+    });
   }
 
   private emitStatusMetrics(): void {
@@ -625,6 +742,7 @@ export default class UnsApiProxy extends UnsProxy {
       uom: DataSizeMeasurements.Bit,
       statusTopic: this.instanceStatusTopic + "alive",
     });
+    this.emitDataCatalogOffers();
   }
 
   private registerHealthEndpoint() {
@@ -653,6 +771,21 @@ export default class UnsApiProxy extends UnsProxy {
           },
         },
       };
+    }
+  }
+
+  private getApiEventName(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE") {
+    switch (method) {
+      case "GET":
+        return "apiGetEvent";
+      case "POST":
+        return "apiPostEvent";
+      case "PUT":
+        return "apiPutEvent";
+      case "PATCH":
+        return "apiPatchEvent";
+      case "DELETE":
+        return "apiDeleteEvent";
     }
   }
 
@@ -739,5 +872,152 @@ export default class UnsApiProxy extends UnsProxy {
       this.statusInterval = null;
     }
     await super.stop();
+  }
+
+  private publishDataCatalogOffer(offer: { offerId: string } & Record<string, unknown>): void {
+    const offerId = typeof offer.offerId === "string" ? offer.offerId.trim() : "";
+    if (!offerId) {
+      return;
+    }
+    this.dataCatalogOffers.set(offerId, offer);
+    this.emitDataCatalogOffers();
+    logger.info(`${this.instanceNameWithSuffix} - Registered data catalog offer: ${offerId}`);
+  }
+
+  private emitDataCatalogOffers(): void {
+    if (this.instanceStatusTopic === "" || this.dataCatalogOffers.size === 0) {
+      return;
+    }
+    (this.event as any).emit("unsProxyProducedDataCatalogOffers", {
+      producedDataCatalogOffers: [...this.dataCatalogOffers.values()],
+      statusTopic: this.instanceStatusTopic + "data-catalog-offers",
+    });
+  }
+
+  private normalizeDataOfferOperation(
+    operation: DataCatalogOperationRegistration,
+    offerId: string,
+    index: number,
+    offerSchemaIndex: Map<string, ReturnType<UnsApiProxy["normalizeDataOfferSchema"]>>,
+  ) {
+    const method = typeof operation.method === "string" ? operation.method.trim().toUpperCase() : "";
+    const path = normalizePathValue(operation.path);
+    if (!method || !path) {
+      return null;
+    }
+    return {
+      id: typeof operation.id === "string" && operation.id.trim() ? operation.id.trim() : `${offerId}-${method.toLowerCase()}-${index + 1}`,
+      method,
+      path,
+      summary: typeof operation.summary === "string" ? operation.summary.trim() || null : null,
+      description: typeof operation.description === "string" ? operation.description.trim() || null : null,
+      tags: normalizeStringArray(operation.tags),
+      deprecated: operation.deprecated === true,
+      parameters: (Array.isArray(operation.parameters) ? operation.parameters : []).map((parameter) =>
+        this.normalizeDataOfferParameter(parameter),
+      ),
+      headers: (Array.isArray(operation.headers) ? operation.headers : []).map((parameter) =>
+        this.normalizeDataOfferParameter(parameter),
+      ),
+      requestBody: operation.requestBody ? this.normalizeDataOfferRequestBody(operation.requestBody, offerSchemaIndex) : null,
+      responses: (Array.isArray(operation.responses) ? operation.responses : []).map((response) =>
+        this.normalizeDataOfferResponse(response, offerSchemaIndex),
+      ),
+    };
+  }
+
+  private normalizeDataOfferParameter(parameter: DataCatalogParameterRegistration) {
+    return {
+      name: typeof parameter.name === "string" ? parameter.name.trim() : "",
+      in: typeof parameter.in === "string" ? parameter.in.trim() : "query",
+      required: parameter.required === true,
+      description: typeof parameter.description === "string" ? parameter.description.trim() || null : null,
+      type: typeof parameter.type === "string" && parameter.type.trim() ? parameter.type.trim() : "string",
+      format: typeof parameter.format === "string" ? parameter.format.trim() || null : null,
+      nullable: parameter.nullable === true,
+      example: parameter.example ?? null,
+      enumValues: normalizeStringArray(parameter.enumValues),
+      schema: parameter.schema ?? null,
+    };
+  }
+
+  private normalizeDataOfferRequestBody(
+    requestBody: DataCatalogRequestBodyRegistration,
+    offerSchemaIndex: Map<string, ReturnType<UnsApiProxy["normalizeDataOfferSchema"]>>,
+  ) {
+    return {
+      required: requestBody.required === true,
+      description: typeof requestBody.description === "string" ? requestBody.description.trim() || null : null,
+      contentType: typeof requestBody.contentType === "string" ? requestBody.contentType.trim() || null : null,
+      schemas: this.resolveOfferSchemas(requestBody.schemas, requestBody.schemaIds, offerSchemaIndex),
+    };
+  }
+
+  private normalizeDataOfferResponse(
+    response: DataCatalogResponseRegistration,
+    offerSchemaIndex: Map<string, ReturnType<UnsApiProxy["normalizeDataOfferSchema"]>>,
+  ) {
+    return {
+      statusCode: typeof response.statusCode === "string" ? response.statusCode.trim() : "",
+      description: typeof response.description === "string" ? response.description.trim() || null : null,
+      contentType: typeof response.contentType === "string" ? response.contentType.trim() || null : null,
+      schemas: this.resolveOfferSchemas(response.schemas, response.schemaIds, offerSchemaIndex),
+      examplePayloads: Array.isArray(response.examplePayloads) ? response.examplePayloads : [],
+      headers: (Array.isArray(response.headers) ? response.headers : []).map((parameter) =>
+        this.normalizeDataOfferParameter(parameter),
+      ),
+    };
+  }
+
+  private normalizeDataOfferSchema(schema: DataCatalogSchemaRegistration) {
+    return {
+      id: typeof schema.id === "string" ? schema.id.trim() : "",
+      title: typeof schema.title === "string" ? schema.title.trim() : "",
+      kind: typeof schema.kind === "string" && schema.kind.trim() ? schema.kind.trim() : "schema",
+      source: typeof schema.source === "string" && schema.source.trim() ? schema.source.trim() : "registered",
+      contentType: typeof schema.contentType === "string" ? schema.contentType.trim() || null : null,
+      rootType: typeof schema.rootType === "string" && schema.rootType.trim() ? schema.rootType.trim() : "object",
+      nullable: schema.nullable === true,
+      description: typeof schema.description === "string" ? schema.description.trim() || null : null,
+      fields: (Array.isArray(schema.fields) ? schema.fields : []).map((field) =>
+        this.normalizeDataOfferSchemaField(field),
+      ),
+      examplePayloads: Array.isArray(schema.examplePayloads) ? schema.examplePayloads : [],
+    };
+  }
+
+  private normalizeDataOfferSchemaField(field: DataCatalogSchemaFieldRegistration) {
+    const defaultName = typeof field.name === "string" ? field.name.trim() : "";
+    const path = typeof field.path === "string" && field.path.trim() ? field.path.trim() : defaultName;
+    return {
+      path,
+      name: defaultName || (path.split(".").at(-1) ?? path),
+      type: typeof field.type === "string" && field.type.trim() ? field.type.trim() : "string",
+      format: typeof field.format === "string" ? field.format.trim() || null : null,
+      nullable: field.nullable === true,
+      required: field.required === true,
+      description: typeof field.description === "string" ? field.description.trim() || null : null,
+      enumValues: normalizeStringArray(field.enumValues),
+      example: field.example ?? null,
+    };
+  }
+
+  private resolveOfferSchemas(
+    inlineSchemas: DataCatalogSchemaRegistration[] | undefined,
+    schemaIds: string[] | undefined,
+    offerSchemaIndex: Map<string, ReturnType<UnsApiProxy["normalizeDataOfferSchema"]>>,
+  ) {
+    const result = (Array.isArray(inlineSchemas) ? inlineSchemas : []).map((schema) => this.normalizeDataOfferSchema(schema));
+    for (const schemaId of Array.isArray(schemaIds) ? schemaIds : []) {
+      const normalizedId = typeof schemaId === "string" ? schemaId.trim() : "";
+      if (!normalizedId) {
+        continue;
+      }
+      const resolved = offerSchemaIndex.get(normalizedId);
+      if (resolved && !result.some((schema) => schema.id === resolved.id)) {
+        result.push(resolved);
+      }
+    }
+    return result;
   }
 }

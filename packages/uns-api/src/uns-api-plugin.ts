@@ -50,6 +50,16 @@ const unsApiPlugin: UnsProxyProcessPlugin = ({ define }) => {
         );
       });
 
+      (unsApiProxy.event as any).on("unsProxyProducedDataCatalogOffers", (event: {
+        statusTopic: string;
+        producedDataCatalogOffers: unknown[];
+      }) => {
+        internals.processMqttProxy.publish(
+          event.statusTopic,
+          JSON.stringify(event.producedDataCatalogOffers),
+        );
+      });
+
       unsApiProxy.event.on("mqttProxyStatus", (event) => {
         const time = UnsPacket.formatToISO8601(new Date());
         const unsMessage: IUnsMessage = { data: { time, value: event.value, uom: event.uom } };

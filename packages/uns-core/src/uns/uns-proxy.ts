@@ -15,6 +15,7 @@ export default class UnsProxy {
   private producedTopics: Map<string, ITopicObject> = new Map();
   private producedApiEndpoints: Map<string, IApiObject> = new Map();
   private producedApiCatchall: Map<string, IApiCatchallMapping> = new Map();
+  private producedDataCatalogOffers: Map<string, unknown> = new Map();
   private readonly controllerNameEnv: string | undefined;
   private readonly controllerHostEnv: string | undefined;
   private readonly controllerPortEnv: string | undefined;
@@ -31,6 +32,7 @@ export default class UnsProxy {
       this.emitProducedTopics();
       this.emitProducedApiEndpoints();
       this.emitProducedApiCatchall();
+      this.emitProducedDataCatalogOffers();
     }, 60000);    
   }
       
@@ -86,6 +88,23 @@ export default class UnsProxy {
           logger.error(`${this.instanceNameWithSuffix} - Error publishing catch-all API mappings: ${error.message}`);
         }
         logger.debug(`${this.instanceNameWithSuffix} - Published catch-all API mappings.`);
+      }
+    }
+  }
+
+  private async emitProducedDataCatalogOffers(): Promise<void> {
+    if (this.instanceStatusTopic !== "") {
+      const offersArray = [...this.producedDataCatalogOffers.values()];
+      if (offersArray.length > 0) {
+        try {
+          this.event.emit("unsProxyProducedDataCatalogOffers", {
+            producedDataCatalogOffers: offersArray,
+            statusTopic: this.instanceStatusTopic + "data-catalog-offers",
+          });
+        } catch (error: any) {
+          logger.error(`${this.instanceNameWithSuffix} - Error publishing data catalog offers: ${error.message}`);
+        }
+        logger.debug(`${this.instanceNameWithSuffix} - Published data catalog offers.`);
       }
     }
   }
@@ -158,6 +177,7 @@ export default class UnsProxy {
           timestamp: time,
           topic: apiObject.topic,
           attribute: apiObject.attribute,
+          ...(apiObject.routeOnly === true ? { routeOnly: true } : {}),
           apiHost: apiObject.apiHost,
           apiEndpoint: apiObject.apiEndpoint,
           apiMethod: apiObject.apiMethod,
@@ -199,6 +219,19 @@ export default class UnsProxy {
       this.emitProducedApiEndpoints();
       logger.info(`${this.instanceNameWithSuffix} - Unregistered API endpoint: ${fullTopic}`);
     }
+  }
+
+  protected registerDataCatalogOffer(offer: { offerId: string } & Record<string, unknown>): void {
+    if (this.instanceStatusTopic === "") {
+      return;
+    }
+    const offerId = typeof offer.offerId === "string" ? offer.offerId.trim() : "";
+    if (!offerId) {
+      return;
+    }
+    this.producedDataCatalogOffers.set(offerId, offer);
+    this.emitProducedDataCatalogOffers();
+    logger.info(`${this.instanceNameWithSuffix} - Registered data catalog offer: ${offerId}`);
   }
   public async stop() {
     // Clear the publishing interval.

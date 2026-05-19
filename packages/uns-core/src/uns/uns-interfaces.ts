@@ -143,6 +143,9 @@ export interface UnsEvents {
   // Emitters in UnsApiProxy
   apiGetEvent: {req: any, res: any};
   apiPostEvent: {req: any, res: any};
+  apiPutEvent: {req: any, res: any};
+  apiPatchEvent: {req: any, res: any};
+  apiDeleteEvent: {req: any, res: any};
 
   // Emitters in UnsProxy
   unsProxyProducedTopics: { producedTopics: ITopicObject[], statusTopic: string };
@@ -152,6 +155,9 @@ export interface UnsEvents {
 
   // Emitters in UnsProxy
   unsProxyProducedApiCatchAll: { producedCatchall: IApiCatchallMapping[], statusTopic: string };
+
+  // Emitters in UnsProxy / UnsApiProxy
+  unsProxyProducedDataCatalogOffers: { producedDataCatalogOffers: unknown[], statusTopic: string };
 }
 
 export interface IUnsExtendedData extends IUnsData {
@@ -327,11 +333,12 @@ export interface IApiObject {
   attribute:string;
   topic:string;
   attributeType: UnsAttributeType;
+  routeOnly?: boolean;
   apiDescription?: string; // Optional description for the API endpoint
   apiHost: string; // Hostname of the service
   apiEndpoint: string; // API endpoint for virtual topics
   apiSwaggerEndpoint: string; // Swagger endpoint for API documentation
-  apiMethod: "GET" | "POST" | "PUT" | "DELETE"; // HTTP method for API endpoint
+  apiMethod: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; // HTTP method for API endpoint
   apiQueryParams: QueryParamDef[]; // query parameters for the API endpoint
   asset: UnsAsset;
   objectType: UnsObjectType;
@@ -414,3 +421,7 @@ export interface IPostEndpointOptions {
     schema?: Record<string, unknown>;
   };
 }
+
+export interface IPutEndpointOptions extends IPostEndpointOptions {}
+export interface IPatchEndpointOptions extends IPostEndpointOptions {}
+export interface IDeleteEndpointOptions extends IPostEndpointOptions {}
