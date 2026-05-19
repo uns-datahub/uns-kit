@@ -208,11 +208,16 @@ export default class UnsApiProxy extends UnsProxy {
         topic: topic,
         attribute: attribute,
         routeOnly: (options as { routeOnly?: boolean } | undefined)?.routeOnly === true,
+        registryTopic:
+          (options as { registryTopic?: "api-endpoints" | "service-endpoints" | "data-offer-endpoints" } | undefined)?.registryTopic ??
+          "api-endpoints",
         apiHost: `http://${ip}:${port}`,
         apiEndpoint: apiPath,
         apiMethod: "GET",
         apiQueryParams: options.queryParams,
         apiDescription: options?.apiDescription,
+        serviceApi:
+          (options as { serviceApi?: Record<string, unknown> } | undefined)?.serviceApi ?? null,
         attributeType: UnsAttributeType.Api,
         apiSwaggerEndpoint: swaggerPath,
         asset,
@@ -543,11 +548,16 @@ export default class UnsApiProxy extends UnsProxy {
         topic,
         attribute,
         routeOnly: (options as { routeOnly?: boolean } | undefined)?.routeOnly === true,
+        registryTopic:
+          (options as { registryTopic?: "api-endpoints" | "service-endpoints" | "data-offer-endpoints" } | undefined)?.registryTopic ??
+          "api-endpoints",
         apiHost: `http://${ip}:${port}`,
         apiEndpoint: apiPath,
         apiMethod: method as any,
         apiQueryParams: [],
         apiDescription: options?.apiDescription,
+        serviceApi:
+          (options as { serviceApi?: Record<string, unknown> } | undefined)?.serviceApi ?? null,
         attributeType: UnsAttributeType.Api,
         apiSwaggerEndpoint: swaggerPath,
         asset,

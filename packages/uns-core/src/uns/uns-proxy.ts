@@ -14,6 +14,8 @@ export default class UnsProxy {
   protected instanceNameWithSuffix: string; //was prot
   private producedTopics: Map<string, ITopicObject> = new Map();
   private producedApiEndpoints: Map<string, IApiObject> = new Map();
+  private producedServiceEndpoints: Map<string, IApiObject> = new Map();
+  private producedDataOfferEndpoints: Map<string, IApiObject> = new Map();
   private producedApiCatchall: Map<string, IApiCatchallMapping> = new Map();
   private producedDataCatalogOffers: Map<string, unknown> = new Map();
   private readonly controllerNameEnv: string | undefined;
@@ -31,6 +33,8 @@ export default class UnsProxy {
     this.publishInterval = setInterval(() => {
       this.emitProducedTopics();
       this.emitProducedApiEndpoints();
+      this.emitProducedServiceEndpoints();
+      this.emitProducedDataOfferEndpoints();
       this.emitProducedApiCatchall();
       this.emitProducedDataCatalogOffers();
     }, 60000);    
@@ -88,6 +92,40 @@ export default class UnsProxy {
           logger.error(`${this.instanceNameWithSuffix} - Error publishing catch-all API mappings: ${error.message}`);
         }
         logger.debug(`${this.instanceNameWithSuffix} - Published catch-all API mappings.`);
+      }
+    }
+  }
+
+  private async emitProducedServiceEndpoints(): Promise<void> {
+    if (this.instanceStatusTopic !== "") {
+      const serviceEndpointsArray = [...this.producedServiceEndpoints.values()];
+      if (serviceEndpointsArray.length > 0) {
+        try {
+          this.event.emit("unsProxyProducedServiceEndpoints", {
+            producedServiceEndpoints: serviceEndpointsArray,
+            statusTopic: this.instanceStatusTopic + "service-endpoints",
+          });
+        } catch (error) {
+          logger.error(`${this.instanceNameWithSuffix} - Error publishing produced service endpoints: ${error.message}`);
+        }
+        logger.debug(`${this.instanceNameWithSuffix} - Published produced service endpoints.`);
+      }
+    }
+  }
+
+  private async emitProducedDataOfferEndpoints(): Promise<void> {
+    if (this.instanceStatusTopic !== "") {
+      const dataOfferEndpointsArray = [...this.producedDataOfferEndpoints.values()];
+      if (dataOfferEndpointsArray.length > 0) {
+        try {
+          this.event.emit("unsProxyProducedDataOfferEndpoints", {
+            producedDataOfferEndpoints: dataOfferEndpointsArray,
+            statusTopic: this.instanceStatusTopic + "data-offer-endpoints",
+          });
+        } catch (error) {
+          logger.error(`${this.instanceNameWithSuffix} - Error publishing produced data offer endpoints: ${error.message}`);
+        }
+        logger.debug(`${this.instanceNameWithSuffix} - Published produced data offer endpoints.`);
       }
     }
   }
@@ -171,18 +209,26 @@ export default class UnsProxy {
         apiObject.objectId,
         apiObject.attribute,
       );
-      if (!this.producedApiEndpoints.has(fullTopic)) {
+      const targetRegistry =
+        apiObject.registryTopic === "service-endpoints"
+          ? this.producedServiceEndpoints
+          : apiObject.registryTopic === "data-offer-endpoints"
+            ? this.producedDataOfferEndpoints
+          : this.producedApiEndpoints;
+      if (!targetRegistry.has(fullTopic)) {
         const time = UnsPacket.formatToISO8601(new Date());
-        this.producedApiEndpoints.set(fullTopic, {
+        targetRegistry.set(fullTopic, {
           timestamp: time,
           topic: apiObject.topic,
           attribute: apiObject.attribute,
           ...(apiObject.routeOnly === true ? { routeOnly: true } : {}),
+          ...(apiObject.registryTopic ? { registryTopic: apiObject.registryTopic } : {}),
           apiHost: apiObject.apiHost,
           apiEndpoint: apiObject.apiEndpoint,
           apiMethod: apiObject.apiMethod,
           apiQueryParams: apiObject.apiQueryParams,
           apiDescription: apiObject.apiDescription,
+          ...(apiObject.serviceApi ? { serviceApi: apiObject.serviceApi } : {}),
           attributeType: apiObject.attributeType,
           apiSwaggerEndpoint: apiObject.apiSwaggerEndpoint,
           asset: apiObject.asset,
@@ -193,8 +239,16 @@ export default class UnsProxy {
           ...(this.controllerPortEnv ? { controllerPort: this.controllerPortEnv } : {}),
           ...(this.controllerPublicBaseEnv ? { controllerPublicBase: this.controllerPublicBaseEnv } : {}),
         });
-        this.emitProducedApiEndpoints();
-        logger.info(`${this.instanceNameWithSuffix} - Registered new api endpoint: /${fullTopic}`);
+        if (apiObject.registryTopic === "service-endpoints") {
+          this.emitProducedServiceEndpoints();
+          logger.info(`${this.instanceNameWithSuffix} - Registered new service endpoint: /${fullTopic}`);
+        } else if (apiObject.registryTopic === "data-offer-endpoints") {
+          this.emitProducedDataOfferEndpoints();
+          logger.info(`${this.instanceNameWithSuffix} - Registered new data offer endpoint: /${fullTopic}`);
+        } else {
+          this.emitProducedApiEndpoints();
+          logger.info(`${this.instanceNameWithSuffix} - Registered new api endpoint: /${fullTopic}`);
+        }
       }
     }
   }
@@ -214,9 +268,23 @@ export default class UnsProxy {
 
   protected unregisterApiEndpoint(topic: string, asset:UnsAsset, objectType: UnsObjectType, objectId: UnsObjectId, attribute: string): void {
     const fullTopic = buildUnsIdentityPath(topic, asset, objectType, objectId, attribute);
+    let removed = false;
     if (this.producedApiEndpoints.has(fullTopic)) {
       this.producedApiEndpoints.delete(fullTopic);
       this.emitProducedApiEndpoints();
+      removed = true;
+    }
+    if (this.producedServiceEndpoints.has(fullTopic)) {
+      this.producedServiceEndpoints.delete(fullTopic);
+      this.emitProducedServiceEndpoints();
+      removed = true;
+    }
+    if (this.producedDataOfferEndpoints.has(fullTopic)) {
+      this.producedDataOfferEndpoints.delete(fullTopic);
+      this.emitProducedDataOfferEndpoints();
+      removed = true;
+    }
+    if (removed) {
       logger.info(`${this.instanceNameWithSuffix} - Unregistered API endpoint: ${fullTopic}`);
     }
   }

@@ -159,6 +159,7 @@ export type ApiInteractionDefinition<Handler = unknown> = {
   attribute: string;
   method: ApiInteractionMethod;
   routeOnly?: boolean;
+  registryTopic?: "api-endpoints" | "service-endpoints" | "data-offer-endpoints";
   options: IGetEndpointOptions | IPostEndpointOptions;
   handler: Handler;
 };
@@ -311,6 +312,7 @@ export function buildServiceApiInteractions<
         attribute: definition.attribute,
         method: definition.method ?? "GET",
         routeOnly: definition.publishInUnsTree !== true,
+        registryTopic: "service-endpoints",
         options: buildApiInteractionOptions(
           definition.method ?? "GET",
           definition.description,
@@ -318,6 +320,8 @@ export function buildServiceApiInteractions<
           definition.queryParams,
           definition.requestBody,
           definition.publishInUnsTree !== true,
+          "service-endpoints",
+          buildServiceApiPayload(String(key), definition),
         ),
         handler: definition.handler,
       }),
@@ -341,6 +345,7 @@ export function buildApiInteractionsFromDataOfferSources<
         attribute: source.attribute,
         method: source.method ?? "GET",
         routeOnly: true,
+        registryTopic: "data-offer-endpoints",
         options: buildApiInteractionOptions(
           source.method ?? "GET",
           source.apiDescription ?? source.description,
@@ -348,6 +353,7 @@ export function buildApiInteractionsFromDataOfferSources<
           source.queryParams,
           source.requestBody,
           true,
+          "data-offer-endpoints",
         ),
         handler: source.handler,
       }),
@@ -442,11 +448,15 @@ function buildApiInteractionOptions(
   queryParams?: DataCatalogParameterRegistration[],
   requestBody?: DataCatalogRequestBodyRegistration | null,
   routeOnly = true,
+  registryTopic: "api-endpoints" | "service-endpoints" | "data-offer-endpoints" = "api-endpoints",
+  serviceApi?: Record<string, unknown>,
 ): IGetEndpointOptions | IPostEndpointOptions {
   if (method === "GET") {
     return {
       apiDescription: description,
       ...(routeOnly ? { routeOnly: true } : {}),
+      ...(registryTopic ? { registryTopic } : {}),
+      ...(serviceApi ? { serviceApi } : {}),
       ...(tags ? { tags } : {}),
       ...(queryParams
         ? {
@@ -472,6 +482,8 @@ function buildApiInteractionOptions(
   return {
     apiDescription: description,
     ...(routeOnly ? { routeOnly: true } : {}),
+    ...(registryTopic ? { registryTopic } : {}),
+    ...(serviceApi ? { serviceApi } : {}),
     ...(tags ? { tags } : {}),
     ...(requestBody
       ? {
@@ -483,6 +495,31 @@ function buildApiInteractionOptions(
         }
       : {}),
   } as IPostEndpointOptions;
+}
+
+function buildServiceApiPayload<Handler>(
+  id: string,
+  definition: ServiceApiRegistration<Handler>,
+): Record<string, unknown> {
+  const schemas = definition.schema ? [definition.schema] : [];
+  const response = definition.response ?? {
+    statusCode: "200",
+    description: definition.description,
+    ...(definition.schema?.contentType ? { contentType: definition.schema.contentType } : {}),
+    ...(definition.schema ? { schemas: [definition.schema] } : {}),
+  };
+
+  return {
+    id,
+    summary: definition.description,
+    description: definition.description,
+    tags: definition.tags ?? [],
+    parameters: definition.queryParams ?? [],
+    headers: [],
+    requestBody: definition.requestBody ?? null,
+    responses: [response],
+    schemas,
+  };
 }
 
 function getRowValue(row: Record<string, unknown>, key: string): unknown {
