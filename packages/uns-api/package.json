@@ -37,15 +37,17 @@
   },
   "dependencies": {
     "@uns-kit/core": "workspace:*",
-    "jsonwebtoken": "^9.0.2",
     "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
-    "multer": "^2.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "parquets": "^0.10.10",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/cookie-parser": "^1.4.9",
     "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0"
   }
 }

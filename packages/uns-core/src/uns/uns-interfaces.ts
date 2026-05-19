@@ -143,6 +143,9 @@ export interface UnsEvents {
   // Emitters in UnsApiProxy
   apiGetEvent: {req: any, res: any};
   apiPostEvent: {req: any, res: any};
+  apiPutEvent: {req: any, res: any};
+  apiPatchEvent: {req: any, res: any};
+  apiDeleteEvent: {req: any, res: any};
 
   // Emitters in UnsProxy
   unsProxyProducedTopics: { producedTopics: ITopicObject[], statusTopic: string };
@@ -151,7 +154,16 @@ export interface UnsEvents {
   unsProxyProducedApiEndpoints: { producedApiEndpoints: IApiObject[], statusTopic: string };
 
   // Emitters in UnsProxy
+  unsProxyProducedServiceEndpoints: { producedServiceEndpoints: IApiObject[], statusTopic: string };
+
+  // Emitters in UnsProxy
+  unsProxyProducedDataOfferEndpoints: { producedDataOfferEndpoints: IApiObject[], statusTopic: string };
+
+  // Emitters in UnsProxy
   unsProxyProducedApiCatchAll: { producedCatchall: IApiCatchallMapping[], statusTopic: string };
+
+  // Emitters in UnsProxy / UnsApiProxy
+  unsProxyProducedDataCatalogOffers: { producedDataCatalogOffers: unknown[], statusTopic: string };
 }
 
 export interface IUnsExtendedData extends IUnsData {
@@ -327,12 +339,15 @@ export interface IApiObject {
   attribute:string;
   topic:string;
   attributeType: UnsAttributeType;
+  routeOnly?: boolean;
+  registryTopic?: "api-endpoints" | "service-endpoints" | "data-offer-endpoints";
   apiDescription?: string; // Optional description for the API endpoint
   apiHost: string; // Hostname of the service
   apiEndpoint: string; // API endpoint for virtual topics
   apiSwaggerEndpoint: string; // Swagger endpoint for API documentation
-  apiMethod: "GET" | "POST" | "PUT" | "DELETE"; // HTTP method for API endpoint
+  apiMethod: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; // HTTP method for API endpoint
   apiQueryParams: QueryParamDef[]; // query parameters for the API endpoint
+  serviceApi?: Record<string, unknown> | null;
   asset: UnsAsset;
   objectType: UnsObjectType;
   objectId: UnsObjectId;
@@ -399,6 +414,9 @@ export interface IGetEndpointOptions {
   apiDescription?: string;
   tags?: string[];
   queryParams?: QueryParamDef[];
+  routeOnly?: boolean;
+  registryTopic?: "api-endpoints" | "service-endpoints" | "data-offer-endpoints";
+  serviceApi?: Record<string, unknown>;
   /**
    * Optional defaults consumed by chat tooling (published as OpenAPI vendor extension x-uns-chat.defaults).
    */
@@ -408,9 +426,16 @@ export interface IGetEndpointOptions {
 export interface IPostEndpointOptions {
   apiDescription?: string;
   tags?: string[];
+  routeOnly?: boolean;
+  registryTopic?: "api-endpoints" | "service-endpoints" | "data-offer-endpoints";
+  serviceApi?: Record<string, unknown>;
   requestBody?: {
     description?: string;
     required?: boolean;
     schema?: Record<string, unknown>;
   };
 }
+
+export interface IPutEndpointOptions extends IPostEndpointOptions {}
+export interface IPatchEndpointOptions extends IPostEndpointOptions {}
+export interface IDeleteEndpointOptions extends IPostEndpointOptions {}

@@ -117,6 +117,151 @@ api.event.on("apiPostEvent", (event: UnsEvents["apiPostEvent"]) => {
 });
 ```
 
+## Data offer example
+
+```ts
+import "@uns-kit/api";
+import {
+  defineDataCatalogField,
+  defineDataCatalogOfferSource,
+  defineDataCatalogQueryParam,
+  defineDataCatalogSchema,
+  defineServiceApi,
+  projectRowsForDataCatalogSchema,
+  registerApiCatalog,
+  type UnsProxyProcessWithApi,
+} from "@uns-kit/api";
+import { ConfigFile, UnsProxyProcess } from "@uns-kit/core";
+
+const config = await ConfigFile.loadConfig();
+const proc = new UnsProxyProcess(config.infra.host!, {
+  processName: config.uns.processName,
+}) as UnsProxyProcessWithApi;
+
+const api = await proc.createApiProxy("catalog", {
+  jwks: { wellKnownJwksUrl: config.uns.jwksWellKnownUrl! },
+});
+
+const orderRows = [
+  { ORDER_ID: "PO-1001", STATUS: "released" },
+  { ORDER_ID: "PO-1002", STATUS: "finished" },
+];
+
+const productionOrdersSchema = defineDataCatalogSchema({
+  id: "production-orders",
+  title: "Production Orders",
+  contentType: "application/json",
+  fields: [
+    defineDataCatalogField("count", "number", "Number of returned rows"),
+    defineDataCatalogField("data", "array", "Returned rows"),
+    defineDataCatalogField("orderId", "string", "Order id", { sourceKey: "ORDER_ID" }),
+    defineDataCatalogField("status", "string", "Order status", { sourceKey: "STATUS" }),
+  ],
+  examplePayloads: [
+    {
+      count: 1,
+      data: [{ orderId: "PO-1001", status: "released" }],
+    },
+  ],
+});
+
+const productionOrderRowSchema = defineDataCatalogSchema({
+  id: "production-orders-row",
+  title: "Production Order Row",
+  contentType: "application/json",
+  fields: productionOrdersSchema.fields?.filter((field) => field.name !== "count" && field.name !== "data") ?? [],
+});
+
+const serviceApis = {
+  status: defineServiceApi({
+    attribute: "status",
+    method: "GET",
+    description: "Service status endpoint",
+    tags: ["service"],
+    handler: async (event: any) => {
+      event.res.json({ status: "ok" });
+    },
+  }),
+  command: defineServiceApi({
+    attribute: "command",
+    method: "POST",
+    description: "Service command endpoint",
+    tags: ["service"],
+    requestBody: {
+      required: true,
+      description: "Command payload",
+      contentType: "application/json",
+      schemas: [
+        defineDataCatalogSchema({
+          id: "service-command-request",
+          title: "Service Command Request",
+          contentType: "application/json",
+          fields: [
+            defineDataCatalogField("command", "string", "Command name", { required: true, example: "refresh-cache" }),
+            defineDataCatalogField("target", "string", "Optional target", { example: "orders" }),
+          ],
+        }),
+      ],
+    },
+    handler: async (event: any) => {
+      const { command, target } = event.req.body ?? {};
+      if (!command) {
+        return event.res.status(400).json({ error: "Missing command" });
+      }
+
+      event.res.json({
+        status: "accepted",
+        received: {
+          command,
+          ...(target ? { target } : {}),
+        },
+      });
+    },
+  }),
+};
+
+const dataOfferSources = {
+  productionOrders: defineDataCatalogOfferSource({
+    offerId: "production-orders",
+    topic: "factory/demo/app",
+    asset: "orders",
+    objectType: "dataset",
+    objectId: "production",
+    attribute: "list",
+    displayName: "Production Orders",
+    description: "Browse production orders.",
+    method: "GET",
+    tags: ["orders"],
+    queryParams: [
+      defineDataCatalogQueryParam("status", "Optional status filter"),
+    ],
+    schema: productionOrdersSchema,
+    response: {
+      statusCode: "200",
+      contentType: "application/json",
+    },
+    handler: async (event: any) => {
+      const statusFilter = String(event.req.query.status ?? "").trim().toLowerCase();
+      const filteredRows = statusFilter
+        ? orderRows.filter((row) => row.STATUS.toLowerCase() === statusFilter)
+        : orderRows;
+      const data = projectRowsForDataCatalogSchema(filteredRows, productionOrderRowSchema);
+
+      event.res.json({
+        count: data.length,
+        data,
+      });
+    },
+  }),
+};
+
+await registerApiCatalog(api, {
+  serviceApis,
+  dataOfferSources,
+  context: undefined,
+});
+```
+
 ## Endpoint signature
 
 ```

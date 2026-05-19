@@ -43,10 +43,40 @@ const unsApiPlugin: UnsProxyProcessPlugin = ({ define }) => {
         );
       });
 
+      (unsApiProxy.event as any).on("unsProxyProducedServiceEndpoints", (event: {
+        statusTopic: string;
+        producedServiceEndpoints: unknown[];
+      }) => {
+        internals.processMqttProxy.publish(
+          event.statusTopic,
+          JSON.stringify(event.producedServiceEndpoints),
+        );
+      });
+
+      (unsApiProxy.event as any).on("unsProxyProducedDataOfferEndpoints", (event: {
+        statusTopic: string;
+        producedDataOfferEndpoints: unknown[];
+      }) => {
+        internals.processMqttProxy.publish(
+          event.statusTopic,
+          JSON.stringify(event.producedDataOfferEndpoints),
+        );
+      });
+
       unsApiProxy.event.on("unsProxyProducedApiCatchAll", (event) => {
         internals.processMqttProxy.publish(
           event.statusTopic,
           JSON.stringify(event.producedCatchall),
+        );
+      });
+
+      (unsApiProxy.event as any).on("unsProxyProducedDataCatalogOffers", (event: {
+        statusTopic: string;
+        producedDataCatalogOffers: unknown[];
+      }) => {
+        internals.processMqttProxy.publish(
+          event.statusTopic,
+          JSON.stringify(event.producedDataCatalogOffers),
         );
       });
 
