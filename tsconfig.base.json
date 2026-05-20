@@ -20,6 +20,8 @@
     "paths": {
       "@uns-kit/core": ["packages/uns-core/src/index.ts"],
       "@uns-kit/core/*": ["packages/uns-core/src/*"],
+      "@uns-kit/database": ["packages/uns-database/src/index.ts"],
+      "@uns-kit/database/*": ["packages/uns-database/src/*"],
       "@uns-kit/cron": ["packages/uns-cron/src/index.ts"],
       "@uns-kit/cron/*": ["packages/uns-cron/src/*"],
       "@uns-kit/api": ["packages/uns-api/src/index.ts"],

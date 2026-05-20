@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": "../../",
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": true,
+    "paths": {
+      "@uns-kit/core": ["packages/uns-core/dist/index.d.ts"],
+      "@uns-kit/core/*": ["packages/uns-core/dist/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

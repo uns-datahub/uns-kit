@@ -17,6 +17,7 @@ Apps scaffolded with uns-kit are managed by the **UNS Datahub controller** (not 
 | Package | Description |
 | --- | --- |
 | [`@uns-kit/core`](packages/uns-core) | Base runtime (UnsProxyProcess, MQTT helpers, config tooling, gRPC gateway). |
+| [`@uns-kit/database`](packages/uns-database) | Config-driven database access with portable named SQL params and pluggable drivers. |
 | [`@uns-kit/api`](packages/uns-api) | Express plugin — HTTP GET/POST endpoints, JWT/JWKS auth, Swagger, UNS metadata. |
 | [`@uns-kit/cron`](packages/uns-cron) | Cron-driven scheduler that emits UNS events on a fixed cadence. |
 | [`@uns-kit/cli`](packages/uns-cli) | CLI for scaffolding and maintaining UNS applications. |

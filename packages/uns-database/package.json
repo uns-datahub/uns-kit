@@ -1,0 +1,58 @@
+{
+  "name": "@uns-kit/database",
+  "version": "2.0.46",
+  "description": "Database helpers for UNS services with config-driven connections, SQL file loading, and portable named-parameter compilation.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Kristjan Cuznar <kristjancuznar0@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uns-datahub/uns-kit.git",
+    "directory": "packages/uns-database"
+  },
+  "keywords": [
+    "uns",
+    "database",
+    "postgres",
+    "sqlite",
+    "oracle",
+    "typescript"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./*": "./dist/*"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "postversion": "node ../../scripts/update-cli-package-version.cjs"
+  },
+  "dependencies": {
+    "@uns-kit/core": "workspace:*",
+    "zod": "^3"
+  },
+  "peerDependencies": {
+    "better-sqlite3": "^11.0.0",
+    "oracledb": "^6.0.0",
+    "pg": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "better-sqlite3": {
+      "optional": true
+    },
+    "oracledb": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    }
+  }
+}
