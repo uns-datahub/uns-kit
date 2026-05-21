@@ -227,27 +227,9 @@ importers:
 
   sandbox-app:
     dependencies:
-      '@uns-kit/api':
-        specifier: workspace:^
-        version: link:../packages/uns-api
       '@uns-kit/core':
         specifier: workspace:^
         version: link:../packages/uns-core
-      '@uns-kit/database':
-        specifier: workspace:^2.0.46
-        version: link:../packages/uns-database
-      oracledb:
-        specifier: ^6.10.0
-        version: 6.10.0
-      parquets:
-        specifier: ^0.10.10
-        version: 0.10.10
-      pg:
-        specifier: ^8.21.0
-        version: 8.21.0
-      uuid:
-        specifier: ^14.0.0
-        version: 14.0.0
       zod:
         specifier: ^3.23.8
         version: 3.25.76
