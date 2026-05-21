@@ -1040,11 +1040,8 @@ async function upgradeProject(targetPath?: string): Promise<void> {
     }
   }
 
-  // Ensure REST-backed schema sync scripts are present if any UNS generator scripts were present.
-  const hadUnsReference = removed.some((name) => name.startsWith("generate-uns"));
-  if (hadUnsReference) {
-    changed = ensureUnsReferenceScripts(scripts) || changed;
-  }
+  const syncScriptsChanged = ensureUnsReferenceScripts(scripts);
+  changed = syncScriptsChanged || changed;
 
   if (changed) {
     await writeFile(packagePath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
@@ -1057,7 +1054,9 @@ async function upgradeProject(targetPath?: string): Promise<void> {
       console.log(`    - ${name}`);
     }
   }
-  if (hadUnsReference) {
+  if (syncScriptsChanged) {
+    console.log("  Added/updated: sync-uns-schema, sync-uns-metadata");
+  } else {
     console.log("  Ensured: sync-uns-schema, sync-uns-metadata");
   }
   if (!changed) {
