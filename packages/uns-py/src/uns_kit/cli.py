@@ -201,7 +201,7 @@ def _scaffold_python_project(target_path: Path, project_name: str, *, allow_exis
     _ensure_target_dir(target_path, allow_existing=allow_existing)
     _copy_template_tree(template_root, target_path)
 
-    initial_app_version = "0.1.0"
+    initial_app_version = "0.0.0"
     pyproject_path = target_path / "pyproject.toml"
     if pyproject_path.exists():
         try:
