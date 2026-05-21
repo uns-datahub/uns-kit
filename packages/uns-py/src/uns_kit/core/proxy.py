@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -19,9 +20,15 @@ class UnsProxy:
         self._client = client
         self._instance_status_topic = instance_status_topic
         self._instance_name = instance_name
+        self._controller_name_env = os.environ.get("UNS_CONTROLLER_NAME")
+        self._controller_host_env = os.environ.get("UNS_CONTROLLER_HOST")
+        self._controller_port_env = os.environ.get("UNS_CONTROLLER_PORT")
+        self._controller_public_base_env = os.environ.get("UNS_CONTROLLER_PUBLIC_BASE") or os.environ.get("UNS_PUBLIC_BASE")
         self.event = EventEmitter()
         self._produced_topics: Dict[str, Dict[str, Any]] = {}
         self._produced_api_endpoints: Dict[str, Dict[str, Any]] = {}
+        self._produced_service_endpoints: Dict[str, Dict[str, Any]] = {}
+        self._produced_data_offer_endpoints: Dict[str, Dict[str, Any]] = {}
         self._produced_api_catchall: Dict[str, Dict[str, Any]] = {}
         self._publish_task: Optional[asyncio.Task] = None
         self._running = False
@@ -85,6 +92,28 @@ class UnsProxy:
         payload = json.dumps(list(self._produced_api_endpoints.values()), separators=(",", ":"))
         await self._client.publish_raw(f"{self._instance_status_topic}api", payload, retain=True)
 
+    async def _emit_produced_service_endpoints(self) -> None:
+        await self.event.emit(
+            "unsProxyProducedServiceEndpoints",
+            {
+                "producedServiceEndpoints": list(self._produced_service_endpoints.values()),
+                "statusTopic": f"{self._instance_status_topic}service-endpoints",
+            },
+        )
+        payload = json.dumps(list(self._produced_service_endpoints.values()), separators=(",", ":"))
+        await self._client.publish_raw(f"{self._instance_status_topic}service-endpoints", payload, retain=True)
+
+    async def _emit_produced_data_offer_endpoints(self) -> None:
+        await self.event.emit(
+            "unsProxyProducedDataOfferEndpoints",
+            {
+                "producedDataOfferEndpoints": list(self._produced_data_offer_endpoints.values()),
+                "statusTopic": f"{self._instance_status_topic}data-offer-endpoints",
+            },
+        )
+        payload = json.dumps(list(self._produced_data_offer_endpoints.values()), separators=(",", ":"))
+        await self._client.publish_raw(f"{self._instance_status_topic}data-offer-endpoints", payload, retain=True)
+
     async def _emit_produced_api_catchall(self) -> None:
         await self.event.emit(
             "unsProxyProducedApiCatchAll",
@@ -102,6 +131,16 @@ class UnsProxy:
             for name in ("topic", "asset", "objectType", "objectId", "attribute", "apiMethod")
         )
         api_object.setdefault("timestamp", isoformat(datetime.now(timezone.utc)))
+        self._apply_controller_metadata(api_object)
+        registry_topic = str(api_object.get("registryTopic") or "api-endpoints")
+        if registry_topic == "service-endpoints":
+            self._produced_service_endpoints[key] = api_object
+            await self._emit_produced_service_endpoints()
+            return
+        if registry_topic == "data-offer-endpoints":
+            self._produced_data_offer_endpoints[key] = api_object
+            await self._emit_produced_data_offer_endpoints()
+            return
         self._produced_api_endpoints[key] = api_object
         await self._emit_produced_api_endpoints()
 
@@ -115,11 +154,34 @@ class UnsProxy:
         method: str,
     ) -> None:
         key = "|".join([topic, asset, object_type, object_id, attribute, method])
+        removed = False
         if key in self._produced_api_endpoints:
             del self._produced_api_endpoints[key]
             await self._emit_produced_api_endpoints()
+            removed = True
+        if key in self._produced_service_endpoints:
+            del self._produced_service_endpoints[key]
+            await self._emit_produced_service_endpoints()
+            removed = True
+        if key in self._produced_data_offer_endpoints:
+            del self._produced_data_offer_endpoints[key]
+            await self._emit_produced_data_offer_endpoints()
+            removed = True
+        if removed:
+            return
 
     async def register_api_catchall(self, catchall_object: Dict[str, Any]) -> None:
         topic = str(catchall_object.get("topic", ""))
+        self._apply_controller_metadata(catchall_object)
         self._produced_api_catchall[topic] = catchall_object
         await self._emit_produced_api_catchall()
+
+    def _apply_controller_metadata(self, payload: Dict[str, Any]) -> None:
+        if self._controller_name_env:
+            payload.setdefault("controllerName", self._controller_name_env)
+        if self._controller_host_env:
+            payload.setdefault("controllerHost", self._controller_host_env)
+        if self._controller_port_env:
+            payload.setdefault("controllerPort", self._controller_port_env)
+        if self._controller_public_base_env:
+            payload.setdefault("controllerPublicBase", self._controller_public_base_env)

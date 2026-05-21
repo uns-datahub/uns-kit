@@ -141,7 +141,7 @@ def test_generate_config_schema_merges_project_extension(tmp_path: Path, monkeyp
     extension_path.write_text(
         "\n".join(
             [
-                "from uns_kit.config_schema import strict_object, string_schema",
+                "from uns_kit.core import strict_object, string_schema",
                 "",
                 "project_extras_schema = strict_object(",
                 "    {",
@@ -190,7 +190,7 @@ def test_legacy_create_uses_proxy_based_uns_publishing_pattern(tmp_path: Path, m
     result = CliRunner().invoke(cli, ["create", "legacy-app"])
 
     assert result.exit_code == 0, result.output
-    main_text = (tmp_path / "legacy-app" / "main.py").read_text()
+    main_text = (tmp_path / "legacy-app" / "src" / "main.py").read_text()
     assert "UnsProxyProcess" in main_text
     assert "create_mqtt_proxy" in main_text
     assert "publish_mqtt_message" in main_text

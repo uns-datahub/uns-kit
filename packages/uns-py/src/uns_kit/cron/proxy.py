@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from .events import EventEmitter
+from ..core.events import EventEmitter
 
 
 logger = logging.getLogger(__name__)

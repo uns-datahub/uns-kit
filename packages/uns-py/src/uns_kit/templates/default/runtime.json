@@ -1,4 +1,4 @@
 {
   "runtime": "python",
-  "entry": "../../main.py"
+  "entry": "../../src/main.py"
 }

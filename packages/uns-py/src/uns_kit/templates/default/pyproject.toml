@@ -3,7 +3,6 @@ name = "uns-py-app"
 version = "0.1.0"
 description = "Example UNS Python application"
 authors = ["Your Name <you@example.com>"]
-packages = [{ include = "uns_py_app" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"

@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from .version import __package_name__, __version__
+from ..version import __package_name__, __version__
 
 
 @dataclass(frozen=True)

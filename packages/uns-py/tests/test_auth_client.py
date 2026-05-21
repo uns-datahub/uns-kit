@@ -8,7 +8,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 from uns_kit import AuthClient, ConfigFile
-from uns_kit.secure_store import FileStore
+from uns_kit.core import FileStore
 
 
 def _jwt_with_exp(exp: int) -> str:

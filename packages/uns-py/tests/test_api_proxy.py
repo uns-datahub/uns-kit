@@ -9,8 +9,8 @@ import urllib.error
 import pytest
 import jwt
 
-from uns_kit.api_proxy import UnsApiProxy
-from uns_kit.topic_builder import TopicBuilder
+from uns_kit.api import UnsApiProxy
+from uns_kit.core import TopicBuilder
 
 
 class _FakeClient:

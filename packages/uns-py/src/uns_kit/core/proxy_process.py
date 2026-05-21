@@ -5,14 +5,14 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, List, Mapping, Optional
 
-from .api_proxy import ApiProxyOptions, UnsApiProxy
+from ..api.proxy import ApiProxyOptions, UnsApiProxy
+from ..cron.proxy import CronProxyOptions, CronScheduleInput, UnsCronProxy
+from ..version import __version__
 from .client import UnsMqttClient
-from .cron_proxy import CronProxyOptions, CronScheduleInput, UnsCronProxy
 from .runtime_metadata import RUNTIME_METADATA
 from .status_monitor import StatusMonitor
 from .topic_builder import TopicBuilder
 from .uns_mqtt_proxy import UnsMqttProxy
-from .version import __version__
 
 
 def _pick(mapping: Mapping[str, Any], snake: str, camel: str) -> Any:
@@ -156,6 +156,9 @@ class UnsProxyProcess:
         self._api_proxies: List[UnsApiProxy] = []
         self._cron_proxies: List[UnsCronProxy] = []
         self._activate_task: Optional[asyncio.Task] = None
+
+    def get_process_name(self) -> str:
+        return self.process_name
 
     async def start(self) -> None:
         await self._client.connect()

@@ -9,13 +9,13 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Mapping, Optional
 
-from .client import UnsMqttClient
-from .packet import UnsPacket, isoformat
-from .proxy import UnsProxy
-from .topic_builder import TopicBuilder
-from .topic_matcher import matches_topic_filter
-from .uns_path import build_uns_route_path
-from .version import __package_name__, __version__
+from ..core.client import UnsMqttClient
+from ..core.packet import UnsPacket, isoformat
+from ..core.proxy import UnsProxy
+from ..core.topic_builder import TopicBuilder
+from ..core.topic_matcher import matches_topic_filter
+from ..core.uns_path import build_uns_route_path
+from ..version import __package_name__, __version__
 
 
 logger = logging.getLogger(__name__)
@@ -87,6 +87,9 @@ class GetEndpointOptions:
     tags: list[str] = field(default_factory=list)
     query_params: list[QueryParamDef] = field(default_factory=list)
     chat_defaults: dict[str, str | int | float | bool] = field(default_factory=dict)
+    route_only: bool = False
+    registry_topic: str = "api-endpoints"
+    service_api: Optional[dict[str, Any]] = None
 
     @staticmethod
     def from_value(value: Optional["GetEndpointOptions | Mapping[str, Any]"]) -> "GetEndpointOptions":
@@ -99,6 +102,9 @@ class GetEndpointOptions:
             tags=list(value.get("tags") or []),
             query_params=[QueryParamDef.from_value(item) for item in value.get("queryParams") or value.get("query_params") or []],
             chat_defaults=dict(value.get("chatDefaults") or value.get("chat_defaults") or {}),
+            route_only=bool(value.get("routeOnly") or value.get("route_only", False)),
+            registry_topic=str(value.get("registryTopic") or value.get("registry_topic") or "api-endpoints"),
+            service_api=dict(value.get("serviceApi") or value.get("service_api") or {}) or None,
         )
 
 
@@ -107,6 +113,9 @@ class PostEndpointOptions:
     api_description: Optional[str] = None
     tags: list[str] = field(default_factory=list)
     request_body: Optional[dict[str, Any]] = None
+    route_only: bool = False
+    registry_topic: str = "api-endpoints"
+    service_api: Optional[dict[str, Any]] = None
 
     @staticmethod
     def from_value(value: Optional["PostEndpointOptions | Mapping[str, Any]"]) -> "PostEndpointOptions":
@@ -118,6 +127,9 @@ class PostEndpointOptions:
             api_description=value.get("apiDescription") or value.get("api_description"),
             tags=list(value.get("tags") or []),
             request_body=value.get("requestBody") or value.get("request_body"),
+            route_only=bool(value.get("routeOnly") or value.get("route_only", False)),
+            registry_topic=str(value.get("registryTopic") or value.get("registry_topic") or "api-endpoints"),
+            service_api=dict(value.get("serviceApi") or value.get("service_api") or {}) or None,
         )
 
 
@@ -219,6 +231,7 @@ class UnsApiProxy(UnsProxy):
             "paths": {},
             "servers": [{"url": self.swagger_base_prefix or "/"}],
         }
+        self._data_catalog_offers: dict[str, dict[str, Any]] = {}
         self._register_health_endpoint()
 
     async def start(self) -> None:
@@ -228,6 +241,9 @@ class UnsApiProxy(UnsProxy):
         logger.info("API listening on http://%s:%s%s", self._public_ip, self._port, self.api_base_prefix)
         logger.info("Swagger openAPI on http://%s:%s%s", self._public_ip, self._port, self.swagger_json_path)
         self._status_task = asyncio.create_task(self._status_loop())
+
+    def get_process_name(self) -> str:
+        return self.process_name
 
     async def stop(self) -> None:
         if self._status_task and not self._status_task.done():
@@ -259,6 +275,8 @@ class UnsApiProxy(UnsProxy):
                 "objectType": object_type,
                 "objectId": object_id,
                 "attribute": attribute,
+                "routeOnly": endpoint_options.route_only,
+                "registryTopic": endpoint_options.registry_topic,
                 "attributeType": "Api",
                 "apiHost": api_host,
                 "apiEndpoint": api_path,
@@ -266,6 +284,7 @@ class UnsApiProxy(UnsProxy):
                 "apiMethod": "GET",
                 "apiQueryParams": [self._query_param_to_registry_item(param) for param in endpoint_options.query_params],
                 "apiDescription": endpoint_options.api_description,
+                "serviceApi": endpoint_options.service_api,
             }
         )
 
@@ -285,6 +304,18 @@ class UnsApiProxy(UnsProxy):
         self.swagger_spec["paths"][api_path]["get"] = self._build_get_swagger_operation(endpoint_options)
 
     async def post(self, topic: str, asset: str, object_type: str, object_id: str, attribute: str, options: Optional[PostEndpointOptions | Mapping[str, Any]] = None) -> None:
+        await self._register_mutation_endpoint("POST", topic, asset, object_type, object_id, attribute, options)
+
+    async def put(self, topic: str, asset: str, object_type: str, object_id: str, attribute: str, options: Optional[PostEndpointOptions | Mapping[str, Any]] = None) -> None:
+        await self._register_mutation_endpoint("PUT", topic, asset, object_type, object_id, attribute, options)
+
+    async def patch(self, topic: str, asset: str, object_type: str, object_id: str, attribute: str, options: Optional[PostEndpointOptions | Mapping[str, Any]] = None) -> None:
+        await self._register_mutation_endpoint("PATCH", topic, asset, object_type, object_id, attribute, options)
+
+    async def delete(self, topic: str, asset: str, object_type: str, object_id: str, attribute: str, options: Optional[PostEndpointOptions | Mapping[str, Any]] = None) -> None:
+        await self._register_mutation_endpoint("DELETE", topic, asset, object_type, object_id, attribute, options)
+
+    async def _register_mutation_endpoint(self, method: str, topic: str, asset: str, object_type: str, object_id: str, attribute: str, options: Optional[PostEndpointOptions | Mapping[str, Any]] = None) -> None:
         from fastapi.responses import JSONResponse
 
         await self._wait_until_ready()
@@ -301,13 +332,16 @@ class UnsApiProxy(UnsProxy):
                 "objectType": object_type,
                 "objectId": object_id,
                 "attribute": attribute,
+                "routeOnly": endpoint_options.route_only,
+                "registryTopic": endpoint_options.registry_topic,
                 "attributeType": "Api",
                 "apiHost": api_host,
                 "apiEndpoint": api_path,
                 "apiSwaggerEndpoint": self.swagger_json_path,
-                "apiMethod": "POST",
+                "apiMethod": method,
                 "apiQueryParams": [],
                 "apiDescription": endpoint_options.api_description,
+                "serviceApi": endpoint_options.service_api,
             }
         )
 
@@ -316,12 +350,12 @@ class UnsApiProxy(UnsProxy):
             if unauthorized is not None:
                 return unauthorized
             context = ApiEventContext(request)
-            await self.event.emit("apiPostEvent", context)
+            await self.event.emit(self._event_name_for_method(method), context)
             return context.response_object or JSONResponse({"error": "No handler response produced"}, status_code=500)
 
-        self._add_route(api_path, handler, ["POST"])
+        self._add_route(api_path, handler, [method])
         self._ensure_swagger_path(api_path)
-        self.swagger_spec["paths"][api_path]["post"] = self._build_post_swagger_operation(endpoint_options)
+        self.swagger_spec["paths"][api_path][method.lower()] = self._build_post_swagger_operation(endpoint_options)
 
     async def register_catch_all(self, topic_prefix: str, options: Optional[Mapping[str, Any]] = None) -> None:
         normalized = topic_prefix if topic_prefix.endswith("/") else f"{topic_prefix}/"
@@ -410,6 +444,69 @@ class UnsApiProxy(UnsProxy):
 
     async def registerCatchAll(self, topicPrefix: str, options: Optional[Mapping[str, Any]] = None) -> None:
         await self.register_catch_all(topicPrefix, options)
+
+    def register_data_offer(self, input_value: Mapping[str, Any]) -> None:
+        offer_id = str(input_value.get("offerId") or input_value.get("offer_id") or "").strip()
+        display_name = str(input_value.get("displayName") or input_value.get("display_name") or "").strip()
+        if not offer_id or not display_name:
+            raise ValueError("Data catalog offer requires non-empty offerId and displayName.")
+
+        operations = []
+        for index, operation in enumerate(input_value.get("operations") or []):
+            if not isinstance(operation, Mapping):
+                continue
+            method = str(operation.get("method") or "").upper().strip()
+            path = str(operation.get("path") or "").strip()
+            if not method or not path:
+                continue
+            operations.append(
+                {
+                    "id": str(operation.get("id") or f"{offer_id}-{method.lower()}-{index + 1}"),
+                    "method": method,
+                    "path": path if path.startswith("/") else f"/{path}",
+                    "summary": operation.get("summary"),
+                    "description": operation.get("description"),
+                    "tags": list(operation.get("tags") or []),
+                    "deprecated": bool(operation.get("deprecated", False)),
+                    "parameters": list(operation.get("parameters") or []),
+                    "headers": list(operation.get("headers") or []),
+                    "requestBody": operation.get("requestBody") or operation.get("request_body"),
+                    "responses": list(operation.get("responses") or []),
+                }
+            )
+        if not operations:
+            raise ValueError(f"Data catalog offer {offer_id} requires at least one operation.")
+
+        base_paths = list(input_value.get("basePaths") or input_value.get("base_paths") or [])
+        if not base_paths:
+            base_paths = sorted({"/" + "/".join(operation["path"].strip("/").split("/")[:-1]) for operation in operations})
+
+        offer = {
+            "offerId": offer_id,
+            "displayName": display_name,
+            "description": input_value.get("description"),
+            "owner": input_value.get("owner"),
+            "status": input_value.get("status") or "available",
+            "tags": list(input_value.get("tags") or []),
+            "categories": list(input_value.get("categories") or []),
+            "microserviceName": input_value.get("microserviceName") or input_value.get("microservice_name") or self.process_name,
+            "version": input_value.get("version") or __version__,
+            "basePaths": [path if str(path).startswith("/") else f"/{path}" for path in base_paths],
+            "operations": operations,
+            "schemas": list(input_value.get("schemas") or []),
+            "swaggerPath": input_value.get("swaggerPath") or input_value.get("swagger_path"),
+            "metadata": input_value.get("metadata"),
+            "packageName": __package_name__,
+            "processName": self.process_name,
+            "processVersion": __version__,
+            "instanceName": self.instance_name,
+        }
+        self._apply_controller_metadata(offer)
+        self._data_catalog_offers[offer_id] = offer
+        asyncio.create_task(self._emit_data_catalog_offers())
+
+    def registerDataOffer(self, inputValue: Mapping[str, Any]) -> None:
+        self.register_data_offer(inputValue)
 
     async def unregister(self, topic: str, asset: str, object_type: str, object_id: str, attribute: str, method: str) -> None:
         full_path = build_uns_route_path(topic, asset, object_type, object_id, attribute)
@@ -534,7 +631,25 @@ class UnsApiProxy(UnsProxy):
                     },
                 )
                 await self._client.publish_raw(f"{self.instance_status_topic}{suffix}", UnsPacket.to_json(packet))
+            await self._emit_data_catalog_offers()
             await asyncio.sleep(10)
+
+    async def _emit_data_catalog_offers(self) -> None:
+        if not self._data_catalog_offers:
+            return
+        payload = list(self._data_catalog_offers.values())
+        await self.event.emit(
+            "unsProxyProducedDataCatalogOffers",
+            {
+                "producedDataCatalogOffers": payload,
+                "statusTopic": f"{self.instance_status_topic}data-catalog-offers",
+            },
+        )
+        await self._client.publish_raw(
+            f"{self.instance_status_topic}data-catalog-offers",
+            json.dumps(payload, separators=(",", ":")),
+            retain=True,
+        )
 
     async def _authorize_request(self, request: Any, full_path: str) -> Any:
         from fastapi.responses import JSONResponse
@@ -733,3 +848,15 @@ class UnsApiProxy(UnsProxy):
                 },
             }
         return operation
+
+    def _event_name_for_method(self, method: str) -> str:
+        upper = method.upper()
+        if upper == "POST":
+            return "apiPostEvent"
+        if upper == "PUT":
+            return "apiPutEvent"
+        if upper == "PATCH":
+            return "apiPatchEvent"
+        if upper == "DELETE":
+            return "apiDeleteEvent"
+        return "apiPostEvent"

@@ -1,4 +1,4 @@
-from uns_kit.config_schema import (
+from uns_kit.core import (
     boolean_schema,
     host_value_schema,
     integer_schema,

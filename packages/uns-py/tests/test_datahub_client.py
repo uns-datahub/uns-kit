@@ -265,7 +265,7 @@ def test_uns_client_creates_auth_client_in_background(monkeypatch: pytest.Monkey
     def _create():
         return _StubAuthClient()
 
-    monkeypatch.setattr("uns_kit.datahub_client.AuthClient.create", _create)
+    monkeypatch.setattr("uns_kit.core.datahub_client.AuthClient.create", _create)
     client = UnsClient("https://unsdatahub.sij.digital/api")
 
     client.ensure_token()

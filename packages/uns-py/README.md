@@ -1,10 +1,12 @@
 # uns-kit (Python)
 
-Lightweight UNS MQTT client for Python. Provides:
+Python UNS SDK for runtime services, API/service exposure, and Datahub access. Provides:
 - Topic builder compatible with UNS infra topics (`uns-infra/<package>/<version>/<process>/`).
 - Async publish/subscribe via MQTT (using `aiomqtt`).
 - Process + instance status topics (active/heap/uptime/alive + stats).
 - Minimal UNS packet builder/parser (data/table) aligned with TS core.
+- Service/API proxy support with Swagger and endpoint registry topics.
+- Datahub client support for last-value, single-topic history, and batch range queries.
 
 ## Install (editable)
 ```bash
@@ -23,7 +25,8 @@ Feature-specific dependencies are exposed as optional extras:
 ```bash
 pip install "uns-kit[api]"
 pip install "uns-kit[cron]"
-pip install "uns-kit[api,cron]"
+pip install "uns-kit[database]"
+pip install "uns-kit[api,cron,database]"
 ```
 
 Runtime feature APIs mirror the TypeScript surface:
@@ -31,11 +34,20 @@ Runtime feature APIs mirror the TypeScript surface:
 - `await process.create_cron_proxy(...)`
 - TS-style aliases are also available: `createApiProxy(...)`, `createCrontabProxy(...)`
 
+## Package layout
+
+Public namespaces are organized by capability:
+
+- `uns_kit.core` - runtime, MQTT, config, auth, Datahub client
+- `uns_kit.api` - API proxy and data-catalog/service-api helpers
+- `uns_kit.cron` - cron proxy
+- `uns_kit.database` - config-driven database access
+
 ## Quick start
 ```python
 import asyncio
 from pathlib import Path
-from uns_kit import ConfigFile, UnsPacket, UnsProcessParameters, UnsProxyProcess
+from uns_kit.core import ConfigFile, UnsPacket, UnsProcessParameters, UnsProxyProcess
 
 async def main():
     config = ConfigFile.load_config(Path("config.json"))
@@ -97,7 +109,7 @@ await proxy.publish_mqtt_message({
 ```python
 import pandas as pd
 from pathlib import Path
-from uns_kit import ConfigFile, UnsClient
+from uns_kit.core import ConfigFile, UnsClient
 import io
 
 cfg = ConfigFile.load_config(Path("config.json"))
@@ -144,6 +156,8 @@ batch_history = client.history(
 print(batch_history.by_topic)
 ```
 
+For larger service API and data-offer examples, use `configure-data-offer`. The scaffold uses `await register_api_catalog(...)` in `src/main.py`, while `src/api_routes.py` holds the `service_apis` and `data_offer_sources` definitions together with their handlers.
+
 ## Config placeholders (env + Infisical)
 `uns-py` now resolves config placeholders in the same style as `uns-core`.
 For Infisical placeholders, install the optional extra:
@@ -177,7 +191,7 @@ Example `config.json`:
 
 Load resolved config with cache semantics:
 ```python
-from uns_kit import ConfigFile, SecretResolverOptions, InfisicalResolverOptions
+from uns_kit.core import ConfigFile, InfisicalResolverOptions, SecretResolverOptions
 
 resolved = ConfigFile.load_config(
     "config.json",
@@ -215,14 +229,29 @@ async for msg in client.resilient_messages("uns-infra/#"):
 uns-kit-py create my-uns-py-app
 cd my-uns-py-app
 poetry install
-poetry run python main.py
+poetry run python src/main.py
 ```
 
 To add optional feature scaffolding later:
 ```bash
 poetry run uns-kit-py configure-api .
 poetry run uns-kit-py configure-cron .
+poetry run uns-kit-py configure-data-offer .
 ```
+
+`configure-api` adds a service-API scaffold:
+- `src/main.py`
+- `src/api_routes.py`
+
+`configure-data-offer` adds a TypeScript-style API/data-catalog layout:
+- `src/main.py`
+- `src/api_routes.py`
+- `src/data_offers/*.py`
+- `src/data_offers/sql/...`
+
+The scaffold includes the same two offer styles as the TypeScript template:
+- one JSON offer (`demo_coils`)
+- one Parquet export offer (`demo_export`)
 
 ### Create a new project from a service bundle
 ```bash
@@ -258,5 +287,4 @@ When created inside this monorepo, `pyproject.toml` is automatically set to use 
 - Handover manager parity: subscribe to wildcard `active` and `handover` topics, keep new instances passive until timeout or handover completion, and support `handover_intent`, `handover_request`, `handover_subscriber`, `handover_fin`, and `handover_ack`.
 - Publish throttling / queue parity: add buffered ordered publishing instead of direct proxy-path publish, plus publisher/subscriber active-passive controls and passive-drain behavior.
 - Status parity: add process-level `alive` and `uptime`, publisher/subscriber active flags everywhere, published/subscribed message count and byte metrics, and process identity on active status packets.
-- API endpoints registry: mirror `@uns-kit/api` produced endpoints when Python gets an API surface, and use full UNS identity for endpoint keys and paths: `topic + asset + objectType + objectId + attribute`.
 - Optional: dictionary/measurement helpers + CLI wrapper.

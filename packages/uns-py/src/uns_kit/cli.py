@@ -23,8 +23,8 @@ from .service_bundle import (
     generate_service_spec_markdown,
     load_service_bundle,
 )
-from .config_schema import generate_config_schema
-from .topic_builder import TopicBuilder
+from .core.config_schema import generate_config_schema
+from .core.topic_builder import TopicBuilder
 from .version import __package_name__, __version__
 
 
@@ -87,8 +87,8 @@ async def _run_publish(
 ):
     # Local import so non-MQTT commands (create/configure/pull-request) don't
     # import MQTT client libraries.
-    from .client import UnsMqttClient
-    from .packet import UnsPacket
+    from .core.client import UnsMqttClient
+    from .core.packet import UnsPacket
 
     tb = TopicBuilder(package_name, package_version, process_name)
     client = UnsMqttClient(
@@ -131,7 +131,7 @@ async def _run_subscribe(
 ):
     # Local import so non-MQTT commands (create/configure/pull-request) don't
     # import MQTT client libraries.
-    from .client import UnsMqttClient
+    from .core.client import UnsMqttClient
 
     tb = TopicBuilder(package_name, package_version, process_name)
     client = UnsMqttClient(
@@ -312,14 +312,14 @@ def _print_python_create_success(target_path: Path, initialized_git: bool) -> No
     if target_path != Path.cwd():
         click.echo(f"  1) cd {target_path}")
         click.echo("  2) poetry install")
-        click.echo("  3) poetry run python main.py")
+        click.echo("  3) poetry run python src/main.py")
         click.echo("  4) Edit config.json with your MQTT host/credentials")
         if initialized_git:
             click.echo("  5) git status  # verify the new repository")
         return
 
     click.echo("  1) poetry install")
-    click.echo("  2) poetry run python main.py")
+    click.echo("  2) poetry run python src/main.py")
     click.echo("  3) Edit config.json with your MQTT host/credentials")
     if initialized_git:
         click.echo("  4) git status  # verify the new repository")
@@ -452,6 +452,7 @@ def _write_config_file(path: Path, project_name: Optional[str] = None) -> None:
     project_name = project_name or path.resolve().parent.name
     sanitized = TopicBuilder.sanitize_topic_part(project_name)
     data = {
+        "$schema": "./config.schema.json",
         "infra": {
             "host": "localhost",
             "port": 1883,
@@ -463,12 +464,22 @@ def _write_config_file(path: Path, project_name: Optional[str] = None) -> None:
             "keepalive": 60,
             "clean": True,
         },
+        "output": {
+            "host": "localhost",
+        },
+        "input": {
+            "host": "localhost",
+        },
         "uns": {
             "graphql": "http://localhost:3200/graphql",
             "rest": "http://localhost:3200/api",
-            "email": "user@example.com",
-            "password": "change-me",
+            "email": "admin@example.com",
+            "password": "123",
             "processName": sanitized,
+            "instanceMode": "force",
+            "handover": False,
+            "jwksWellKnownUrl": "http://localhost:3200/api/.well-known/jwks.json",
+            "kidWellKnownUrl": "http://localhost:3200/api/.well-known/kid",
             "supervisor": {
                 "enabled": False,
                 "restartOnExit": False,
@@ -477,6 +488,11 @@ def _write_config_file(path: Path, project_name: Optional[str] = None) -> None:
                 "unhealthyAfterMs": 60000,
                 "restartCooldownMs": 300000,
             },
+        },
+        "devops": {
+            "provider": "azure-devops",
+            "organization": "example-org",
+            "project": "example-project",
         },
     }
     path.write_text(json.dumps(data, indent=2) + "\n")
@@ -490,7 +506,7 @@ def generate_config_schema_cmd(dest: str):
     click.echo(f"Generated {output_path}")
 
 
-@cli.command("configure-api", help="Copy UNS API examples and add the uns-kit api extra.")
+@cli.command("configure-api", help="Copy Python service API scaffold and add the uns-kit api extra.")
 @click.argument("dest", required=False, default=".")
 @click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing API example files")
 def configure_api(dest: str, overwrite: bool):
@@ -498,7 +514,7 @@ def configure_api(dest: str, overwrite: bool):
         Path(dest).resolve(),
         template_name="api",
         extras=["api"],
-        label="UNS API",
+        label="UNS service API",
         success_message="API configuration complete.",
         overwrite=overwrite,
     )
@@ -514,6 +530,20 @@ def configure_cron(dest: str, overwrite: bool):
         extras=["cron"],
         label="UNS cron",
         success_message="Cron configuration complete.",
+        overwrite=overwrite,
+    )
+
+
+@cli.command("configure-data-offer", help="Copy Python data-offer/service-api scaffold and add the uns-kit api extra.")
+@click.argument("dest", required=False, default=".")
+@click.option("--overwrite/--no-overwrite", default=False, show_default=True, help="Overwrite existing data-offer scaffold files")
+def configure_data_offer(dest: str, overwrite: bool):
+    _configure_python_feature(
+        Path(dest).resolve(),
+        template_name="data-offer",
+        extras=["api"],
+        label="UNS data-offer",
+        success_message="Data-offer configuration complete.",
         overwrite=overwrite,
     )
 
@@ -1127,34 +1157,12 @@ def _to_distribution_name(name: str) -> str:
     return value or "uns-py-app"
 
 
-def _to_module_name(name: str) -> str:
-    value = re.sub(r"[^a-zA-Z0-9_]+", "_", name).strip("_").lower()
-    value = re.sub(r"_{2,}", "_", value)
-    if not value:
-        value = "uns_py_app"
-    if value[0].isdigit():
-        value = f"app_{value}"
-    return value
-
-
 def _personalize_pyproject(pyproject_path: Path, project_name: str) -> None:
     dist_name = _to_distribution_name(project_name)
-    module_name = _to_module_name(project_name)
 
     text = pyproject_path.read_text()
     text = re.sub(r'(?m)^name\s*=\s*"[^"]+"\s*$', f'name = "{dist_name}"', text)
-    text = re.sub(
-        r'(?m)^packages\s*=\s*\[\s*\{\s*include\s*=\s*"[^"]+"\s*\}\s*\]\s*$',
-        f'packages = [{{ include = "{module_name}" }}]',
-        text,
-    )
     pyproject_path.write_text(text)
-
-    # Rename the placeholder package folder to match the configured include (if present).
-    pkg_dir = pyproject_path.parent / "uns_py_app"
-    target_dir = pyproject_path.parent / module_name
-    if pkg_dir.exists() and module_name != "uns_py_app" and not target_dir.exists():
-        pkg_dir.rename(target_dir)
 
 
 def _configure_local_uns_kit_dependency(pyproject_path: Path) -> None:
@@ -1185,8 +1193,9 @@ def render_cli_help(prog_name: str = CLI_PROG_NAME) -> str:
         "Commands:\n"
         "  create <name>           Scaffold a new UNS Python application\n"
         "  create --bundle <path>  Scaffold a new UNS Python application from service.bundle.json\n"
-        "  configure-api [dir]     Copy UNS API examples and add the api extra\n"
+        "  configure-api [dir]     Copy service API scaffold and add the api extra\n"
         "  configure-cron [dir]    Copy UNS cron examples and add the cron extra\n"
+        "  configure-data-offer [dir] Copy service API + data-offer scaffold and add the api extra\n"
         "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n"
         "  configure-vscode [dir]  Add VS Code workspace configuration files\n"
         "  configure-workspace [dir] Create a VS Code workspace file\n"

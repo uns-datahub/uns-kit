@@ -19,7 +19,8 @@ def test_configure_api_adds_template_and_extra(tmp_path: Path, monkeypatch) -> N
     assert result.exit_code == 0, result.output
     pyproject_text = (tmp_path / "feature-app" / "pyproject.toml").read_text()
     assert 'uns-kit = { version = "*", extras = ["api"] }' in pyproject_text
-    assert (tmp_path / "feature-app" / "src" / "api_example.py").exists()
+    assert (tmp_path / "feature-app" / "src" / "main.py").exists()
+    assert (tmp_path / "feature-app" / "src" / "api_routes.py").exists()
 
 
 def test_configure_cron_merges_extras_without_overwriting_existing_ones(tmp_path: Path, monkeypatch) -> None:
@@ -60,3 +61,23 @@ def test_configure_api_preserves_local_path_dependency_shape(tmp_path: Path, mon
     assert result.exit_code == 0, result.output
     pyproject_text = pyproject_path.read_text()
     assert 'uns-kit = { path = "../packages/uns-py", develop = true, extras = ["api"] }' in pyproject_text
+
+
+def test_configure_data_offer_adds_ts_like_structure(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+
+    create_result = runner.invoke(cli, ["create", "feature-app"])
+    assert create_result.exit_code == 0, create_result.output
+
+    result = runner.invoke(cli, ["configure-data-offer", str(tmp_path / "feature-app")])
+
+    assert result.exit_code == 0, result.output
+    pyproject_text = (tmp_path / "feature-app" / "pyproject.toml").read_text()
+    assert 'uns-kit = { version = "*", extras = ["api"] }' in pyproject_text
+    assert (tmp_path / "feature-app" / "src" / "main.py").exists()
+    assert (tmp_path / "feature-app" / "src" / "api_routes.py").exists()
+    assert (tmp_path / "feature-app" / "src" / "data_offers" / "demo_coils.py").exists()
+    assert (tmp_path / "feature-app" / "src" / "data_offers" / "demo_export.py").exists()
+    assert (tmp_path / "feature-app" / "src" / "data_offers" / "sql" / "demo_coils.sql").exists()
+    assert (tmp_path / "feature-app" / "src" / "data_offers" / "sql" / "demo_export.sql").exists()

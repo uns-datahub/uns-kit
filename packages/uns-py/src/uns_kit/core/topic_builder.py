@@ -3,8 +3,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from ..version import __package_name__, __version__
 from .runtime_metadata import RUNTIME_METADATA
-from .version import __package_name__, __version__
 
 LIBRARY_PACKAGE_NAME = __package_name__
 

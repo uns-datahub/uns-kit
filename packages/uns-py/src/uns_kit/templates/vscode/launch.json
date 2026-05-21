@@ -2,10 +2,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run main.py",
+      "name": "Run src/main.py",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/main.py",
+      "program": "${workspaceFolder}/src/main.py",
       "console": "integratedTerminal",
       "env": {
         "CONFIG_FILE": "config.json"

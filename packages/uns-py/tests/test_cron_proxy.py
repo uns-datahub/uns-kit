@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from uns_kit.cron_proxy import UnsCronProxy
+from uns_kit.cron import UnsCronProxy
 
 
 @pytest.mark.asyncio

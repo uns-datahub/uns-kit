@@ -3,7 +3,7 @@
 ## Setup
 ```bash
 poetry install
-poetry run python main.py
+poetry run python src/main.py
 ```
 
 ## Recommended publishing pattern
@@ -46,16 +46,17 @@ poetry run uns-kit-py configure-api .
 poetry run uns-kit-py configure-cron .
 ```
 
-`configure-api` copies a FastAPI starter and updates `pyproject.toml` to install `uns-kit` with the `api` extra.
+`configure-api` copies a service-API scaffold around `src/main.py` and `src/api_routes.py`, and updates `pyproject.toml` to install `uns-kit` with the `api` extra.
 `configure-cron` copies an APScheduler starter and updates `pyproject.toml` to install `uns-kit` with the `cron` extra.
 The generated feature examples use `UnsProxyProcess.create_api_proxy(...)` and `create_cron_proxy(...)` so the runtime shape matches the TypeScript packages.
+Use `configure-data-offer` when you want a TypeScript-style service/data-offer layout around `src/main.py`, `src/api_routes.py`, `src/data_offers/*.py`, and `src/data_offers/sql/`. The scaffold keeps `register_api_catalog(...)` in `src/main.py`, uses `src/api_routes.py` as the aggregator, and includes both a JSON offer and a Parquet export example inside `src/data_offers/`.
 
 ## Publish/Subscribe Helpers
 ```bash
 poetry run uns-kit-py publish --host localhost:1883 --topic raw/data/ --value 1
 poetry run uns-kit-py subscribe --host localhost:1883 --topic uns-infra/#
 ```
-These CLI helpers are useful for diagnostics and low-level checks. For application UNS topic outputs, prefer the proxy-based pattern in `main.py`.
+These CLI helpers are useful for diagnostics and low-level checks. For application UNS topic outputs, prefer the proxy-based pattern in `src/main.py`.
 
 ## Datahub client (last value)
 
@@ -63,7 +64,7 @@ These CLI helpers are useful for diagnostics and low-level checks. For applicati
 
 ```python
 from pathlib import Path
-from uns_kit import ConfigFile, UnsClient
+from uns_kit.core import ConfigFile, UnsClient
 
 cfg = ConfigFile.load_config(Path("config.json"))
 client = UnsClient(cfg["uns"]["rest"], api_base_path="/api")
@@ -75,20 +76,8 @@ values = client.last_value([
 print(values)
 ```
 
-## Data Example
-```bash
-poetry run python src/data_example.py
-```
-
-## Load test
-```bash
-poetry run python src/load_test.py
-```
-The script will prompt for confirmation, iterations, delay, and topic.
-Tip: if you run multiple clients at once, avoid reusing the same MQTT clientId.
-
 ## Status topics
-The default `main.py` starts an `UnsProxyProcess`, creates an output proxy, and publishes a sample UNS topic through that proxy.
+The default `src/main.py` starts an `UnsProxyProcess`, creates an output proxy, and publishes a sample UNS topic through that proxy.
 
 ## Config
 Edit `config.json` with your MQTT host/auth (TS-style nested infra/uns structure).
