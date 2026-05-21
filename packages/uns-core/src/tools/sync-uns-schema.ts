@@ -2,7 +2,7 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { readTextFileIfExists, writeTextFileIfChanged } from "./file-utils.js";
 import { renderDictionaryTs } from "./generate-uns-dictionary.js";
 import { renderMeasurementsTs } from "./generate-uns-measurements.js";
@@ -204,6 +204,9 @@ async function parseArgs(argv: string[]): Promise<CliArgs> {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
 
+    if (arg === "--") {
+      continue;
+    }
     if (arg === "--help" || arg === "-h") {
       help = true;
       continue;

@@ -11,7 +11,6 @@ Pointers for AI/code-assist tools when working in this generated project.
   - `@uns-kit/core/README.md`
   - `@uns-kit/api/README.md` (if installed)
   - `@uns-kit/cron/README.md` (if installed)
-  - `@uns-kit/temporal/README.md` (if installed)
   - `@uns-kit/cli/README.md` (if installed)
 
 ## Generators in this project

@@ -8,7 +8,6 @@ overrides:
   sandbox-app>@uns-kit/core: workspace:^
   sandbox-app>@uns-kit/api: workspace:^
   sandbox-app>@uns-kit/cron: workspace:^
-  sandbox-app>@uns-kit/temporal: workspace:^
 
 importers:
 

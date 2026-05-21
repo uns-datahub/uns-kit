@@ -37,7 +37,6 @@
     "ts:configure:api": "pnpm exec tsx packages/uns-cli/src/index.ts configure-api sandbox-app",
     "ts:configure:cron": "pnpm exec tsx packages/uns-cli/src/index.ts configure-cron sandbox-app",
     "ts:configure:templates": "pnpm exec tsx packages/uns-cli/src/index.ts configure-templates sandbox-app",
-    "ts:configure:temporal": "pnpm exec tsx packages/uns-cli/src/index.ts configure-temporal sandbox-app",
     "ts:configure:python": "pnpm exec tsx packages/uns-cli/src/index.ts configure-python sandbox-app",
     "ts:configure:uns-reference": "pnpm exec tsx packages/uns-cli/src/index.ts configure-uns-reference sandbox-app",
     "ts:core:pull-request": "pnpm --filter @uns-kit/core build && pnpm exec tsx packages/uns-core/src/tools/pull-request.ts",
@@ -78,8 +77,7 @@
     "overrides": {
       "sandbox-app>@uns-kit/core": "workspace:^",
       "sandbox-app>@uns-kit/api": "workspace:^",
-      "sandbox-app>@uns-kit/cron": "workspace:^",
-      "sandbox-app>@uns-kit/temporal": "workspace:^"
+      "sandbox-app>@uns-kit/cron": "workspace:^"
     }
   },
   "dependencies": {

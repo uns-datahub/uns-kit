@@ -123,17 +123,6 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (command === "configure-temporal") {
-    const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
-    try {
-      await configureTemporal(targetPath, { overwrite });
-    } catch (error) {
-      console.error((error as Error).message);
-      process.exitCode = 1;
-    }
-    return;
-  }
-
   if (command === "configure-python") {
     const { targetPath, overwrite } = parseTemplateCommandArgs(args.slice(1));
     try {
@@ -203,7 +192,6 @@ function printHelp(): void {
     "  configure-codegen [dir] Copy GraphQL codegen template and dependencies\n" +
     "  configure-api [dir]     Copy UNS API examples and add @uns-kit/api\n" +
     "  configure-cron [dir]    Copy UNS cron examples and add @uns-kit/cron\n" +
-    "  configure-temporal [dir] Copy UNS Temporal examples and add @uns-kit/temporal\n" +
     "  configure-python [dir]   Copy Python gateway client scaffolding\n" +
     "  configure-uns-reference [dir]  Copy UNS dictionaries (objects/attributes/measurements)\n" +
     "  upgrade [dir]           Remove obsolete scripts and update to current conventions\n" +
@@ -954,17 +942,6 @@ async function configureCron(targetPath?: string, options: ConfigureTemplateOpti
   });
 }
 
-async function configureTemporal(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
-  await configurePlugin({
-    targetPath,
-    templateName: "temporal",
-    dependencyName: "@uns-kit/temporal",
-    dependencySpecifier: resolveUnsPackageSpecifier("@uns-kit/temporal", "../../uns-temporal/package.json"),
-    label: "UNS Temporal",
-    overwrite: options.overwrite,
-  });
-}
-
 async function configurePython(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   await configurePlugin({
     targetPath,
@@ -1072,7 +1049,6 @@ const configureFeatureHandlers = {
   codegen: configureCodegen,
   api: configureApi,
   cron: configureCron,
-  temporal: configureTemporal,
   python: configurePython,
   "uns-reference": configureUnsReference,
 } as const satisfies Record<string, ConfigureFeatureHandler>;
@@ -1087,7 +1063,6 @@ const configureFeatureLabels: Record<ConfigureFeatureName, string> = {
   codegen: "GraphQL codegen tooling",
   api: "UNS API resources",
   cron: "UNS cron resources",
-  temporal: "UNS Temporal resources",
   python: "Python client scaffolding",
   "uns-reference": "UNS dictionaries (objects/attributes/measurements)",
 };
@@ -1338,8 +1313,6 @@ const configureFeatureAliases: Record<string, ConfigureFeatureName> = {
   "configure-api": "api",
   cron: "cron",
   "configure-cron": "cron",
-  temporal: "temporal",
-  "configure-temporal": "temporal",
   python: "python",
   "configure-python": "python",
   "uns-reference": "uns-reference",

@@ -57,7 +57,6 @@ uns-kit configure . python
 
 Only run when explicitly requested:
 - `uns-kit configure . devops`
-- `uns-kit configure . temporal` (treat as optional/legacy)
 
 Finalize:
 ```bash

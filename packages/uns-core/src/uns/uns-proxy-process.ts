@@ -44,7 +44,6 @@ class UnsProxyProcess {
   private processId: string;
   private unsMqttProxies: UnsMqttProxy[];
   private unsApiProxies: unknown[];
-  private unsTemporalProxies: unknown[];
   private processMqttProxy: MqttProxy;
   private handoverManager: HandoverManager;
   private statusMonitor: StatusMonitor;
@@ -103,7 +102,6 @@ class UnsProxyProcess {
 
     this.unsMqttProxies = [];
     this.unsApiProxies = [];
-    this.unsTemporalProxies = [];
     if (!unsProxyProcessParameters?.processName) {
       throw new Error("UnsProxyProcess requires a processName in configuration.");
     }

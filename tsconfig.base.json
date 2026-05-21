@@ -25,9 +25,7 @@
       "@uns-kit/cron": ["packages/uns-cron/src/index.ts"],
       "@uns-kit/cron/*": ["packages/uns-cron/src/*"],
       "@uns-kit/api": ["packages/uns-api/src/index.ts"],
-      "@uns-kit/api/*": ["packages/uns-api/src/*"],
-      "@uns-kit/temporal": ["packages/uns-temporal/src/index.ts"],
-      "@uns-kit/temporal/*": ["packages/uns-temporal/src/*"]
+      "@uns-kit/api/*": ["packages/uns-api/src/*"]
     }
   }
 }

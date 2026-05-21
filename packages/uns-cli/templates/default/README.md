@@ -65,14 +65,14 @@ console.log(values);
 ## Next Steps
 
 - Install additional plugins: `pnpm add @uns-kit/api` etc.
-- Create MQTT proxies or Temporal workflows inside `src/index.ts`.
+- Create MQTT proxies inside `src/index.ts`.
 - Extend `src/config/project.config.extension.ts` with project-specific sections and run `pnpm run generate-config-schema` (reload your editor's TS server afterward if completions lag).
 - Run `uns-kit configure-devops` to add the Azure DevOps pull-request tooling.
 - Run `uns-kit configure-vscode` to copy workspace/launch configuration for VS Code.
 - Run `uns-kit configure-codegen` to scaffold GraphQL code generation and UNS refresh scripts.
 - Run `pnpm run sync-uns-schema -- --controller-url ... --token ...` to pull `uns-dictionary.json` and `uns-measurements.json` from the controller export into this project, then regenerate the typed files automatically.
 - Run `pnpm run sync-uns-metadata -- --controller-url ... --token ...` to regenerate topic, tag, and asset IntelliSense from the controller metadata export. The token must be admin or include `export:uns-reference`.
-- Run `uns-kit configure-api` / `configure-cron` / `configure-temporal` to pull in example stubs and install the matching UNS plugins (add `--overwrite` to refresh templates).
+- Run `uns-kit configure-api` / `configure-cron` to pull in example stubs and install the matching UNS plugins (add `--overwrite` to refresh templates).
 - Run `uns-kit configure-python` to copy the Python gateway client template (examples, scripts, proto).
 - Commit your new project and start building!
 

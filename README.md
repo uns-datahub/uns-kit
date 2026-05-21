@@ -22,8 +22,6 @@ Apps scaffolded with uns-kit are managed by the **UNS Datahub controller** (not 
 | [`@uns-kit/cron`](packages/uns-cron) | Cron-driven scheduler that emits UNS events on a fixed cadence. |
 | [`@uns-kit/cli`](packages/uns-cli) | CLI for scaffolding and maintaining UNS applications. |
 
-> `@uns-kit/temporal` is available but becoming obsolete — prefer `@uns-kit/cron` for scheduled work.
-
 ## Quickstart
 
 ```bash

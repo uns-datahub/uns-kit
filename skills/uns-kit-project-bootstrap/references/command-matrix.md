@@ -15,17 +15,16 @@ Configure commands:
 - `uns-kit configure-codegen [path]`
 - `uns-kit configure-api [path]`
 - `uns-kit configure-cron [path]`
-- `uns-kit configure-temporal [path]`
 - `uns-kit configure-python [path]`
 - `uns-kit configure-uns-reference [path]`
 
 Feature aliases for `uns-kit configure`:
-- `devops`, `vscode`, `codegen`, `api`, `cron`, `temporal`, `python`, `uns-reference`
+- `devops`, `vscode`, `codegen`, `api`, `cron`, `python`, `uns-reference`
 
 Safe defaults:
 - Minimal: `vscode`
 - Standard: `vscode codegen uns-reference`
-- Optional on request: `api`, `cron`, `python`, `devops`, `temporal`
+- Optional on request: `api`, `cron`, `python`, `devops`
 
 ## Python CLI (`uns-kit-py`)
 
