@@ -4,7 +4,7 @@ Pointers for AI/code-assist tools when working in this generated project.
 
 ## What to read locally
 
-- `package.json` for scripts (`generate-uns-*`, `generate-codegen`, etc.).
+- `package.json` for scripts (`sync-uns-*`, `generate-codegen`, etc.).
 - `config.schema.json` for the app config shape; `processName` is required.
 - `src/examples/*.ts` for idiomatic publishing (multi-attribute) and description registration.
 - Installed docs (under `node_modules`):
@@ -16,9 +16,6 @@ Pointers for AI/code-assist tools when working in this generated project.
 
 ## Generators in this project
 
-- `pnpm run generate-uns-dictionary` -> updates `src/uns/uns-dictionary.generated.ts`
-- `pnpm run generate-uns-measurements` -> updates `src/uns/uns-measurements.generated.ts`
-- `pnpm run generate-uns-reference` -> runs both
-- `pnpm run generate-uns-metadata` -> refreshes topic/tag unions (requires GraphQL connectivity)
 - `pnpm run generate-codegen` -> GraphQL codegen (after configure-codegen)
 - `pnpm run sync-uns-schema -- --controller-url ... --token ...` -> pulls `uns-dictionary.json` + `uns-measurements.json` from the controller and regenerates local TS helpers
+- `pnpm run sync-uns-metadata -- --controller-url ... --token ...` -> pulls topics/tags/assets from the controller and regenerates local TS helpers

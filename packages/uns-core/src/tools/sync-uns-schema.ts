@@ -300,6 +300,7 @@ async function parseArgs(argv: string[]): Promise<CliArgs> {
     if (token.toLowerCase().startsWith("bearer ")) {
       token = token.slice(7).trim();
     }
+    controllerUrl = normalizeControllerUrl(controllerUrl);
     assertValidUrl(controllerUrl);
   }
 
@@ -339,6 +340,10 @@ function assertValidUrl(value: string): void {
   } catch (error) {
     throw new Error(`Invalid controller URL "${value}". Expected an absolute URL such as http://localhost:3200.`);
   }
+}
+
+function normalizeControllerUrl(value: string): string {
+  return value.replace(/\/+$/, "").replace(/\/api$/i, "");
 }
 
 function printHelp(): void {

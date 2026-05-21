@@ -37,6 +37,6 @@
     "@uns-kit/api": "2.0.47",
     "@uns-kit/cron": "2.0.47",
     "@uns-kit/database": "2.0.47",
-    "@uns-kit/temporal": "2.0.44"
+    "@uns-kit/temporal": "2.0.47"
   }
 }

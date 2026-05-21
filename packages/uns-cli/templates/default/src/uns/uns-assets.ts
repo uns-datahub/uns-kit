@@ -1,6 +1,6 @@
-// Generated UNS asset list. Run `pnpm refresh-uns` to update.
+// Generated UNS asset list. Run `pnpm run sync-uns-metadata` to update.
 export const GeneratedAssets = {
-  /** Example asset. Replace with your own names after running generate-uns-metadata. */
+  /** Example asset. Replace with your own names after running sync-uns-metadata. */
   "asset": "asset",
 } as const;
 export type GeneratedAssetName = typeof GeneratedAssets[keyof typeof GeneratedAssets];

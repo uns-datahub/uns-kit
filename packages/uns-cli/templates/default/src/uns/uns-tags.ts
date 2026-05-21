@@ -1,2 +1,2 @@
-// Generated UNS tag union. Run `pnpm refresh-uns` to update.
+// Generated UNS tag union. Run `pnpm run sync-uns-metadata` to update.
 export type UnsTags = string & {};

@@ -55,7 +55,8 @@ For more templates and configure options see [`@uns-kit/cli`](packages/uns-cli).
 | `ts:publish` | Publish all `@uns-kit/*` packages |
 | `ts:sandbox:*` | Run sandbox examples (`data`, `load-test`, `table`, `api`, `cron`, `uns-gateway-cli`) |
 | `ts:configure:*` | Run CLI configure commands against `sandbox-app` |
-| `ts:core:sync-uns-schema` | Pull canonical UNS schema from controller, update repo templates and regenerate TS |
+| `ts:core:sync-uns-schema` | Pull canonical UNS schema from controller, update repo templates and regenerate dictionary/measurement TS |
+| `ts:core:sync-uns-metadata` | Pull UNS metadata from controller, update topic/tag/asset TS |
 | `py:sandbox:*` | Run Python sandbox examples |
 | `py:build` / `py:publish` | Build or publish `uns-py` |
 
@@ -69,13 +70,22 @@ pnpm run ts:core:sync-uns-schema
 # You will be prompted for the bearer token, or set UNS_CONTROLLER_TOKEN.
 ```
 
+To update topic, tag, and asset IntelliSense from the controller metadata export:
+
+```bash
+pnpm run ts:core:sync-uns-metadata
+# Requires a token with admin or export:uns-reference scope.
+```
+
 Inside a generated microservice project:
 
 ```bash
 pnpm run sync-uns-schema
+pnpm run sync-uns-metadata
 ```
 
-This updates `uns-dictionary.json`, `uns-measurements.json`, and regenerates `src/uns/*.generated.ts`.
+`sync-uns-schema` updates `uns-dictionary.json`, `uns-measurements.json`, and regenerates `src/uns/*.generated.ts`.
+`sync-uns-metadata` regenerates `src/uns/uns-topics.ts`, `src/uns/uns-tags.ts`, and `src/uns/uns-assets.ts`.
 
 **Options:**
 

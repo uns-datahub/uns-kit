@@ -510,11 +510,17 @@ function setPackageScript(scripts: Record<string, string>, name: string, command
 }
 
 function ensureUnsReferenceScripts(scripts: Record<string, string>): boolean {
-  return setPackageScript(
+  const schemaChanged = setPackageScript(
     scripts,
     "sync-uns-schema",
     "node ./node_modules/@uns-kit/core/dist/tools/sync-uns-schema.js",
   );
+  const metadataChanged = setPackageScript(
+    scripts,
+    "sync-uns-metadata",
+    "node ./node_modules/@uns-kit/core/dist/tools/sync-uns-metadata.js",
+  );
+  return schemaChanged || metadataChanged;
 }
 
 const OBSOLETE_SCRIPTS = [
@@ -1034,11 +1040,10 @@ async function upgradeProject(targetPath?: string): Promise<void> {
     }
   }
 
-  // Ensure sync-uns-schema is present if any uns-reference scripts were present
+  // Ensure REST-backed schema sync scripts are present if any UNS generator scripts were present.
   const hadUnsReference = removed.some((name) => name.startsWith("generate-uns"));
-  if (hadUnsReference && !scripts["sync-uns-schema"]) {
-    scripts["sync-uns-schema"] = "node ./node_modules/@uns-kit/core/dist/tools/sync-uns-schema.js";
-    changed = true;
+  if (hadUnsReference) {
+    changed = ensureUnsReferenceScripts(scripts) || changed;
   }
 
   if (changed) {
@@ -1052,8 +1057,8 @@ async function upgradeProject(targetPath?: string): Promise<void> {
       console.log(`    - ${name}`);
     }
   }
-  if (hadUnsReference && !scripts["sync-uns-schema"]) {
-    console.log("  Added: sync-uns-schema");
+  if (hadUnsReference) {
+    console.log("  Ensured: sync-uns-schema, sync-uns-metadata");
   }
   if (!changed) {
     console.log("  Already up to date.");
