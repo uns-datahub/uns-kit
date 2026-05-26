@@ -14,8 +14,10 @@ import type { GitRepository } from "azure-devops-node-api/interfaces/GitInterfac
 import {
   generateAgentsMarkdown,
   generateServiceSpecMarkdown,
+  getServiceBundleOutputPublisherContracts,
   readAndValidateServiceBundle,
   type ServiceBundle,
+  type ServiceBundlePublisherContract,
 } from "./service-bundle.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -290,6 +292,7 @@ async function createProjectFromBundle(options: CreateCommandOptions): Promise<v
     templateName: bundle.scaffold.template,
   });
 
+  await writeBundlePublisherExample(targetDir, bundle);
   await applyTsBundleFeatures(targetDir, bundle);
   await writeServiceBundleArtifacts(targetDir, bundle, raw);
 
@@ -323,8 +326,13 @@ async function scaffoldTsProject(
 }
 
 async function applyTsBundleFeatures(targetDir: string, bundle: ServiceBundle): Promise<void> {
+  const appliedFeatures = new Set<ConfigureFeatureName>();
   for (const featureName of bundle.scaffold.features) {
-    const resolvedFeature = resolveConfigureFeatureName(featureName);
+    const resolvedFeature = resolveBundleConfigureFeatureName(featureName);
+    if (!resolvedFeature || appliedFeatures.has(resolvedFeature)) {
+      continue;
+    }
+    appliedFeatures.add(resolvedFeature);
     if (resolvedFeature === "devops") {
       await configureDevopsFromBundle(targetDir, bundle);
       continue;
@@ -359,6 +367,96 @@ async function configureDevopsFromBundle(targetDir: string, bundle: ServiceBundl
   });
 
   logDevopsResult(result, { includeRemoteDetails: false });
+}
+
+async function writeBundlePublisherExample(targetDir: string, bundle: ServiceBundle): Promise<void> {
+  const contracts = getServiceBundleOutputPublisherContracts(bundle);
+  if (!contracts.length) {
+    return;
+  }
+  await writeFile(path.join(targetDir, "src", "index.ts"), renderBundlePublisherExample(bundle, contracts), "utf8");
+}
+
+function renderBundlePublisherExample(
+  bundle: ServiceBundle,
+  contracts: ServiceBundlePublisherContract[],
+): string {
+  const outputContracts = contracts.map((contract) => ({
+    fullPath: contract.fullPath,
+    topicPrefix: contract.pathParts.topicPrefix,
+    asset: contract.pathParts.asset,
+    objectType: contract.pathParts.objectType,
+    objectId: contract.pathParts.objectId,
+    attribute: contract.pathParts.attribute,
+    expectedIntervalMs: contract.expectedIntervalMs,
+  }));
+  const processName = JSON.stringify(bundle.metadata.name);
+  const contractJson = JSON.stringify(outputContracts, null, 2)
+    .split("\n")
+    .map((line) => `  ${line}`)
+    .join("\n")
+    .trimStart();
+
+  return `import { ConfigFile, UnsProxyProcess } from "@uns-kit/core";
+import type { ISO8601 } from "@uns-kit/core/uns/uns-interfaces.js";
+
+type OutputContract = {
+  fullPath: string;
+  topicPrefix: string;
+  asset: string;
+  objectType: string;
+  objectId: string;
+  attribute: string;
+  expectedIntervalMs: number;
+};
+
+const outputContracts = ${contractJson} satisfies readonly OutputContract[];
+
+function topicPrefixForPublish(topicPrefix: string): string {
+  return topicPrefix.endsWith("/") ? topicPrefix : \`\${topicPrefix}/\`;
+}
+
+async function main(): Promise<void> {
+  const config = await ConfigFile.loadConfig();
+  const processName = config.uns.processName ?? ${processName};
+  const unsProcess = new UnsProxyProcess(config.infra.host ?? "localhost", {
+    processName,
+  });
+
+  const mqttOutput = await unsProcess.createUnsMqttProxy(
+    config.output?.host ?? "localhost",
+    "defaultOutput",
+    config.uns.instanceMode ?? "wait",
+    config.uns.handover ?? true,
+  );
+
+  const time = new Date().toISOString() as ISO8601;
+
+  for (const output of outputContracts) {
+    await mqttOutput.publishMqttMessage({
+      topic: topicPrefixForPublish(output.topicPrefix),
+      asset: output.asset,
+      objectType: output.objectType,
+      objectId: output.objectId,
+      attributes: {
+        attribute: output.attribute,
+        description: \`Generated example publisher for \${output.fullPath}\`,
+        data: {
+          time,
+          value: 0,
+          dataGroup: "service-bundle-output",
+        },
+        validityMode: "interval",
+        expectedIntervalMs: output.expectedIntervalMs,
+      },
+    });
+  }
+
+  console.log(\`UNS process '\${processName}' published \${outputContracts.length} interval example output(s).\`);
+}
+
+void main();
+`;
 }
 
 async function writeServiceBundleArtifacts(targetDir: string, bundle: ServiceBundle, rawBundle: string): Promise<void> {
@@ -1335,6 +1433,16 @@ function resolveConfigureFeatureName(input: unknown): ConfigureFeatureName {
   }
 
   return feature;
+}
+
+function resolveBundleConfigureFeatureName(input: unknown): ConfigureFeatureName | null {
+  if (typeof input === "string") {
+    const normalized = input.trim().toLowerCase();
+    if (normalized === "workspace" || normalized === "configure-workspace") {
+      return "vscode";
+    }
+  }
+  return resolveConfigureFeatureName(input);
 }
 
 async function ensureGitRepository(dir: string): Promise<void> {

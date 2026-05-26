@@ -19,7 +19,7 @@ describe("uns-kit create --bundle", () => {
   it("creates a TypeScript project from a valid bundle", async () => {
     const workdir = await makeTempDir();
     const bundlePath = await writeBundle(workdir, {
-      scaffold: { stack: "ts", template: "default", features: ["vscode", "devops"] },
+      scaffold: { stack: "ts", template: "default", features: ["vscode", "workspace", "devops"] },
       repository: {
         provider: "azure-devops",
         organization: "sijit",
@@ -84,6 +84,60 @@ describe("uns-kit create --bundle", () => {
     const indexTs = await readFile(path.join(targetDir, "src", "index.ts"), "utf8");
     expect(indexTs).toContain("createUnsMqttProxy");
     expect(indexTs).not.toContain("createMqttProxy");
+  });
+
+  it("writes a bundle-aware interval publisher example from output contracts", async () => {
+    const workdir = await makeTempDir();
+    const fullPath = "sij/acroni/vv/hrm-furnace/equipment/zone-1/temperature";
+    const bundlePath = await writeBundle(workdir, {
+      scaffold: { stack: "ts", template: "default", features: [] },
+      domain: {
+        inputs: [],
+        outputs: [
+          {
+            topic: fullPath,
+            role: "output",
+            pathParts: {
+              topicPrefix: "sij/acroni/vv",
+              asset: "hrm-furnace",
+              objectType: "equipment",
+              objectId: "zone-1",
+              attribute: "temperature",
+            },
+            publisherContract: {
+              mode: "uns-topic-publish",
+              fullPath,
+              pathParts: {
+                topicPrefix: "sij/acroni/vv",
+                asset: "hrm-furnace",
+                objectType: "equipment",
+                objectId: "zone-1",
+                attribute: "temperature",
+              },
+              validityMode: "interval",
+              expectedIntervalMs: 5000,
+            },
+          },
+        ],
+      },
+    });
+
+    const result = runTsCli(workdir, ["create", "--bundle", bundlePath]);
+    expect(result.status).toBe(0);
+
+    const targetDir = path.join(workdir, "uns-example-service");
+    const indexTs = await readFile(path.join(targetDir, "src", "index.ts"), "utf8");
+    expect(indexTs).toContain('"expectedIntervalMs": 5000');
+    expect(indexTs).toContain('validityMode: "interval"');
+    expect(indexTs).toContain("expectedIntervalMs: output.expectedIntervalMs");
+
+    const serviceSpec = await readFile(path.join(targetDir, "SERVICE_SPEC.md"), "utf8");
+    expect(serviceSpec).toContain('validityMode: "interval"');
+    expect(serviceSpec).toContain("expectedIntervalMs: 5000");
+
+    const agents = await readFile(path.join(targetDir, "AGENTS.md"), "utf8");
+    expect(agents).toContain("Do not publish interval attributes without both fields.");
+    expect(agents).toContain("expectedIntervalMs: 5000");
   });
 
   it("fails for an invalid bundle", async () => {

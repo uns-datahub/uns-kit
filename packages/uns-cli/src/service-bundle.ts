@@ -47,11 +47,29 @@ export type ServiceBundle = {
 
 type JsonRecord = Record<string, unknown>;
 
+export type ServiceBundlePathParts = {
+  topicPrefix: string;
+  asset: string;
+  objectType: string;
+  objectId: string;
+  attribute: string;
+};
+
+export type ServiceBundlePublisherContract = {
+  mode: "uns-topic-publish";
+  fullPath: string;
+  pathParts: ServiceBundlePathParts;
+  validityMode: "interval";
+  expectedIntervalMs: number;
+};
+
 type ReadBundleOptions = {
   expectedStack: SupportedBundleStack;
   cliName: string;
   counterpartCliName: string;
 };
+
+const DEFAULT_PUBLISHER_EXPECTED_INTERVAL_MS = 60_000;
 
 export async function readAndValidateServiceBundle(
   bundlePath: string,
@@ -109,6 +127,7 @@ export function generateServiceSpecMarkdown(bundle: ServiceBundle): string {
   }
 
   if (bundle.domain) {
+    const outputPublisherContracts = getServiceBundleOutputPublisherContracts(bundle);
     lines.push(
       "",
       "## Domain Inputs",
@@ -117,6 +136,16 @@ export function generateServiceSpecMarkdown(bundle: ServiceBundle): string {
       "## Domain Outputs",
       ...renderUnknownList(bundle.domain.outputs),
     );
+    if (outputPublisherContracts.length) {
+      lines.push(
+        "",
+        "## Output Publisher Contracts",
+        ...outputPublisherContracts.map(
+          (contract) =>
+            `- ${contract.fullPath}: validityMode: "interval", expectedIntervalMs: ${contract.expectedIntervalMs}`,
+        ),
+      );
+    }
   }
 
   lines.push(
@@ -136,6 +165,7 @@ export function generateServiceSpecMarkdown(bundle: ServiceBundle): string {
 }
 
 export function generateAgentsMarkdown(bundle: ServiceBundle): string {
+  const outputPublisherContracts = getServiceBundleOutputPublisherContracts(bundle);
   const lines = [
     "# AGENTS",
     "",
@@ -154,6 +184,20 @@ export function generateAgentsMarkdown(bundle: ServiceBundle): string {
     "- Read `service.bundle.json` first when planning or generating service-specific code; it is the project source of truth.",
     "- Keep `SERVICE_SPEC.md` and this file aligned with `service.bundle.json` when the bundle changes.",
     "",
+  ];
+
+  if (outputPublisherContracts.length) {
+    lines.push(
+      "## Output Publishing",
+      ...outputPublisherContracts.flatMap((contract) => [
+        `- ${contract.fullPath} publishes interval data with validityMode: "interval" and expectedIntervalMs: ${contract.expectedIntervalMs}.`,
+        "- Do not publish interval attributes without both fields.",
+      ]),
+      "",
+    );
+  }
+
+  lines.push(
     "## Project Context",
     ...renderStringList(bundle.docs.agents.projectContext),
     "",
@@ -166,9 +210,85 @@ export function generateAgentsMarkdown(bundle: ServiceBundle): string {
     "## Verification",
     ...renderStringList(bundle.docs.agents.verification),
     "",
-  ];
+  );
 
   return lines.join("\n");
+}
+
+export function getServiceBundleOutputPublisherContracts(bundle: ServiceBundle): ServiceBundlePublisherContract[] {
+  const outputs = Array.isArray(bundle.domain?.outputs) ? bundle.domain.outputs : [];
+  return outputs
+    .map((output) => readOutputPublisherContract(output))
+    .filter((contract): contract is ServiceBundlePublisherContract => Boolean(contract));
+}
+
+function readOutputPublisherContract(output: unknown): ServiceBundlePublisherContract | null {
+  if (!isRecord(output)) {
+    return null;
+  }
+  const rawPublisherContract = isRecord(output.publisherContract) ? output.publisherContract : null;
+  if (!rawPublisherContract) {
+    return null;
+  }
+  const mode = readOptionalString(rawPublisherContract.mode);
+  if (mode && mode !== "uns-topic-publish") {
+    return null;
+  }
+  const validityMode = readOptionalString(rawPublisherContract.validityMode);
+  if (validityMode && validityMode !== "interval") {
+    return null;
+  }
+  const fullPath = readOptionalString(rawPublisherContract.fullPath) ?? readOptionalString(output.topic);
+  const pathParts = readPathParts(rawPublisherContract.pathParts) ?? readPathParts(output.pathParts);
+  if (!fullPath || !pathParts) {
+    return null;
+  }
+  return {
+    mode: "uns-topic-publish",
+    fullPath,
+    pathParts,
+    validityMode: "interval",
+    expectedIntervalMs:
+      readPositiveInteger(rawPublisherContract.expectedIntervalMs) ??
+      readPositiveInteger(output.expectedIntervalMs) ??
+      DEFAULT_PUBLISHER_EXPECTED_INTERVAL_MS,
+  };
+}
+
+function readPathParts(value: unknown): ServiceBundlePathParts | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const topicPrefix = readOptionalString(value.topicPrefix);
+  const asset = readOptionalString(value.asset);
+  const objectType = readOptionalString(value.objectType);
+  const objectId = readOptionalString(value.objectId);
+  const attribute = readOptionalString(value.attribute);
+  if (!topicPrefix || !asset || !objectType || !objectId || !attribute) {
+    return null;
+  }
+  return { topicPrefix, asset, objectType, objectId, attribute };
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length ? value.trim() : undefined;
+}
+
+function readPositiveInteger(value: unknown): number | undefined {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim().length
+        ? Number(value.trim())
+        : NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+  return Math.floor(parsed);
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function validateServiceBundle(value: JsonRecord, options: ReadBundleOptions): ServiceBundle {
