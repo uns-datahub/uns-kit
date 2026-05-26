@@ -19,13 +19,13 @@
     "password": "secret"
   },
   "infra": {
-    "host": "localhost:1883"
+    "host": "localhost"
   },
   "output": {
-    "host": "localhost:1883"
+    "host": "localhost"
   },
   "input": {
-    "host": "localhost:1883"
+    "host": "localhost"
   },
   "devops": {
     "provider": "azure-devops",

@@ -1,14 +1,23 @@
-import { UnsProxyProcess } from "@uns-kit/core";
+import { ConfigFile, UnsProxyProcess } from "@uns-kit/core";
+import type { ISO8601 } from "@uns-kit/core/uns/uns-interfaces.js";
 
 async function main(): Promise<void> {
-  const name = "__APP_NAME__";
-  const process = new UnsProxyProcess("localhost:1883", {
-    processName: name,
+  const config = await ConfigFile.loadConfig();
+  const processName = config.uns.processName ?? "__APP_NAME__";
+  const unsProcess = new UnsProxyProcess(config.infra.host ?? "localhost", {
+    processName,
   });
 
-  const proxy = await process.createMqttProxy("ts-output");
+  const mqttOutput = await unsProcess.createUnsMqttProxy(
+    config.output?.host ?? "localhost",
+    "defaultOutput",
+    config.uns.instanceMode ?? "wait",
+    config.uns.handover ?? true,
+  );
 
-  await proxy.publishMqttMessage({
+  const time = new Date().toISOString() as ISO8601;
+
+  await mqttOutput.publishMqttMessage({
     topic: "example/site/area/line/",
     asset: "demo-asset",
     objectType: "utility-resource",
@@ -17,9 +26,8 @@ async function main(): Promise<void> {
       attribute: "status",
       description: "Service startup marker",
       data: {
-        time: new Date().toISOString(),
+        time,
         value: "started",
-        uom: "state",
         dataGroup: "runtime",
       },
       validityMode: "lifecycle",
@@ -27,7 +35,7 @@ async function main(): Promise<void> {
     },
   });
 
-  console.log(`UNS process '${name}' is ready. Edit src/index.ts to add your logic.`);
+  console.log(`UNS process '${processName}' is ready. Edit src/index.ts to add your logic.`);
 }
 
 void main();

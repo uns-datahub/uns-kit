@@ -51,6 +51,7 @@ describe("uns-kit create --bundle", () => {
     const agents = await readFile(path.join(targetDir, "AGENTS.md"), "utf8");
     expect(agents).toContain("# AGENTS");
     expect(agents).toContain("bootstrapped from `service.bundle.json`");
+    expect(agents).toContain("Read `service.bundle.json` first");
     expect(agents).toContain("pnpm build");
 
     const packageJson = JSON.parse(await readFile(path.join(targetDir, "package.json"), "utf8")) as {
@@ -70,6 +71,19 @@ describe("uns-kit create --bundle", () => {
       organization: "sijit",
       project: "industry40",
     });
+
+    const configLocalhost = JSON.parse(await readFile(path.join(targetDir, "config-localhost.json"), "utf8")) as {
+      infra?: { host?: string };
+      output?: { host?: string };
+      input?: { host?: string };
+    };
+    expect(configLocalhost.infra?.host).toBe("localhost");
+    expect(configLocalhost.output?.host).toBe("localhost");
+    expect(configLocalhost.input?.host).toBe("localhost");
+
+    const indexTs = await readFile(path.join(targetDir, "src", "index.ts"), "utf8");
+    expect(indexTs).toContain("createUnsMqttProxy");
+    expect(indexTs).not.toContain("createMqttProxy");
   });
 
   it("fails for an invalid bundle", async () => {
