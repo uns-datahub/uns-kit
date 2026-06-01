@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  extractBaseTopicPath,
   renderUnsAssetsTs,
   renderUnsTagsTs,
   renderUnsTopicsTs,
@@ -15,21 +14,6 @@ describe("sync-uns-metadata renderers", () => {
       "  | \"plant/line/\"\n" +
       "  | (string & {});\n"
     );
-  });
-
-  it("extracts base topics from exported full topic paths using known assets", () => {
-    const assets = ["hrm-furnace", "asset-with/segments"];
-
-    expect(extractBaseTopicPath("sij/acroni/vv/hrm-furnace/equipment/zone-1/temperature", assets)).toBe(
-      "sij/acroni/vv/",
-    );
-    expect(extractBaseTopicPath("/plant/area/asset-with/segments/motor/main/current/", assets)).toBe(
-      "plant/area/",
-    );
-    expect(extractBaseTopicPath("plant/hrm-furnace/hrm-furnace/equipment/zone-1/temperature", assets)).toBe(
-      "plant/hrm-furnace/",
-    );
-    expect(extractBaseTopicPath("plant/area/base-only", assets)).toBe("plant/area/base-only/");
   });
 
   it("renders tag unions", () => {

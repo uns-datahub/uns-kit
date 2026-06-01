@@ -59,12 +59,11 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   const results: { label: string; results: FileChangeResult[] }[] = [];
 
   if (selected.topics) {
-    const assetNames = readAssetNames(document.assets);
     results.push({
       label: "Topics TS",
       results: await updateGeneratedFiles(
         target.topicsGenerated,
-        renderUnsTopicsTs(readStringArray(document.topics, "topics").map(topic => extractBaseTopicPath(topic, assetNames))),
+        renderUnsTopicsTs(readStringArray(document.topics, "topics").map(normalizeTopicPath).filter(Boolean)),
         target.rootDir,
         args.dryRun,
       ),
@@ -487,56 +486,9 @@ function readAssetEntries(value: unknown): Array<{ name: string; description: st
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
-function readAssetNames(value: unknown): string[] {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return [];
-  }
-
-  return Object.keys(value as Record<string, unknown>)
-    .map(name => normalizeTopicPath(name).replace(/\/$/, ""))
-    .filter(Boolean)
-    .sort((left, right) => right.split("/").length - left.split("/").length || left.localeCompare(right));
-}
-
 function normalizeTopicPath(value: string): string {
   const normalized = value.trim().replace(/^\/+|\/+$/g, "");
   return normalized ? `${normalized}/` : "";
-}
-
-export function extractBaseTopicPath(value: string, assetNames: string[]): string {
-  const normalized = normalizeTopicPath(value);
-  if (!normalized || assetNames.length === 0) {
-    return normalized;
-  }
-
-  const topicSegments = normalized.replace(/\/$/, "").split("/");
-  for (const assetName of assetNames) {
-    const assetSegments = assetName.split("/");
-    const matchIndex = findLastIdentityAssetIndex(topicSegments, assetSegments);
-    if (matchIndex >= 0) {
-      return normalizeTopicPath(topicSegments.slice(0, matchIndex).join("/"));
-    }
-  }
-
-  return normalized;
-}
-
-function findLastIdentityAssetIndex(haystack: string[], needle: string[]): number {
-  if (needle.length === 0 || needle.length > haystack.length) {
-    return -1;
-  }
-
-  for (let index = haystack.length - needle.length; index >= 0; index -= 1) {
-    const remainingTailSegments = haystack.length - index - needle.length;
-    if (remainingTailSegments < 3) {
-      continue;
-    }
-    if (needle.every((segment, offset) => haystack[index + offset] === segment)) {
-      return index;
-    }
-  }
-
-  return -1;
 }
 
 export function renderUnsTopicsTs(topics: string[]): string {
