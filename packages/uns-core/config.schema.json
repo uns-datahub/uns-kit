@@ -15,12 +15,7 @@
               "type": "string",
               "format": "uri"
             },
-            "email": {
-              "type": "string",
-              "format": "email",
-              "description": "Email used when authenticating to graphql endpoint of the UNS instance."
-            },
-            "password": {
+            "token": {
               "anyOf": [
                 {
                   "type": "string"
@@ -102,6 +97,15 @@
                   ]
                 }
               ],
+              "description": "Bearer token used for service-to-service access to the UNS instance."
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "description": "Email used when authenticating to graphql endpoint of the UNS instance."
+            },
+            "password": {
+              "$ref": "#/definitions/AppConfig/properties/uns/properties/token",
               "description": "Password or secret value paired with the UNS email."
             },
             "instanceMode": {
@@ -183,8 +187,6 @@
           "required": [
             "graphql",
             "rest",
-            "email",
-            "password",
             "processName"
           ],
           "additionalProperties": false
@@ -373,14 +375,7 @@
               "type": "string"
             },
             "password": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/AppConfig/properties/uns/properties/password/anyOf/0"
-                },
-                {
-                  "$ref": "#/definitions/AppConfig/properties/uns/properties/password/anyOf/1"
-                }
-              ]
+              "$ref": "#/definitions/AppConfig/properties/uns/properties/token"
             },
             "clientId": {
               "type": "string"

@@ -85,9 +85,12 @@ const cron = await proc.createCrontabProxy("*/5 * * * *", { event: "tick" });
 
 ```ts
 import { UnsClient } from "@uns-kit/core";
+import { ConfigFile } from "@uns-kit/core";
+
+const config = await ConfigFile.loadConfig();
 
 const client = new UnsClient("https://datahub.example.com", {
-  token: process.env.UNS_SERVICE_TOKEN,
+  token: process.env.UNS_SERVICE_TOKEN ?? config.uns.token,
 });
 
 const values = await client.lastValue([

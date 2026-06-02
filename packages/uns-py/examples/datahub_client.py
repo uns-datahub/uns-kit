@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from uns_kit import ConfigFile, UnsClient
+from uns_kit import AuthClient, ConfigFile, UnsClient
 
 
 def main() -> None:
     cfg = ConfigFile.load_config(Path("config.json"))
-    client = UnsClient(cfg["uns"]["rest"])
+    uns = cfg["uns"]
+    token = uns.get("token") if isinstance(uns.get("token"), str) else None
+    auth_client = None if token else AuthClient.create(Path("config.json"))
+    client = UnsClient(uns["rest"], token=token, auth_client=auth_client)
 
     value_topic = "sij/acroni/vv/hrm-furnace/equipment/pusher/output-quantity"
     table_topic = "sij/acroni/vv/hrm-furnace/process-segment/slab-001/trend-data"

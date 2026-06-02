@@ -3,8 +3,13 @@ import { AuthClient } from "../tools/auth/auth-client.js";
 
 async function main(): Promise<void> {
   const config = await ConfigFile.loadConfig();
-  const authClient = await AuthClient.create();
-  const client = new UnsClient(config.uns.rest, { authClient });
+  const configToken = typeof config.uns.token === "string" ? config.uns.token : undefined;
+  const serviceToken = process.env.UNS_SERVICE_TOKEN ?? configToken;
+  const authClient = serviceToken ? undefined : await AuthClient.create();
+  const client = new UnsClient(config.uns.rest, {
+    token: serviceToken,
+    authClient,
+  });
 
   const valueTopic = "sij/acroni/vv/hrm-furnace/equipment/pusher/output-quantity";
   const tableTopic = "sij/acroni/vv/hrm-furnace/process-segment/slab-001/trend-data";

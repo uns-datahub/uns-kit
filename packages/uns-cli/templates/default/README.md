@@ -18,7 +18,7 @@ pnpm run sync-uns-metadata -- --controller-url http://localhost:3200 --token <me
 
 ## Configuration
 
-Update `config.json` with your broker, UNS URLs, and credentials. The generated file contains sensible defaults for local development.
+Update `config.json` with your broker, UNS URLs, and credentials. The generated file contains sensible defaults for local development. If you use a service token, add `uns.token` and pass it to `UnsClient`.
 
 ## Validity / Liveliness
 
@@ -49,10 +49,12 @@ await proxy.publishMqttMessage({
 `UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. Prefer a long-lived service token if available; you can pass it directly and skip username/password auth.
 
 ```ts
-import { UnsClient } from "@uns-kit/core";
+import { ConfigFile, UnsClient } from "@uns-kit/core";
+
+const config = await ConfigFile.loadConfig();
 
 const client = new UnsClient("https://datahub.example.com", {
-  token: process.env.UNS_SERVICE_TOKEN,
+  token: process.env.UNS_SERVICE_TOKEN ?? config.uns.token,
 });
 
 const values = await client.lastValue([

@@ -96,8 +96,17 @@ export const unsCoreSchema = z.object({
   uns: z.object({
     graphql: z.string().url(),
     rest: z.string().url(),
-    email: z.string().email().describe("Email used when authenticating to graphql endpoint of the UNS instance."),
-    password: secretValueSchema.describe("Password or secret value paired with the UNS email."),
+    token: secretValueSchema
+      .optional()
+      .describe("Bearer token used for service-to-service access to the UNS instance."),
+    email: z
+      .string()
+      .email()
+      .optional()
+      .describe("Email used when authenticating to graphql endpoint of the UNS instance."),
+    password: secretValueSchema
+      .optional()
+      .describe("Password or secret value paired with the UNS email."),
     instanceMode: z.enum(["wait", "force", "handover"]).default("wait"),
     processName: z
       .string()

@@ -75,8 +75,6 @@ class AuthClient:
         return tokens["accessToken"]
 
     def login(self, email: str, password: str) -> dict[str, Any]:
-        print(email, password)
-
         response = self._request_json(
             "POST",
             self._endpoint("auth/login"),

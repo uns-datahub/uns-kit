@@ -3,10 +3,12 @@ export interface ProjectAppConfig {
     uns: {
         graphql: string;
         rest: string;
+        /** Bearer token used for service-to-service access to the UNS instance. */
+        token?: string | undefined;
         /** Email used when authenticating to graphql endpoint of the UNS instance. */
-        email: string;
+        email?: string | undefined;
         /** Password or secret value paired with the UNS email. */
-        password: string;
+        password?: string | undefined;
         instanceMode?: "wait" | "force" | "handover";
         /** Process name used in MQTT topics and logs. */
         processName: string;
