@@ -60,14 +60,18 @@ These CLI helpers are useful for diagnostics and low-level checks. For applicati
 
 ## Datahub client (last value)
 
-`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. For production use, pair it with `AuthClient`, which reads `config.json`, reuses the current token, tries refresh, then falls back to `uns.email` / `uns.password`.
+`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. For service-to-service access, prefer passing a long-lived service token directly. Use `AuthClient` only when you need user login/refresh behavior.
 
 ```python
 from pathlib import Path
 from uns_kit.core import ConfigFile, UnsClient
 
 cfg = ConfigFile.load_config(Path("config.json"))
-client = UnsClient(cfg["uns"]["rest"], api_base_path="/api")
+client = UnsClient(
+    cfg["uns"]["rest"],
+    api_base_path="/api",
+    token=cfg["uns"].get("token"),
+)
 
 values = client.last_value([
     "raw/data/line-1/motor/main/temperature",

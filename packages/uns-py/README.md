@@ -104,7 +104,7 @@ await proxy.publish_mqtt_message({
 
 ### Datahub client (last value + history)
 
-`UnsClient` provides a minimal REST client for the UNS Datahub API, including batch last-value, single-topic catch-all history, and batch range endpoints. For production use, pair it with `AuthClient`, which reads `config.json`, reuses the current token, tries refresh, then falls back to `uns.email` / `uns.password`.
+`UnsClient` provides a minimal REST client for the UNS Datahub API, including batch last-value, single-topic catch-all history, and batch range endpoints. For service-to-service access, prefer passing a long-lived service token directly. Use `AuthClient` only when you need user-style login/refresh from `config.json`.
 
 ```python
 import pandas as pd
@@ -113,7 +113,11 @@ from uns_kit.core import ConfigFile, UnsClient
 import io
 
 cfg = ConfigFile.load_config(Path("config.json"))
-client = UnsClient(cfg["uns"]["rest"], api_base_path="/api")
+client = UnsClient(
+    cfg["uns"]["rest"],
+    api_base_path="/api",
+    token=cfg["uns"].get("token"),
+)
 
 values = client.last_value([
     "raw/data/line-1/motor/main/temperature",
@@ -154,6 +158,18 @@ batch_history = client.history(
     }
 )
 print(batch_history.by_topic)
+```
+
+If your service token comes from an environment variable or secret store, resolve it before constructing the client:
+
+```python
+import os
+from uns_kit.core import UnsClient
+
+client = UnsClient(
+    "https://datahub.example.com",
+    token=os.environ["UNS_SERVICE_TOKEN"],
+)
 ```
 
 For larger service API and data-offer examples, use `configure-data-offer`. The scaffold uses `await register_api_catalog(...)` in `src/main.py`, while `src/api_routes.py` holds the `service_apis` and `data_offer_sources` definitions together with their handlers.

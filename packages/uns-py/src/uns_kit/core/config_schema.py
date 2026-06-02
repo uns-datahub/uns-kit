@@ -342,6 +342,10 @@ base_config_schema = {
                 {
                     "graphql": string_schema(fmt="uri"),
                     "rest": string_schema(fmt="uri"),
+                    "token": any_of(
+                        secret_value_schema,
+                        description="Bearer token used for service-to-service access to the UNS instance.",
+                    ),
                     "email": string_schema(
                         fmt="email",
                         description="Email used when authenticating to graphql endpoint of the UNS instance.",
@@ -361,7 +365,7 @@ base_config_schema = {
                     "kidWellKnownUrl": string_schema(fmt="uri"),
                     "env": enum_schema(["dev", "staging", "test", "prod"], default="dev"),
                 },
-                required=["graphql", "rest", "email", "password", "processName"],
+                required=["graphql", "rest", "processName"],
             ),
             "logging": strict_object(
                 {
