@@ -26,8 +26,14 @@ type DictionaryEntry = {
   descriptions?: Record<string, string | null | undefined>;
   [key: string]: unknown;
 };
+type ObjectTypeAttributeMembership = {
+  key?: unknown;
+  attributeKey?: unknown;
+  sortOrder?: unknown;
+  [key: string]: unknown;
+};
 type ObjectTypeEntry = DictionaryEntry & {
-  attributes?: string[] | null;
+  attributes?: Array<string | ObjectTypeAttributeMembership> | null;
 };
 type UnsDictionary = {
   schemaVersion?: unknown;
@@ -126,15 +132,31 @@ function renderDoc(description: string | undefined, indent: string): string {
   return `${indent}/**\n${normalized}\n${indent} */\n`;
 }
 
+function readObjectTypeAttributeName(value: string | ObjectTypeAttributeMembership): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : undefined;
+  }
+
+  if (value && typeof value === "object") {
+    const key = typeof value.key === "string" ? value.key.trim() : "";
+    if (key) return key;
+    const attributeKey = typeof value.attributeKey === "string" ? value.attributeKey.trim() : "";
+    if (attributeKey) return attributeKey;
+  }
+
+  return undefined;
+}
+
 export function renderDictionaryTs(dictionary: UnsDictionary, lang: string): string {
   const objectTypeEntries = Object.entries(dictionary.objectTypes ?? {}).sort(([left], [right]) => left.localeCompare(right));
   const attributeEntries = Object.entries(dictionary.attributes ?? {}).sort(([left], [right]) => left.localeCompare(right));
   const attributesByType: Record<string, string[]> = {};
   for (const [name, entry] of objectTypeEntries) {
     if (Array.isArray(entry.attributes) && entry.attributes.length > 0) {
-      attributesByType[name] = entry.attributes.filter(
-        (attribute): attribute is string => typeof attribute === "string" && attribute.length > 0,
-      );
+      attributesByType[name] = entry.attributes
+        .map(readObjectTypeAttributeName)
+        .filter((attribute): attribute is string => Boolean(attribute));
     }
   }
 
