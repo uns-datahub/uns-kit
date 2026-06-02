@@ -102,6 +102,72 @@ await proxy.publish_mqtt_message({
 })
 ```
 
+### Counter attributes
+
+Publish cumulative counters as raw counter state. Do not use producer-side
+delta modes for new code; `MessageMode.DELTA`, `MessageMode.BOTH`, and gRPC
+`value_is_cumulative` are deprecated because producer memory is lost across
+service restarts. Datahub history APIs should calculate delta/rate from
+persisted rows.
+
+For a `Data` attribute, mark the series directly:
+
+```python
+await proxy.publish_mqtt_message({
+    "topic": "raw/data/",
+    "asset": "line-1",
+    "objectType": "energy-resource",
+    "objectId": "main",
+    "attributes": {
+        "attribute": "active-energy-total",
+        "description": "Cumulative active energy counter",
+        "valueType": "number",
+        "presentationKind": "counter",
+        "defaultAggregation": "last",
+        "counterResetPolicy": "new-value",
+        "data": {
+            "time": "2026-06-02T12:00:00.000Z",
+            "value": 12345.6,
+            "uom": "kWh",
+            "dataGroup": "metering",
+        },
+    },
+})
+```
+
+For a `Table` attribute, keep the table as the source row and mark chartable
+counter columns with `tableColumns`:
+
+```python
+await proxy.publish_mqtt_message({
+    "topic": "raw/data/",
+    "asset": "line-1",
+    "objectType": "energy-resource",
+    "objectId": "main",
+    "attributes": {
+        "attribute": "measurements",
+        "description": "Metering table",
+        "tableColumns": [
+            {
+                "name": "active_energy_total",
+                "valueType": "number",
+                "presentationKind": "counter",
+                "defaultAggregation": "last",
+                "counterResetPolicy": "new-value",
+            },
+        ],
+        "table": {
+            "time": "2026-06-02T12:00:00.000Z",
+            "dataGroup": "metering",
+            "columns": [
+                {"name": "active_energy_total", "type": "double", "value": 12345.6, "uom": "kWh"},
+                {"name": "power", "type": "double", "value": 42.1, "uom": "kW"},
+            ],
+        },
+    },
+})
+```
+
 ### Datahub client (last value + history)
 
 `UnsClient` provides a minimal REST client for the UNS Datahub API, including batch last-value, single-topic catch-all history, and batch range endpoints. For service-to-service access, prefer passing a long-lived service token directly. Use `AuthClient` only when you need user-style login/refresh from `config.json`.

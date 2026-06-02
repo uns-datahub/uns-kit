@@ -6,14 +6,19 @@ from enum import Enum
 from typing import Any, Dict, Optional
 
 from .client import UnsMqttClient
+from .logger import get_logger
 from .packet import UnsPacket, isoformat
 from .proxy import UnsProxy
 from .topic_builder import TopicBuilder
 
+logger = get_logger(__name__)
+
 
 class MessageMode(str, Enum):
     RAW = "raw"
+    # Deprecated: producer-side delta calculation loses state across restarts.
     DELTA = "delta"
+    # Deprecated: producer-side delta calculation loses state across restarts.
     BOTH = "both"
 
 
@@ -64,6 +69,7 @@ class UnsMqttProxy(UnsProxy):
         super().__init__(self.client, self.instance_status_topic, instance_name)
         self._last_values: Dict[str, LastValueEntry] = {}
         self._sequence_ids: Dict[str, int] = {}
+        self._delta_mode_deprecation_warned = False
 
     async def connect(self) -> None:
         await self.client.connect()
@@ -100,6 +106,11 @@ class UnsMqttProxy(UnsProxy):
             description = attr.get("description")
             tags = attr.get("tags")
             attribute_needs_persistence = attr.get("attributeNeedsPersistence")
+            value_type = attr.get("valueType")
+            presentation_kind = attr.get("presentationKind")
+            default_aggregation = attr.get("defaultAggregation")
+            counter_reset_policy = attr.get("counterResetPolicy")
+            table_columns = attr.get("tableColumns")
             validity_mode = attr.get("validityMode")
             expected_interval_ms = attr.get("expectedIntervalMs")
             lifecycle_end_value = attr.get("lifecycleEndValue")
@@ -134,6 +145,11 @@ class UnsMqttProxy(UnsProxy):
                 "description": description or attribute,
                 "tags": tags,
                 "attributeNeedsPersistence": attribute_needs_persistence,
+                "valueType": value_type,
+                "presentationKind": presentation_kind,
+                "defaultAggregation": default_aggregation,
+                "counterResetPolicy": counter_reset_policy,
+                "tableColumns": table_columns,
                 "packet": packet,
             }
 
@@ -147,16 +163,29 @@ class UnsMqttProxy(UnsProxy):
             if mode == MessageMode.RAW:
                 await self._process_and_publish(msg, value_is_cumulative=False)
             elif mode == MessageMode.DELTA:
+                self._warn_deprecated_delta_mode(mode)
                 delta_msg = dict(msg)
                 delta_msg["attribute"] = f"{attribute}-delta"
                 delta_msg["description"] = f"{msg['description']} (delta)"
                 await self._process_and_publish(delta_msg, value_is_cumulative=True)
             elif mode == MessageMode.BOTH:
+                self._warn_deprecated_delta_mode(mode)
                 await self._process_and_publish(msg, value_is_cumulative=False)
                 delta_msg = dict(msg)
                 delta_msg["attribute"] = f"{attribute}-delta"
                 delta_msg["description"] = f"{msg['description']} (delta)"
                 await self._process_and_publish(delta_msg, value_is_cumulative=True)
+
+    def _warn_deprecated_delta_mode(self, mode: MessageMode) -> None:
+        if self._delta_mode_deprecation_warned:
+            return
+        self._delta_mode_deprecation_warned = True
+        logger.warning(
+            "MessageMode.%s is deprecated: producer-side delta calculation loses previous-value state "
+            "across service restarts. Publish raw cumulative counter values and request delta/rate from "
+            "Datahub history APIs.",
+            mode.value,
+        )
 
     def _resolve_object_identity(self, msg: Dict[str, Any]) -> None:
         topic = msg.get("topic", "")
@@ -206,6 +235,11 @@ class UnsMqttProxy(UnsProxy):
                 "description": msg.get("description"),
                 "tags": msg.get("tags"),
                 "attributeNeedsPersistence": msg.get("attributeNeedsPersistence"),
+                "valueType": msg.get("valueType"),
+                "presentationKind": msg.get("presentationKind"),
+                "defaultAggregation": msg.get("defaultAggregation"),
+                "counterResetPolicy": msg.get("counterResetPolicy"),
+                "tableColumns": msg.get("tableColumns"),
                 "dataGroup": data_group,
                 **({"validityMode": msg.get("validityMode")} if msg.get("validityMode") is not None else {}),
                 **(

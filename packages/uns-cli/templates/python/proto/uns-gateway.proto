@@ -21,7 +21,10 @@ message PublishRequest {
     Data data = 6;
     Table table = 7;
   }
-  bool value_is_cumulative = 8; // for Data: publish as delta
+  // Deprecated: producer-side delta calculation loses previous-value state
+  // across service restarts. Publish raw cumulative counter values and request
+  // delta/rate from Datahub history APIs.
+  bool value_is_cumulative = 8;
 }
 
 message Data {

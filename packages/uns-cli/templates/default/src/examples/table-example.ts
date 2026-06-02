@@ -7,12 +7,11 @@ import { registerAttributeDescriptions, registerObjectTypeDescriptions } from "@
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
 import {
   GeneratedObjectTypes,
-  GeneratedAttributes,
   GeneratedAttributeDescriptions,
   GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
 import { GeneratedAssets, resolveGeneratedAsset } from "../uns/uns-assets.js";
-import type { IUnsTableColumn } from "@uns-kit/core/uns/uns-interfaces.js";
+import type { IUnsTableColumn, IUnsTableColumnMetadata } from "@uns-kit/core/uns/uns-interfaces.js";
 import type { ISO8601 } from "@uns-kit/core/uns/uns-interfaces.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 
@@ -64,6 +63,16 @@ mqttInput.event.on("input", async (event) => {
       const columns: IUnsTableColumn[] = [
         { name: "current", type: "double", value: currentValue, uom: GeneratedPhysicalMeasurements.Ampere },
         { name: "voltage", type: "double", value: sensorValue },
+        { name: "active_energy_total", type: "double", value: currentValue, uom: GeneratedPhysicalMeasurements.KiloWattHour },
+      ];
+      const tableColumns: IUnsTableColumnMetadata[] = [
+        {
+          name: "active_energy_total",
+          valueType: "number",
+          presentationKind: "counter",
+          defaultAggregation: "last",
+          counterResetPolicy: "new-value",
+        },
       ];
       const topic: UnsTopics = "enterprise/site/area/line/";
       const asset = resolveGeneratedAsset("asset");
@@ -72,12 +81,13 @@ mqttInput.event.on("input", async (event) => {
         topic,
         asset,
         assetDescription,
-        objectType: GeneratedObjectTypes["resource-status"],
+        objectType: GeneratedObjectTypes["energy-resource"],
         objectId: "main",
         attributes: [
           {
-            attribute: GeneratedAttributes["status"] ?? "status",
-            description: GeneratedAttributeDescriptions["status"] ?? "Table",
+            attribute: "measurements",
+            description: GeneratedAttributeDescriptions["status"] ?? "Table measurements with a counter column",
+            tableColumns,
             table: {
               dataGroup,
               time,

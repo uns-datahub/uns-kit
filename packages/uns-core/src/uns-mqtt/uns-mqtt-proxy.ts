@@ -5,7 +5,7 @@ import { Worker } from "worker_threads";
 import { fileURLToPath } from "url";
 import { basePath } from "../base-path.js";
 import logger from "../logger.js";
-import { IMqttPublishRequest, IUnsMessage, IUnsPacket, IUnsParameters, UnsAttribute, UnsEvents, ValueType } from "../uns/uns-interfaces.js";
+import { IMqttPublishRequest, IUnsMessage, IUnsPacket, IUnsParameters, IUnsTableColumnMetadata, UnsAttribute, UnsEvents, ValueType } from "../uns/uns-interfaces.js";
 import { getObjectTypeDescription, type UnsObjectId, type UnsObjectType } from "../uns/uns-object.js";
 import type { UnsAsset } from "../uns/uns-asset.js";
 import { MeasurementUnit } from "../uns/uns-measurements.js";
@@ -27,7 +27,15 @@ const workerScriptPath = path.join(packageRoot, "dist/uns-mqtt/mqtt-worker-init.
 
 export enum MessageMode {
   Raw = 'raw',     // Send only the original message
+  /**
+   * @deprecated Producer-side delta calculation loses state across restarts.
+   * Publish raw cumulative counter values and request delta/rate from Datahub history APIs.
+   */
   Delta = 'delta', // Send only the delta message
+  /**
+   * @deprecated Producer-side delta calculation loses state across restarts.
+   * Publish raw cumulative counter values and request delta/rate from Datahub history APIs.
+   */
   Both = 'both'    // Send both the original and delta messages
 }
 
@@ -42,6 +50,11 @@ type InternalMqttMessage = {
   description?: string;
   tags?: UnsTags[];
   attributeNeedsPersistence?: boolean | null;
+  valueType?: string;
+  presentationKind?: string;
+  defaultAggregation?: string;
+  counterResetPolicy?: string;
+  tableColumns?: IUnsTableColumnMetadata[];
   validityMode?: "interval" | "lifecycle" | "static";
   expectedIntervalMs?: number;
   lifecycleEndValue?: string;
@@ -57,6 +70,7 @@ export default class UnsMqttProxy extends UnsProxy {
   public instanceName: string;
   private currentSequenceId: Map<string, number> = new Map();
   private topicBuilder: MqttTopicBuilder;
+  private deltaModeDeprecationWarned = false;
 
   constructor(
     mqttHost: string,
@@ -307,7 +321,8 @@ export default class UnsMqttProxy extends UnsProxy {
    * Processes and publishes MQTT messages based on the selected message mode.
    *
    * @param mqttMessage - The MQTT message object.
-   * @param mode - The message mode (Raw, Delta, or Both).
+   * @param mode - The message mode. Delta and Both are deprecated because
+   * producer-side delta calculation loses state across restarts.
    */
   public async publishMqttMessage(mqttMessage: IMqttPublishRequest | null, mode: MessageMode = MessageMode.Raw) {
     if (!mqttMessage) {
@@ -341,6 +356,11 @@ export default class UnsMqttProxy extends UnsProxy {
         description: attrDescription,
         tags: attrEntry.tags,
         attributeNeedsPersistence: attrEntry.attributeNeedsPersistence,
+        valueType: attrEntry.valueType,
+        presentationKind: attrEntry.presentationKind,
+        defaultAggregation: attrEntry.defaultAggregation,
+        counterResetPolicy: attrEntry.counterResetPolicy,
+        tableColumns: attrEntry.tableColumns,
         ...(attrEntry.validityMode ? { validityMode: attrEntry.validityMode } : {}),
         ...(attrEntry.expectedIntervalMs ? { expectedIntervalMs: attrEntry.expectedIntervalMs } : {}),
         ...(attrEntry.lifecycleEndValue ? { lifecycleEndValue: attrEntry.lifecycleEndValue } : {}),
@@ -355,6 +375,9 @@ export default class UnsMqttProxy extends UnsProxy {
       const mqttMessageWithDesc = { ...singleMsg, description: baseDescription };
 
       const time = UnsPacket.formatToISO8601(new Date());
+      if (mode === MessageMode.Delta || mode === MessageMode.Both) {
+        this.warnDeprecatedDeltaMode(mode);
+      }
       switch (mode) {
         case MessageMode.Raw: {
           await this.processAndEnqueueMessage(mqttMessageWithDesc, time, false);
@@ -378,6 +401,14 @@ export default class UnsMqttProxy extends UnsProxy {
       }
     }
     return;
+  }
+
+  private warnDeprecatedDeltaMode(mode: MessageMode): void {
+    if (this.deltaModeDeprecationWarned) return;
+    this.deltaModeDeprecationWarned = true;
+    logger.warn(
+      `${this.instanceNameWithSuffix} - MessageMode.${mode} is deprecated: producer-side delta calculation loses previous-value state across service restarts. Publish raw cumulative counter values and request delta/rate from Datahub history APIs.`,
+    );
   }
 
   /**
@@ -470,6 +501,11 @@ export default class UnsMqttProxy extends UnsProxy {
         description,
         tags: msg.tags,
         attributeNeedsPersistence: msg.attributeNeedsPersistence,
+        valueType: msg.valueType,
+        presentationKind: msg.presentationKind,
+        defaultAggregation: msg.defaultAggregation,
+        counterResetPolicy: msg.counterResetPolicy,
+        tableColumns: msg.tableColumns,
         dataGroup,
         asset,
         assetDescription: msg.assetDescription,

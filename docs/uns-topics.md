@@ -79,6 +79,10 @@ Fields:
 - `description`
 - `tags`
 - `attributeNeedsPersistence`
+- `valueType`, `presentationKind`, `defaultAggregation`
+- `counterResetPolicy`
+- `tableColumns` - optional field-level metadata for table columns that should
+  behave as chartable series
 - `dataGroup`
 
 This list is built as your process publishes messages and is refreshed periodically.
@@ -197,11 +201,15 @@ in MQTT user properties when publishing these messages.
     "objectType": "energy-resource",
     "objectTypeDescription": "Energy carriers (electricity/steam/gas)",
     "objectId": "main",
-    "attribute": "voltage",
+    "attribute": "active-energy-total",
     "attributeType": "Data",
-    "description": "Measured voltage",
-    "tags": ["electrical"],
+    "description": "Cumulative active energy counter",
+    "tags": ["electrical", "metering"],
     "attributeNeedsPersistence": true,
+    "valueType": "number",
+    "presentationKind": "counter",
+    "defaultAggregation": "last",
+    "counterResetPolicy": "new-value",
     "dataGroup": "sensor"
   }
 ]

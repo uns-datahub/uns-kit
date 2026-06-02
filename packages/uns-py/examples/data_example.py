@@ -103,6 +103,22 @@ async def main() -> None:
                                 "uom": "V",
                             },
                         },
+                        {
+                            "attribute": "active-energy-total",
+                            "description": "Cumulative active energy counter",
+                            "valueType": "number",
+                            "presentationKind": "counter",
+                            "defaultAggregation": "last",
+                            "counterResetPolicy": "new-value",
+                            "data": {
+                                "dataGroup": "sensor",
+                                "time": time,
+                                "intervalStart": interval_start,
+                                "intervalEnd": interval_end,
+                                "value": number_value,
+                                "uom": "kWh",
+                            },
+                        },
                     ],
                 }
             )

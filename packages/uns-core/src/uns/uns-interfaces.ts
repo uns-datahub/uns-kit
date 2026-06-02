@@ -19,6 +19,16 @@ export const valueTypes = ["string", "number"] as const;
 export type ValueTypeString = (typeof valueTypes)[number];
 export type ValueType = string | number;
 
+export type CounterResetPolicy = "new-value" | "null" | "rollover" | (string & {});
+
+export interface IUnsTableColumnMetadata {
+  name: string;
+  valueType?: ValueTypeString | (string & {});
+  presentationKind?: string;
+  defaultAggregation?: string;
+  counterResetPolicy?: CounterResetPolicy;
+}
+
 export const questDbPrimitiveTypes = [
   "boolean",
   "ipv4",
@@ -212,6 +222,19 @@ export interface IMqttAttributeMessage {
   description?: string;
   tags?: UnsTags[];
   attributeNeedsPersistence?: boolean | null;
+  /** Scalar value shape for schema/catalog consumers, for example "number" or "string". */
+  valueType?: ValueTypeString | (string & {});
+  /**
+   * Operator-facing presentation hint. Use "counter" for cumulative counter
+   * state; delta/rate should be requested from Datahub history APIs.
+   */
+  presentationKind?: string;
+  /** Preferred aggregation for sampled history views, for example "last". */
+  defaultAggregation?: string;
+  /** Reset handling hint for cumulative counters. Interpreted by Datahub APIs, not by the producer. */
+  counterResetPolicy?: CounterResetPolicy;
+  /** Field-level metadata for table columns that should behave as chartable series. */
+  tableColumns?: IUnsTableColumnMetadata[];
   /**
    * How the controller determines if this attribute is live or stale.
    * Defaults to `"interval"` with the controller's default interval (~120s) when omitted.
@@ -320,6 +343,16 @@ export interface ITopicObject {
   dataGroup:string;
   tags:string[] | null;
   attributeNeedsPersistence: boolean | null;
+  /** Scalar value shape for schema/catalog consumers, for example "number" or "string". */
+  valueType?: ValueTypeString | (string & {});
+  /** Operator-facing presentation hint, for example "counter" for cumulative counter state. */
+  presentationKind?: string;
+  /** Preferred aggregation for sampled history views, for example "last". */
+  defaultAggregation?: string;
+  /** Reset handling hint for cumulative counters. Interpreted by Datahub APIs, not by the producer. */
+  counterResetPolicy?: CounterResetPolicy;
+  /** Field-level metadata for table columns that should behave as chartable series. */
+  tableColumns?: IUnsTableColumnMetadata[];
   asset: UnsAsset;
   assetDescription?: string;
   objectType: UnsObjectType;

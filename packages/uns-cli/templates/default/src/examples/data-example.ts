@@ -75,6 +75,15 @@ mqttInput.event.on("input", async (event) => {
             attribute: GeneratedAttributes["voltage"],
             data: { dataGroup, time, value: sensorValue, uom: GeneratedPhysicalMeasurements.Volt, intervalStart, intervalEnd },
           },
+          {
+            attribute: "active-energy-total",
+            description: "Cumulative active energy counter",
+            valueType: "number",
+            presentationKind: "counter",
+            defaultAggregation: "last",
+            counterResetPolicy: "new-value",
+            data: { dataGroup, time, value: numberValue, uom: GeneratedPhysicalMeasurements.KiloWattHour, intervalStart, intervalEnd },
+          },
         ],
       });
     }

@@ -161,6 +161,7 @@ export class UnsGatewayServer {
   private apiOptions: IApiProxyOptions | null = null;
   private outPublisherActive = false;
   private inSubscriberActive = false;
+  private valueIsCumulativeDeprecationWarned = false;
 
   public async start(
     desiredAddr?: string,
@@ -267,6 +268,9 @@ export class UnsGatewayServer {
       const tags: string[] = (req.tags ?? []) as string[];
       const attributeNeedsPersistence: boolean | null = req.attribute_needs_persistence ?? null;
       const valueIsCumulative: boolean = req.value_is_cumulative ?? false;
+      if (valueIsCumulative) {
+        this.warnDeprecatedValueIsCumulative();
+      }
 
       let message: IUnsMessage | null = null;
 
@@ -334,6 +338,14 @@ export class UnsGatewayServer {
       logger.error(`Gateway Publish error: ${err.message}`);
       callback(null, { ok: false, error: err.message });
     }
+  }
+
+  private warnDeprecatedValueIsCumulative(): void {
+    if (this.valueIsCumulativeDeprecationWarned) return;
+    this.valueIsCumulativeDeprecationWarned = true;
+    logger.warn(
+      "UnsGateway PublishRequest.value_is_cumulative is deprecated: producer-side delta calculation loses previous-value state across service restarts. Publish raw cumulative counter values and request delta/rate from Datahub history APIs.",
+    );
   }
 
   private async subscribe(call: any) {
