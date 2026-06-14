@@ -5,7 +5,7 @@ import { Worker } from "worker_threads";
 import { fileURLToPath } from "url";
 import { basePath } from "../base-path.js";
 import logger from "../logger.js";
-import { IMqttPublishRequest, IUnsMessage, IUnsPacket, IUnsParameters, IUnsTableColumnMetadata, UnsAttribute, UnsEvents, ValueType } from "../uns/uns-interfaces.js";
+import { IMqttPublishRequest, IUnsLifecycleMetadata, IUnsMessage, IUnsPacket, IUnsParameters, IUnsRelationshipEvidenceMetadata, IUnsTableColumnMetadata, UnsAttribute, UnsAttributeSystemRole, UnsEvents, ValueType } from "../uns/uns-interfaces.js";
 import { getObjectTypeDescription, type UnsObjectId, type UnsObjectType } from "../uns/uns-object.js";
 import type { UnsAsset } from "../uns/uns-asset.js";
 import { MeasurementUnit } from "../uns/uns-measurements.js";
@@ -55,6 +55,9 @@ type InternalMqttMessage = {
   defaultAggregation?: string;
   counterResetPolicy?: string;
   tableColumns?: IUnsTableColumnMetadata[];
+  systemRole?: UnsAttributeSystemRole;
+  relationshipEvidence?: IUnsRelationshipEvidenceMetadata;
+  lifecycle?: IUnsLifecycleMetadata;
   validityMode?: "interval" | "lifecycle" | "static";
   expectedIntervalMs?: number;
   lifecycleEndValue?: string;
@@ -361,6 +364,9 @@ export default class UnsMqttProxy extends UnsProxy {
         defaultAggregation: attrEntry.defaultAggregation,
         counterResetPolicy: attrEntry.counterResetPolicy,
         tableColumns: attrEntry.tableColumns,
+        systemRole: attrEntry.systemRole,
+        relationshipEvidence: attrEntry.relationshipEvidence,
+        lifecycle: attrEntry.lifecycle,
         ...(attrEntry.validityMode ? { validityMode: attrEntry.validityMode } : {}),
         ...(attrEntry.expectedIntervalMs ? { expectedIntervalMs: attrEntry.expectedIntervalMs } : {}),
         ...(attrEntry.lifecycleEndValue ? { lifecycleEndValue: attrEntry.lifecycleEndValue } : {}),
@@ -506,6 +512,9 @@ export default class UnsMqttProxy extends UnsProxy {
         defaultAggregation: msg.defaultAggregation,
         counterResetPolicy: msg.counterResetPolicy,
         tableColumns: msg.tableColumns,
+        systemRole: msg.systemRole,
+        relationshipEvidence: msg.relationshipEvidence,
+        lifecycle: msg.lifecycle,
         dataGroup,
         asset,
         assetDescription: msg.assetDescription,

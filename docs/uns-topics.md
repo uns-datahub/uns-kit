@@ -81,6 +81,8 @@ Fields:
 - `attributeNeedsPersistence`
 - `valueType`, `presentationKind`, `defaultAggregation`
 - `counterResetPolicy`
+- `systemRole`, `relationshipEvidence`, `lifecycle` - optional schema-system
+  metadata for relationship materialization and lifecycle semantics
 - `tableColumns` - optional field-level metadata for table columns that should
   behave as chartable series
 - `dataGroup`
@@ -210,6 +212,14 @@ in MQTT user properties when publishing these messages.
     "presentationKind": "counter",
     "defaultAggregation": "last",
     "counterResetPolicy": "new-value",
+    "systemRole": "relationship-evidence",
+    "relationshipEvidence": {
+      "relationshipKey": "material-renumbering",
+      "ownerEndpoint": "target",
+      "valueEndpoint": "source",
+      "sourceObjectType": "material",
+      "targetObjectType": "material"
+    },
     "dataGroup": "sensor"
   }
 ]

@@ -39,6 +39,17 @@ describe("UNS produced topic metadata", () => {
       presentationKind: "counter",
       defaultAggregation: "last",
       counterResetPolicy: "new-value",
+      systemRole: "relationship-evidence",
+      relationshipEvidence: {
+        relationshipKey: "material-renumbering",
+        ownerEndpoint: "target",
+        valueEndpoint: "source",
+        sourceObjectType: "material",
+        targetObjectType: "material",
+      },
+      lifecycle: {
+        timestampFrom: "packetTimestamp",
+      },
       tableColumns: [
         {
           name: "active_energy_total",
@@ -56,6 +67,17 @@ describe("UNS produced topic metadata", () => {
       presentationKind: "counter",
       defaultAggregation: "last",
       counterResetPolicy: "new-value",
+      systemRole: "relationship-evidence",
+      relationshipEvidence: {
+        relationshipKey: "material-renumbering",
+        ownerEndpoint: "target",
+        valueEndpoint: "source",
+        sourceObjectType: "material",
+        targetObjectType: "material",
+      },
+      lifecycle: {
+        timestampFrom: "packetTimestamp",
+      },
       tableColumns: [
         {
           name: "active_energy_total",

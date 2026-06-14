@@ -35,6 +35,8 @@ pnpm run dev
 ```
 
 For more templates and configure options see [`@uns-kit/cli`](packages/uns-cli).
+For producer-side schema metadata examples, including relationship evidence and
+lifecycle roles, see [`docs/schema-system-metadata.md`](docs/schema-system-metadata.md).
 
 ## Monorepo structure
 

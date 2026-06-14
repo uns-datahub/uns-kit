@@ -21,6 +21,34 @@ export type ValueType = string | number;
 
 export type CounterResetPolicy = "new-value" | "null" | "rollover" | (string & {});
 
+export type UnsAttributeSystemRole =
+  | "relationship-evidence"
+  | "lifecycle-start"
+  | "lifecycle-end"
+  | "lifecycle-time-source"
+  | (string & {});
+
+export type UnsRelationshipEndpoint = "source" | "target";
+
+export interface IUnsRelationshipEvidenceMetadata {
+  relationshipKey: string;
+  ownerEndpoint?: UnsRelationshipEndpoint;
+  valueEndpoint?: UnsRelationshipEndpoint;
+  sourceObjectType?: UnsObjectType | (string & {});
+  targetObjectType?: UnsObjectType | (string & {});
+  sourceObjectIdFrom?: string;
+  targetObjectIdFrom?: string;
+  observedAtFrom?: string;
+  status?: "suggested" | "accepted" | (string & {});
+  defaultStatus?: "suggested" | "accepted" | (string & {});
+}
+
+export interface IUnsLifecycleMetadata {
+  timestampFrom?: "value" | "packetTimestamp" | (string & {});
+  startValues?: string[];
+  endValues?: string[];
+}
+
 export interface IUnsTableColumnMetadata {
   name: string;
   valueType?: ValueTypeString | (string & {});
@@ -235,6 +263,12 @@ export interface IMqttAttributeMessage {
   counterResetPolicy?: CounterResetPolicy;
   /** Field-level metadata for table columns that should behave as chartable series. */
   tableColumns?: IUnsTableColumnMetadata[];
+  /** Optional schema-system role published into Datahub's attribute_schema.schema_json. */
+  systemRole?: UnsAttributeSystemRole;
+  /** Relationship materialization metadata for `systemRole: "relationship-evidence"`. */
+  relationshipEvidence?: IUnsRelationshipEvidenceMetadata;
+  /** Lifecycle metadata for lifecycle system roles. */
+  lifecycle?: IUnsLifecycleMetadata;
   /**
    * How the controller determines if this attribute is live or stale.
    * Defaults to `"interval"` with the controller's default interval (~120s) when omitted.
@@ -353,6 +387,12 @@ export interface ITopicObject {
   counterResetPolicy?: CounterResetPolicy;
   /** Field-level metadata for table columns that should behave as chartable series. */
   tableColumns?: IUnsTableColumnMetadata[];
+  /** Optional schema-system role published into Datahub's attribute_schema.schema_json. */
+  systemRole?: UnsAttributeSystemRole;
+  /** Relationship materialization metadata for `systemRole: "relationship-evidence"`. */
+  relationshipEvidence?: IUnsRelationshipEvidenceMetadata;
+  /** Lifecycle metadata for lifecycle system roles. */
+  lifecycle?: IUnsLifecycleMetadata;
   asset: UnsAsset;
   assetDescription?: string;
   objectType: UnsObjectType;
