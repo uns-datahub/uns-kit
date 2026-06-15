@@ -34,6 +34,7 @@ export interface IUnsRelationshipEvidenceMetadata {
   relationshipKey: string;
   ownerEndpoint?: UnsRelationshipEndpoint;
   valueEndpoint?: UnsRelationshipEndpoint;
+  /** Scalar values produce one edge; array values produce one edge per ObjectId value. */
   sourceObjectType?: UnsObjectType | (string & {});
   targetObjectType?: UnsObjectType | (string & {});
   sourceObjectIdFrom?: string;

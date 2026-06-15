@@ -41,6 +41,7 @@ const asset = resolveGeneratedAsset("asset");
 const materialObjectType = GeneratedObjectTypes["material"];
 const currentMaterialId = "1124";
 const previousMaterialId = "112";
+const mergedParentMaterialIds = ["1122", "1123"];
 
 try {
   await mqttOutput.publishMqttMessage({
@@ -70,6 +71,30 @@ try {
           dataGroup: "material-lineage",
           time,
           value: previousMaterialId,
+        },
+      },
+      {
+        attribute: "previous-materials",
+        description: "Previous material ObjectIds that were joined into this material.",
+        valueType: "array<string>",
+        systemRole: "relationship-evidence",
+        relationshipEvidence: {
+          relationshipKey: "material-merge",
+          ownerEndpoint: "target",
+          valueEndpoint: "source",
+          sourceObjectType: materialObjectType,
+          targetObjectType: materialObjectType,
+          sourceObjectIdFrom: "value[]",
+          targetObjectIdFrom: "ownerObjectId",
+          observedAtFrom: "packetTimestamp",
+          defaultStatus: "suggested",
+        },
+        data: {
+          dataGroup: "material-lineage",
+          time,
+          currentMaterialObjectId: currentMaterialId,
+          operationId: "weld-1122-1123",
+          value: mergedParentMaterialIds,
         },
       },
       {
