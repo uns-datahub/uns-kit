@@ -253,6 +253,8 @@ export interface IMqttAttributeMessage {
   description?: string;
   tags?: UnsTags[];
   attributeNeedsPersistence?: boolean | null;
+  /** Optional controller/UI grouping hint for this ObjectId node; does not affect storage/table naming. */
+  virtualGroup?: string;
   /** Scalar value shape for schema/catalog consumers, for example "number" or "string". */
   valueType?: ValueTypeString | (string & {});
   /**

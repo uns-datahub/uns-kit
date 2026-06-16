@@ -89,4 +89,35 @@ describe("UNS produced topic metadata", () => {
       ],
     });
   });
+
+  it("keeps virtual grouping separate from storage dataGroup", () => {
+    const proxy = new TestUnsProxy();
+    let event: UnsEvents["unsProxyProducedTopics"] | null = null;
+    proxy.event.on("unsProxyProducedTopics", value => {
+      event = value;
+    });
+
+    proxy.register({
+      timestamp: "2026-06-16T08:00:00.000Z",
+      topic: "sij/acroni/vv/",
+      asset: "hrm-stand-1",
+      objectType: "material",
+      objectId: "slab-001",
+      attribute: "location",
+      attributeType: UnsAttributeType.Data,
+      description: "Material location",
+      tags: null,
+      attributeNeedsPersistence: true,
+      dataGroup: "asset",
+      virtualGroup: "material",
+    });
+
+    expect(event?.producedTopics).toHaveLength(1);
+    expect(event?.producedTopics[0]).toMatchObject({
+      dataGroup: "asset",
+      virtualGroup: "material",
+      objectType: "material",
+      objectId: "slab-001",
+    });
+  });
 });

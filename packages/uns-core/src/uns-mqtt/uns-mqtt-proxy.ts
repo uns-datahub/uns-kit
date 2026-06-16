@@ -337,7 +337,7 @@ export default class UnsMqttProxy extends UnsProxy {
     const attrs = Array.isArray(mqttMessage.attributes)
       ? mqttMessage.attributes
       : [mqttMessage.attributes];
-    const { topic, asset, assetDescription, objectType, objectTypeDescription, objectId, virtualGroup } = mqttMessage;
+    const { topic, asset, assetDescription, objectType, objectTypeDescription, objectId, virtualGroup: requestVirtualGroup } = mqttMessage;
     for (const attrEntry of attrs) {
       const attrDescription = attrEntry.description ?? getAttributeDescription(attrEntry.attribute);
       const message: IUnsMessage =
@@ -356,7 +356,7 @@ export default class UnsMqttProxy extends UnsProxy {
         objectType,
         objectTypeDescription,
         objectId,
-        virtualGroup,
+        virtualGroup: attrEntry.virtualGroup ?? requestVirtualGroup,
         attribute: attrEntry.attribute,
         description: attrDescription,
         tags: attrEntry.tags,

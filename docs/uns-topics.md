@@ -87,6 +87,8 @@ Fields:
   behave as chartable series
 - `dataGroup` - optional storage/routing group copied from the latest `data` or
   `table` payload for this UNS identity
+- `virtualGroup` - optional controller/UI grouping hint for ObjectId nodes; it
+  is metadata and does not request a separate history table
 
 This list is built as your process publishes messages and is refreshed periodically.
 
@@ -156,11 +158,17 @@ This publishes the UNS identity `automations/pritiski/capture/a/records`. With
 `dataGroup: "capture_fast"`, the UNS identity would stay the same, but the
 physical QuestDB table would become `uns_automations_capture_fast_table`.
 
+`virtualGroup` is the separate controller/tree grouping concept. It is published
+as metadata on `IMqttPublishRequest` or an individual `IMqttAttributeMessage` and
+is mirrored into the produced-topics registry. It lets the controller group
+ObjectId nodes visually without changing the UNS identity path and without
+changing the archiver table name.
+
 Treat UI virtual grouping as presentation/discovery metadata, not as a request
 for a new physical table. If a producer needs a separate QuestDB storage family,
 set `dataGroup` explicitly in the packet. If a UI only needs to group object IDs
-visually, use a display/grouping concept rather than overloading `dataGroup`,
-because `dataGroup` has storage consequences for archiver consumers.
+visually, set `virtualGroup` rather than overloading `dataGroup`, because
+`dataGroup` has storage consequences for archiver consumers.
 
 Recommended usage:
 
@@ -168,6 +176,10 @@ Recommended usage:
   `capture`, or `trigger`.
 - Use `dataGroup` only when data should be routed or persisted as a separate
   storage family, or when a consumer has an explicit policy for that group.
+- Use `virtualGroup` when the controller/tree should group ObjectIds under a
+  virtual folder without affecting storage. Request-level `virtualGroup` applies
+  to all attributes in the request; attribute-level `virtualGroup` overrides it
+  for that attribute.
 - Keep storage group names stable and machine-safe. Prefer lowercase
   alphanumeric names with `_` when the group is expected to become part of a
   database table name.
