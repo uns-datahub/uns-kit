@@ -186,6 +186,7 @@ export default class UnsProxy {
           ...(topicObject.relationshipEvidence ? { relationshipEvidence: topicObject.relationshipEvidence } : {}),
           ...(topicObject.lifecycle ? { lifecycle: topicObject.lifecycle } : {}),
           dataGroup: topicObject.dataGroup ?? "",
+          ...(topicObject.virtualGroup ? { virtualGroup: topicObject.virtualGroup } : {}),
           asset: topicObject.asset,
           assetDescription: topicObject.assetDescription,
           objectType: topicObject.objectType,

@@ -318,6 +318,8 @@ export interface IMqttPublishRequest {
   objectType: UnsObjectType;
   objectTypeDescription?: string;
   objectId: UnsObjectId;
+  /** Optional controller/UI grouping hint for ObjectId nodes; does not affect storage/table naming. */
+  virtualGroup?: string;
   attributes: IMqttAttributeEntry | IMqttAttributeEntry[];
 }
 
@@ -379,6 +381,8 @@ export interface ITopicObject {
   description:string;
   /** Storage/routing group observed on the latest data/table payload for this identity. */
   dataGroup:string;
+  /** Optional controller/UI grouping hint for ObjectId nodes; does not affect storage/table naming. */
+  virtualGroup?: string;
   tags:string[] | null;
   attributeNeedsPersistence: boolean | null;
   /** Scalar value shape for schema/catalog consumers, for example "number" or "string". */

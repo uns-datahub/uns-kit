@@ -47,6 +47,7 @@ type InternalMqttMessage = {
   objectType: UnsObjectType;
   objectTypeDescription?: string;
   objectId: UnsObjectId;
+  virtualGroup?: string;
   description?: string;
   tags?: UnsTags[];
   attributeNeedsPersistence?: boolean | null;
@@ -336,7 +337,7 @@ export default class UnsMqttProxy extends UnsProxy {
     const attrs = Array.isArray(mqttMessage.attributes)
       ? mqttMessage.attributes
       : [mqttMessage.attributes];
-    const { topic, asset, assetDescription, objectType, objectTypeDescription, objectId } = mqttMessage;
+    const { topic, asset, assetDescription, objectType, objectTypeDescription, objectId, virtualGroup } = mqttMessage;
     for (const attrEntry of attrs) {
       const attrDescription = attrEntry.description ?? getAttributeDescription(attrEntry.attribute);
       const message: IUnsMessage =
@@ -355,6 +356,7 @@ export default class UnsMqttProxy extends UnsProxy {
         objectType,
         objectTypeDescription,
         objectId,
+        virtualGroup,
         attribute: attrEntry.attribute,
         description: attrDescription,
         tags: attrEntry.tags,
@@ -516,6 +518,7 @@ export default class UnsMqttProxy extends UnsProxy {
         relationshipEvidence: msg.relationshipEvidence,
         lifecycle: msg.lifecycle,
         dataGroup,
+        virtualGroup: msg.virtualGroup,
         asset,
         assetDescription: msg.assetDescription,
         objectType,
