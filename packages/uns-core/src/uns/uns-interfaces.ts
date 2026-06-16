@@ -212,6 +212,7 @@ export interface IUnsExtendedData extends IUnsData {
 export interface IUnsData {
   time: ISO8601;
   value: ValueType;
+  /** Storage/routing group for consumers such as archivers; not part of the UNS identity path. */
   dataGroup?: string;
   uom?: MeasurementUnit;
   foreignEventKey?: string;
@@ -234,6 +235,7 @@ export interface IUnsTableColumn {
 
 export interface IUnsTable {
   time: ISO8601;
+  /** Storage/routing group for consumers such as archivers; not part of the UNS identity path. */
   dataGroup?: string;
   columns: IUnsTableColumn[];
   intervalStart?: ISO8601 | number;
@@ -375,6 +377,7 @@ export interface ITopicObject {
   attributeType: UnsAttributeType;
   topic:string;
   description:string;
+  /** Storage/routing group observed on the latest data/table payload for this identity. */
   dataGroup:string;
   tags:string[] | null;
   attributeNeedsPersistence: boolean | null;

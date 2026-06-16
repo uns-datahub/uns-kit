@@ -168,6 +168,12 @@ await proxy.publish_mqtt_message({
 })
 ```
 
+`dataGroup` is a storage/routing hint for consumers such as archivers. It is not
+part of the UNS identity path and is not the same as `objectType`. For example,
+an archiver may persist a `table` packet with `dataGroup: "metering"` into a
+separate physical table family while the UNS path still comes from
+`topic/asset/objectType/objectId/attribute`.
+
 ### Datahub client (last value + history)
 
 `UnsClient` provides a minimal REST client for the UNS Datahub API, including batch last-value, single-topic catch-all history, and batch range endpoints. For service-to-service access, prefer passing a long-lived service token directly. Use `AuthClient` only when you need user-style login/refresh from `config.json`.

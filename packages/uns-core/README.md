@@ -212,6 +212,12 @@ await proxy.publishMqttMessage({
 });
 ```
 
+`dataGroup` is a storage/routing hint for consumers such as archivers. It is not
+part of the UNS identity path and is not the same as `objectType`. For example,
+an archiver may persist a `table` packet with `dataGroup: "metering"` into a
+separate physical table family while the UNS path still comes from
+`topic/asset/objectType/objectId/attribute`.
+
 ## Sync UNS schema from the controller
 
 `sync-uns-schema` fetches the canonical UNS dictionary and measurements from the controller REST API and refreshes local JSON files and generated TypeScript artifacts.

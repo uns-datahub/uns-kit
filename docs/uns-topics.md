@@ -85,9 +85,95 @@ Fields:
   metadata for relationship materialization and lifecycle semantics
 - `tableColumns` - optional field-level metadata for table columns that should
   behave as chartable series
-- `dataGroup`
+- `dataGroup` - optional storage/routing group copied from the latest `data` or
+  `table` payload for this UNS identity
 
 This list is built as your process publishes messages and is refreshed periodically.
+
+### UNS identity, virtual grouping, and `dataGroup`
+
+UNS identity and storage grouping are separate concepts.
+
+The canonical UNS identity path is built from:
+
+```
+<topic>/<asset>/<objectType>/<objectId>/<attribute>
+```
+
+`objectType` and `objectId` describe the semantic object being measured or
+reported. They are part of the UNS path and schema model. Changing `objectType`
+does not, by itself, request a new physical history table from an archiver.
+
+`dataGroup` is different. It is carried inside a `data` or `table` payload and is
+mirrored into the produced-topics registry. It is not a path segment. Consumers
+may use it as a storage/routing hint. The UNS archiver currently uses it when it
+builds physical QuestDB table names:
+
+```
+<tablePrefix>_<dataGroup>_data
+<tablePrefix>_<dataGroup>_table
+```
+
+If `dataGroup` is empty or omitted, the archiver writes to:
+
+```
+<tablePrefix>_data
+<tablePrefix>_table
+```
+
+For example, with an archiver `tablePrefix` of `uns_automations`, a table packet
+with `dataGroup: "capture"` is persisted to `uns_automations_capture_table`.
+The UNS identity might still be `automations/pritiski/capture/a/records`; the
+`capture` path segment there is the `objectType`, while the `capture` in the
+QuestDB table name comes from `dataGroup`.
+
+Capture-style output example:
+
+```json
+{
+  "topic": "automations/",
+  "asset": "pritiski",
+  "objectType": "capture",
+  "objectId": "a",
+  "attributes": {
+    "attribute": "records",
+    "description": "Capture output rows.",
+    "table": {
+      "time": "2026-06-16T08:00:00.000Z",
+      "dataGroup": "capture",
+      "columns": [
+        { "name": "p", "type": "double", "value": -5.8, "uom": "Pa" },
+        { "name": "t", "type": "double", "value": 884.3, "uom": "degC" }
+      ]
+    }
+  }
+}
+```
+
+This publishes the UNS identity `automations/pritiski/capture/a/records`. With
+`tablePrefix: "uns_automations"`, the archiver writes it to
+`uns_automations_capture_table`. If the same packet used
+`dataGroup: "capture_fast"`, the UNS identity would stay the same, but the
+physical QuestDB table would become `uns_automations_capture_fast_table`.
+
+Treat UI virtual grouping as presentation/discovery metadata, not as a request
+for a new physical table. If a producer needs a separate QuestDB storage family,
+set `dataGroup` explicitly in the packet. If a UI only needs to group object IDs
+visually, use a display/grouping concept rather than overloading `dataGroup`,
+because `dataGroup` has storage consequences for archiver consumers.
+
+Recommended usage:
+
+- Use `objectType` for semantics, for example `equipment`, `material`,
+  `capture`, or `trigger`.
+- Use `dataGroup` only when data should be routed or persisted as a separate
+  storage family, or when a consumer has an explicit policy for that group.
+- Keep storage group names stable and machine-safe. Prefer lowercase
+  alphanumeric names with `_` when the group is expected to become part of a
+  database table name.
+- For capture-like services, model the output identity and storage group as two
+  separate settings. It is valid for both to be named `capture`, but they should
+  not be treated as the same field.
 
 ## API endpoints registry (@uns-kit/api)
 
