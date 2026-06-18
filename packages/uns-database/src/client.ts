@@ -18,9 +18,11 @@ class DatabaseClientImpl implements DatabaseClient {
   readonly dialect;
   readonly name?;
   readonly sqlDir?;
+  private closePromise: Promise<void> | null = null;
 
   constructor(
     private readonly adapter: DatabaseAdapter,
+    private readonly onClose?: () => void,
     name?: string,
     sqlDir?: string
   ) {
@@ -62,13 +64,23 @@ class DatabaseClientImpl implements DatabaseClient {
   }
 
   async close(): Promise<void> {
-    await this.adapter.close();
+    if (!this.closePromise) {
+      this.closePromise = (async () => {
+        try {
+          await this.adapter.close();
+        } finally {
+          this.onClose?.();
+        }
+      })();
+    }
+
+    await this.closePromise;
   }
 }
 
 export async function createDatabaseClient(
   config: DatabaseConnectionConfig,
-  options: { name?: string } = {}
+  options: { name?: string; onClose?: () => void } = {}
 ): Promise<DatabaseClient> {
   const sqlDir = config.sqlDir
     ? path.resolve(process.cwd(), config.sqlDir)
@@ -80,11 +92,11 @@ export async function createDatabaseClient(
 
   switch (config.dialect) {
     case "pg":
-      return new DatabaseClientImpl(await createPgAdapter(config), options.name, sqlDir);
+      return new DatabaseClientImpl(await createPgAdapter(config), options.onClose, options.name, sqlDir);
     case "sqlite":
-      return new DatabaseClientImpl(await createSqliteAdapter(config), options.name, sqlDir);
+      return new DatabaseClientImpl(await createSqliteAdapter(config), options.onClose, options.name, sqlDir);
     case "oracle":
-      return new DatabaseClientImpl(await createOracleAdapter(config), options.name, sqlDir);
+      return new DatabaseClientImpl(await createOracleAdapter(config), options.onClose, options.name, sqlDir);
   }
 
   throw new Error(`Unsupported database dialect: ${String((config as { dialect?: string }).dialect)}`);
@@ -130,7 +142,14 @@ export class DatabaseManager {
       throw new Error(`Database connection '${name}' is not configured.`);
     }
 
-    const clientPromise = createDatabaseClient(config, { name }).catch((error) => {
+    const clientPromise = createDatabaseClient(config, {
+      name,
+      onClose: () => {
+        if (this.clients.get(name) === clientPromise) {
+          this.clients.delete(name);
+        }
+      },
+    }).catch((error) => {
       this.clients.delete(name);
       logger.error(`uns-database - Database client initialization failed: ${name}`, error);
       throw error;

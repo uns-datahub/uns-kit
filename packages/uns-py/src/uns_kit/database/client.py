@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from ..core.logger import get_logger
 from .params import compile_named_params
@@ -35,8 +35,17 @@ def _looks_like_broken_connection_error(error: Exception) -> bool:
 
 
 class _DatabaseClientImpl:
-    def __init__(self, adapter: DatabaseAdapter, *, name: str | None = None, sql_dir: str | None = None) -> None:
+    def __init__(
+        self,
+        adapter: DatabaseAdapter,
+        *,
+        on_close: Callable[[], None] | None = None,
+        name: str | None = None,
+        sql_dir: str | None = None,
+    ) -> None:
         self._adapter = adapter
+        self._on_close = on_close
+        self._closed = False
         self.dialect = adapter.dialect
         self.name = name
         self.sql_dir = sql_dir
@@ -56,7 +65,14 @@ class _DatabaseClientImpl:
         return self.execute(load_sql_file(file_path, base_dir=self.sql_dir), params)
 
     def close(self) -> None:
-        self._adapter.close()
+        if self._closed:
+            return
+        self._closed = True
+        try:
+            self._adapter.close()
+        finally:
+            if self._on_close is not None:
+                self._on_close()
 
 
 class _SqliteAdapter:
@@ -232,7 +248,12 @@ class _OracleAdapter:
         self._drop_connection()
 
 
-def create_database_client(config: DatabaseConnectionConfig, *, name: str | None = None) -> DatabaseClient:
+def create_database_client(
+    config: DatabaseConnectionConfig,
+    *,
+    name: str | None = None,
+    on_close: Callable[[], None] | None = None,
+) -> DatabaseClient:
     normalized = normalize_database_config(dict(config))
     sql_dir = str((Path.cwd() / normalized["sqlDir"]).resolve()) if normalized.get("sqlDir") else None
     logger.info(
@@ -242,11 +263,11 @@ def create_database_client(config: DatabaseConnectionConfig, *, name: str | None
     )
     dialect = normalized["dialect"]
     if dialect == "sqlite":
-        return _DatabaseClientImpl(_SqliteAdapter(normalized), name=name, sql_dir=sql_dir)
+        return _DatabaseClientImpl(_SqliteAdapter(normalized), on_close=on_close, name=name, sql_dir=sql_dir)
     if dialect == "pg":
-        return _DatabaseClientImpl(_PgAdapter(normalized), name=name, sql_dir=sql_dir)
+        return _DatabaseClientImpl(_PgAdapter(normalized), on_close=on_close, name=name, sql_dir=sql_dir)
     if dialect == "oracle":
-        return _DatabaseClientImpl(_OracleAdapter(normalized), name=name, sql_dir=sql_dir)
+        return _DatabaseClientImpl(_OracleAdapter(normalized), on_close=on_close, name=name, sql_dir=sql_dir)
     raise ValueError(f"Unsupported database dialect: {dialect}")
 
 
@@ -275,7 +296,11 @@ class DatabaseManager:
         config = self._configs.get(name)
         if config is None:
             raise ValueError(f"Database connection '{name}' is not configured.")
-        client = create_database_client(config, name=name)
+        client = create_database_client(
+            config,
+            name=name,
+            on_close=lambda: self._clients.pop(name, None),
+        )
         self._clients[name] = client
         return client
 
