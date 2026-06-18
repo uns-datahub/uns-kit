@@ -37,26 +37,30 @@ def _looks_like_broken_connection_error(error: Exception) -> bool:
 class _DatabaseClientImpl:
     def __init__(
         self,
-        adapter: DatabaseAdapter,
+        adapter_factory: Callable[[], DatabaseAdapter],
+        dialect: DatabaseDialect,
         *,
-        on_close: Callable[[], None] | None = None,
         name: str | None = None,
         sql_dir: str | None = None,
     ) -> None:
-        self._adapter = adapter
-        self._on_close = on_close
-        self._closed = False
-        self.dialect = adapter.dialect
+        self._adapter_factory = adapter_factory
+        self._adapter: DatabaseAdapter | None = None
+        self.dialect = dialect
         self.name = name
         self.sql_dir = sql_dir
 
+    def _get_adapter(self) -> DatabaseAdapter:
+        if self._adapter is None:
+            self._adapter = self._adapter_factory()
+        return self._adapter
+
     def query(self, sql_text: str, params: SqlParams | None = None) -> DatabaseQueryResult:
         statement = compile_named_params(self.dialect, sql_text, params)
-        return self._adapter.query(statement)
+        return self._get_adapter().query(statement)
 
     def execute(self, sql_text: str, params: SqlParams | None = None) -> DatabaseExecuteResult:
         statement = compile_named_params(self.dialect, sql_text, params)
-        return self._adapter.execute(statement)
+        return self._get_adapter().execute(statement)
 
     def query_file(self, file_path: str, params: SqlParams | None = None) -> DatabaseQueryResult:
         return self.query(load_sql_file(file_path, base_dir=self.sql_dir), params)
@@ -65,14 +69,11 @@ class _DatabaseClientImpl:
         return self.execute(load_sql_file(file_path, base_dir=self.sql_dir), params)
 
     def close(self) -> None:
-        if self._closed:
+        adapter = self._adapter
+        self._adapter = None
+        if adapter is None:
             return
-        self._closed = True
-        try:
-            self._adapter.close()
-        finally:
-            if self._on_close is not None:
-                self._on_close()
+        adapter.close()
 
 
 class _SqliteAdapter:
@@ -252,7 +253,6 @@ def create_database_client(
     config: DatabaseConnectionConfig,
     *,
     name: str | None = None,
-    on_close: Callable[[], None] | None = None,
 ) -> DatabaseClient:
     normalized = normalize_database_config(dict(config))
     sql_dir = str((Path.cwd() / normalized["sqlDir"]).resolve()) if normalized.get("sqlDir") else None
@@ -263,11 +263,11 @@ def create_database_client(
     )
     dialect = normalized["dialect"]
     if dialect == "sqlite":
-        return _DatabaseClientImpl(_SqliteAdapter(normalized), on_close=on_close, name=name, sql_dir=sql_dir)
+        return _DatabaseClientImpl(lambda: _SqliteAdapter(normalized), dialect, name=name, sql_dir=sql_dir)
     if dialect == "pg":
-        return _DatabaseClientImpl(_PgAdapter(normalized), on_close=on_close, name=name, sql_dir=sql_dir)
+        return _DatabaseClientImpl(lambda: _PgAdapter(normalized), dialect, name=name, sql_dir=sql_dir)
     if dialect == "oracle":
-        return _DatabaseClientImpl(_OracleAdapter(normalized), on_close=on_close, name=name, sql_dir=sql_dir)
+        return _DatabaseClientImpl(lambda: _OracleAdapter(normalized), dialect, name=name, sql_dir=sql_dir)
     raise ValueError(f"Unsupported database dialect: {dialect}")
 
 
@@ -296,23 +296,18 @@ class DatabaseManager:
         config = self._configs.get(name)
         if config is None:
             raise ValueError(f"Database connection '{name}' is not configured.")
-        client = create_database_client(
-            config,
-            name=name,
-            on_close=lambda: self._clients.pop(name, None),
-        )
+        client = create_database_client(config, name=name)
         self._clients[name] = client
         return client
 
     def close(self, name: str) -> None:
-        client = self._clients.pop(name, None)
+        client = self._clients.get(name)
         if client is not None:
             client.close()
 
     def close_all(self) -> None:
         for client in list(self._clients.values()):
             client.close()
-        self._clients.clear()
 
 
 _default_database_manager = DatabaseManager()

@@ -18,17 +18,33 @@ class DatabaseClientImpl implements DatabaseClient {
   readonly dialect;
   readonly name?;
   readonly sqlDir?;
-  private closePromise: Promise<void> | null = null;
+  private adapterPromise: Promise<DatabaseAdapter> | null = null;
 
   constructor(
-    private readonly adapter: DatabaseAdapter,
-    private readonly onClose?: () => void,
+    private readonly createAdapter: () => Promise<DatabaseAdapter>,
+    dialect: DatabaseAdapter["dialect"],
     name?: string,
     sqlDir?: string
   ) {
-    this.dialect = adapter.dialect;
+    this.dialect = dialect;
     this.name = name;
     this.sqlDir = sqlDir;
+  }
+
+  private async getAdapter(): Promise<DatabaseAdapter> {
+    if (this.adapterPromise) {
+      return this.adapterPromise;
+    }
+
+    const adapterPromise = this.createAdapter().catch((error) => {
+      if (this.adapterPromise === adapterPromise) {
+        this.adapterPromise = null;
+      }
+      throw error;
+    });
+
+    this.adapterPromise = adapterPromise;
+    return adapterPromise;
   }
 
   async query<T = Record<string, unknown>>(
@@ -36,7 +52,7 @@ class DatabaseClientImpl implements DatabaseClient {
     params: SqlParams = {}
   ): Promise<DatabaseQueryResult<T>> {
     const statement = compileNamedParams(this.dialect, sqlText, params);
-    return this.adapter.query<T>(statement);
+    return (await this.getAdapter()).query<T>(statement);
   }
 
   async execute(
@@ -44,7 +60,7 @@ class DatabaseClientImpl implements DatabaseClient {
     params: SqlParams = {}
   ): Promise<DatabaseExecuteResult> {
     const statement = compileNamedParams(this.dialect, sqlText, params);
-    return this.adapter.execute(statement);
+    return (await this.getAdapter()).execute(statement);
   }
 
   async queryFile<T = Record<string, unknown>>(
@@ -64,23 +80,20 @@ class DatabaseClientImpl implements DatabaseClient {
   }
 
   async close(): Promise<void> {
-    if (!this.closePromise) {
-      this.closePromise = (async () => {
-        try {
-          await this.adapter.close();
-        } finally {
-          this.onClose?.();
-        }
-      })();
+    const adapterPromise = this.adapterPromise;
+    this.adapterPromise = null;
+
+    if (!adapterPromise) {
+      return;
     }
 
-    await this.closePromise;
+    await (await adapterPromise).close();
   }
 }
 
 export async function createDatabaseClient(
   config: DatabaseConnectionConfig,
-  options: { name?: string; onClose?: () => void } = {}
+  options: { name?: string } = {}
 ): Promise<DatabaseClient> {
   const sqlDir = config.sqlDir
     ? path.resolve(process.cwd(), config.sqlDir)
@@ -92,11 +105,11 @@ export async function createDatabaseClient(
 
   switch (config.dialect) {
     case "pg":
-      return new DatabaseClientImpl(await createPgAdapter(config), options.onClose, options.name, sqlDir);
+      return new DatabaseClientImpl(() => createPgAdapter(config), config.dialect, options.name, sqlDir);
     case "sqlite":
-      return new DatabaseClientImpl(await createSqliteAdapter(config), options.onClose, options.name, sqlDir);
+      return new DatabaseClientImpl(() => createSqliteAdapter(config), config.dialect, options.name, sqlDir);
     case "oracle":
-      return new DatabaseClientImpl(await createOracleAdapter(config), options.onClose, options.name, sqlDir);
+      return new DatabaseClientImpl(() => createOracleAdapter(config), config.dialect, options.name, sqlDir);
   }
 
   throw new Error(`Unsupported database dialect: ${String((config as { dialect?: string }).dialect)}`);
@@ -111,7 +124,11 @@ export class DatabaseManager {
     const hadExistingClient = this.clients.has(name);
 
     this.configs.set(name, config);
-    this.clients.delete(name);
+    const existingClient = this.clients.get(name);
+    if (existingClient) {
+      void existingClient.then((client) => client.close());
+      this.clients.delete(name);
+    }
 
     logger.info(
       hadExistingConfig
@@ -142,14 +159,7 @@ export class DatabaseManager {
       throw new Error(`Database connection '${name}' is not configured.`);
     }
 
-    const clientPromise = createDatabaseClient(config, {
-      name,
-      onClose: () => {
-        if (this.clients.get(name) === clientPromise) {
-          this.clients.delete(name);
-        }
-      },
-    }).catch((error) => {
+    const clientPromise = createDatabaseClient(config, { name }).catch((error) => {
       this.clients.delete(name);
       logger.error(`uns-database - Database client initialization failed: ${name}`, error);
       throw error;
@@ -166,17 +176,15 @@ export class DatabaseManager {
       return;
     }
 
-    this.clients.delete(name);
     await (await client).close();
-    logger.info(`uns-database - Closed database client: ${name}`);
+    logger.info(`uns-database - Disconnected database client: ${name}`);
   }
 
   async closeAll(): Promise<void> {
     const pendingClients = Array.from(this.clients.values());
     const count = pendingClients.length;
-    this.clients.clear();
     await Promise.all(pendingClients.map(async client => (await client).close()));
-    logger.info(`uns-database - Closed all database clients (${count})`);
+    logger.info(`uns-database - Disconnected all database clients (${count})`);
   }
 }
 
