@@ -13,6 +13,27 @@ from .types import DatabaseAdapter, DatabaseClient, DatabaseDialect, DatabaseExe
 logger = get_logger(__name__)
 
 
+def _looks_like_broken_connection_error(error: Exception) -> bool:
+    message = str(error).lower()
+    return any(
+        needle in message
+        for needle in (
+            "connection closed",
+            "connection is closed",
+            "connection not open",
+            "connection has been closed",
+            "not connected",
+            "server closed the connection unexpectedly",
+            "terminating connection",
+            "closed the connection",
+            "dpi-1080",
+            "dpi-1010",
+            "dpy-1001",
+            "dpY-4011".lower(),
+        )
+    )
+
+
 class _DatabaseClientImpl:
     def __init__(self, adapter: DatabaseAdapter, *, name: str | None = None, sql_dir: str | None = None) -> None:
         self._adapter = adapter
@@ -83,30 +104,61 @@ class _PgAdapter:
                 f"Original import error: {exc}"
             ) from exc
         self._psycopg = psycopg
-        connection_kwargs = {
+        self._connection_kwargs = {
             "host": config["host"],
             "port": config.get("port", 5432),
             "dbname": config["database"],
             "user": config["user"],
             "password": config.get("password"),
         }
-        self._connection = psycopg.connect(**connection_kwargs)
+        self._connection = None
+
+    def _get_connection(self):
+        if self._connection is None or getattr(self._connection, "closed", False):
+            self._connection = self._psycopg.connect(**self._connection_kwargs)
+        return self._connection
+
+    def _drop_connection(self) -> None:
+        connection = self._connection
+        self._connection = None
+        if connection is None:
+            return
+        try:
+            connection.close()
+        except Exception:
+            pass
+
+    def _run_with_connection(self, operation):
+        connection = self._get_connection()
+        try:
+            return operation(connection)
+        except Exception as error:
+            if not _looks_like_broken_connection_error(error):
+                raise
+            self._drop_connection()
+            return operation(self._get_connection())
 
     def query(self, statement) -> DatabaseQueryResult:
-        with self._connection.cursor() as cursor:
-            cursor.execute(statement.text, statement.values)
-            columns = [description.name for description in (cursor.description or [])]
-            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
-            return DatabaseQueryResult(rows=rows, row_count=len(rows))
+        def operation(connection) -> DatabaseQueryResult:
+            with connection.cursor() as cursor:
+                cursor.execute(statement.text, statement.values)
+                columns = [description.name for description in (cursor.description or [])]
+                rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                return DatabaseQueryResult(rows=rows, row_count=len(rows))
+
+        return self._run_with_connection(operation)
 
     def execute(self, statement) -> DatabaseExecuteResult:
-        with self._connection.cursor() as cursor:
-            cursor.execute(statement.text, statement.values)
-            self._connection.commit()
-            return DatabaseExecuteResult(row_count=cursor.rowcount if cursor.rowcount != -1 else 0)
+        def operation(connection) -> DatabaseExecuteResult:
+            with connection.cursor() as cursor:
+                cursor.execute(statement.text, statement.values)
+                connection.commit()
+                return DatabaseExecuteResult(row_count=cursor.rowcount if cursor.rowcount != -1 else 0)
+
+        return self._run_with_connection(operation)
 
     def close(self) -> None:
-        self._connection.close()
+        self._drop_connection()
 
 
 class _OracleAdapter:
@@ -125,27 +177,59 @@ class _OracleAdapter:
             service_name = config.get("serviceName")
             sid = config.get("sid")
             connect_string = f"{host}:{port}/{service_name or sid}"
-        self._connection = oracledb.connect(
-            user=config["user"],
-            password=config.get("password"),
-            dsn=connect_string,
-        )
+        self._connection_kwargs = {
+            "user": config["user"],
+            "password": config.get("password"),
+            "dsn": connect_string,
+        }
+        self._connection = None
+
+    def _get_connection(self):
+        if self._connection is None:
+            self._connection = self._oracledb.connect(**self._connection_kwargs)
+        return self._connection
+
+    def _drop_connection(self) -> None:
+        connection = self._connection
+        self._connection = None
+        if connection is None:
+            return
+        try:
+            connection.close()
+        except Exception:
+            pass
+
+    def _run_with_connection(self, operation):
+        connection = self._get_connection()
+        try:
+            return operation(connection)
+        except Exception as error:
+            if not _looks_like_broken_connection_error(error):
+                raise
+            self._drop_connection()
+            return operation(self._get_connection())
 
     def query(self, statement) -> DatabaseQueryResult:
-        with self._connection.cursor() as cursor:
-            cursor.execute(statement.text, statement.values)
-            columns = [column[0] for column in (cursor.description or [])]
-            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
-            return DatabaseQueryResult(rows=rows, row_count=len(rows))
+        def operation(connection) -> DatabaseQueryResult:
+            with connection.cursor() as cursor:
+                cursor.execute(statement.text, statement.values)
+                columns = [column[0] for column in (cursor.description or [])]
+                rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                return DatabaseQueryResult(rows=rows, row_count=len(rows))
+
+        return self._run_with_connection(operation)
 
     def execute(self, statement) -> DatabaseExecuteResult:
-        with self._connection.cursor() as cursor:
-            cursor.execute(statement.text, statement.values)
-            self._connection.commit()
-            return DatabaseExecuteResult(row_count=cursor.rowcount if cursor.rowcount != -1 else 0)
+        def operation(connection) -> DatabaseExecuteResult:
+            with connection.cursor() as cursor:
+                cursor.execute(statement.text, statement.values)
+                connection.commit()
+                return DatabaseExecuteResult(row_count=cursor.rowcount if cursor.rowcount != -1 else 0)
+
+        return self._run_with_connection(operation)
 
     def close(self) -> None:
-        self._connection.close()
+        self._drop_connection()
 
 
 def create_database_client(config: DatabaseConnectionConfig, *, name: str | None = None) -> DatabaseClient:
