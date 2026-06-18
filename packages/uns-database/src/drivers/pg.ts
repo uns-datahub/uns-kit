@@ -1,3 +1,4 @@
+import logger from "@uns-kit/core/logger.js";
 import type { DatabaseAdapter, DatabaseQueryResult } from "../types.js";
 import type { CompiledSqlStatement } from "../types.js";
 import type { PostgresDatabaseConfig } from "../schema.js";
@@ -8,6 +9,7 @@ type PgPool = {
     rowCount?: number | null;
   }>;
   end(): Promise<void>;
+  on(event: "error", listener: (error: Error) => void): void;
 };
 
 type PgClient = {
@@ -17,6 +19,7 @@ type PgClient = {
     rowCount?: number | null;
   }>;
   end(): Promise<void>;
+  on(event: "error" | "end", listener: (error?: Error) => void): void;
 };
 
 function buildPgSsl(config: PostgresDatabaseConfig): unknown {
@@ -71,6 +74,9 @@ export async function createPgAdapter(config: PostgresDatabaseConfig): Promise<D
 
   if (config.usePool !== false) {
     const pool = new pgModule.Pool(connectionOptions);
+    pool.on("error", (error) => {
+      logger.error("uns-database - PostgreSQL pool idle client error", error);
+    });
 
     return {
       dialect: "pg",
@@ -93,26 +99,100 @@ export async function createPgAdapter(config: PostgresDatabaseConfig): Promise<D
     };
   }
 
-  const client = new pgModule.Client(connectionOptions);
-  await client.connect();
+  let client: PgClient | null = null;
+  let clientPromise: Promise<PgClient> | null = null;
+
+  const detachCachedClient = (activeClient: PgClient) => {
+    if (client !== activeClient) {
+      return false;
+    }
+
+    client = null;
+    return true;
+  };
+
+  const handleClientConnectionError = (activeClient: PgClient, error: unknown) => {
+    if (!detachCachedClient(activeClient)) {
+      return;
+    }
+
+    logger.error("uns-database - PostgreSQL client connection error", error);
+    void activeClient.end().catch((): undefined => undefined);
+  };
+
+  const handleClientConnectionEnd = (activeClient: PgClient) => {
+    if (!detachCachedClient(activeClient)) {
+      return;
+    }
+
+    logger.warn("uns-database - PostgreSQL client connection ended");
+  };
+
+  const attachClientListeners = (activeClient: PgClient) => {
+    activeClient.on("error", (error) => {
+      handleClientConnectionError(activeClient, error);
+    });
+    activeClient.on("end", () => {
+      handleClientConnectionEnd(activeClient);
+    });
+  };
+
+  const getClient = async () => {
+    if (client) {
+      return client;
+    }
+
+    if (!clientPromise) {
+      clientPromise = (async () => {
+        const nextClient = new pgModule.Client(connectionOptions);
+        attachClientListeners(nextClient);
+        await nextClient.connect();
+        client = nextClient;
+        return nextClient;
+      })().finally(() => {
+        clientPromise = null;
+      });
+    }
+
+    return clientPromise;
+  };
 
   return {
     dialect: "pg",
     async query<T = Record<string, unknown>>(statement: CompiledSqlStatement): Promise<DatabaseQueryResult<T>> {
-      const result = await client.query<T>(statement.text, statement.values as unknown[]);
+      const activeClient = await getClient();
+      const result = await activeClient.query<T>(statement.text, statement.values as unknown[]);
       return {
         rows: result.rows,
         rowCount: result.rowCount ?? result.rows.length,
       };
     },
     async execute(statement: CompiledSqlStatement) {
-      const result = await client.query(statement.text, statement.values as unknown[]);
+      const activeClient = await getClient();
+      const result = await activeClient.query(statement.text, statement.values as unknown[]);
       return {
         rowCount: result.rowCount ?? 0,
       };
     },
-    close() {
-      return client.end();
+    async close() {
+      const activeClient = client;
+      const pendingClientPromise = clientPromise;
+      client = null;
+      clientPromise = null;
+
+      if (activeClient) {
+        await activeClient.end();
+        return;
+      }
+
+      if (!pendingClientPromise) {
+        return;
+      }
+
+      const pendingClient = await pendingClientPromise.catch((): null => null);
+      if (pendingClient) {
+        await pendingClient.end();
+      }
     },
   };
 }
