@@ -102,6 +102,31 @@ The canonical UNS identity path is built from:
 <topic>/<asset>/<objectType>/<objectId>/<attribute>
 ```
 
+For sub-assets, keep the same five-part identity contract. Put the complete
+parent asset path in `topic`, and put only the leaf asset in `asset`:
+
+```json
+{
+  "topic": "sij/acroni/jek/pp/",
+  "asset": "furnace-1",
+  "objectType": "material",
+  "objectId": "main",
+  "attributes": {
+    "attribute": "daily-production",
+    "data": {
+      "time": "2026-06-19T10:00:00.000Z",
+      "value": 42,
+      "uom": "t"
+    }
+  }
+}
+```
+
+This publishes
+`sij/acroni/jek/pp/furnace-1/material/main/daily-production`. Downstream
+QuestDB tables still store the existing scalar identity columns; `topic` becomes
+`sij/acroni/jek/pp`, while `asset` remains `furnace-1`.
+
 `objectType` and `objectId` describe the semantic object being measured or
 reported. They are part of the UNS path and schema model. Changing `objectType`
 does not, by itself, request a new physical history table from an archiver.
@@ -174,6 +199,8 @@ Recommended usage:
 
 - Use `objectType` for semantics, for example `equipment`, `material`,
   `capture`, or `trigger`.
+- Use parent asset paths in `topic` for sub-assets; do not add arrays or encode
+  sub-asset hierarchy into `dataGroup`.
 - Use `dataGroup` only when data should be routed or persisted as a separate
   storage family, or when a consumer has an explicit policy for that group.
 - Use `virtualGroup` when the controller/tree should group ObjectIds under a
