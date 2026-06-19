@@ -124,6 +124,34 @@ const batchHistory = await client.history([
 console.log(batchHistory?.byTopic);
 ```
 
+## Sub-Asset Publishing
+
+Sub-assets use the same publish fields as normal assets. Set `topic` to the full
+parent asset path and set `asset` to the leaf sub-asset:
+
+```ts
+await proxy.publishMqttMessage({
+  topic: "sij/acroni/jek/pp/",
+  asset: "furnace-1",
+  objectType: "material",
+  objectId: "main",
+  attributes: {
+    attribute: "daily-production",
+    data: {
+      time: new Date().toISOString(),
+      value: 42,
+      uom: "t",
+    },
+  },
+});
+```
+
+This publishes
+`sij/acroni/jek/pp/furnace-1/material/main/daily-production`. Consumers that
+persist the existing QuestDB identity columns should store
+`topic = "sij/acroni/jek/pp"` and `asset = "furnace-1"`. Do not use `dataGroup`
+for sub-asset hierarchy; it is storage/routing metadata.
+
 ## Validity / Liveliness
 
 UNS attributes can declare how the controller decides whether they are live or stale; in most apps this is primarily used to drive UI liveliness/activity indicators. In app-level modeling we use two modes only:
