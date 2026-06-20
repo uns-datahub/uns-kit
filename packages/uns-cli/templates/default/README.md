@@ -55,6 +55,19 @@ shows how a producer publishes:
 These fields are retained in the produced-topics registry and stored by the
 UNS Datahub controller in `attribute_schema.schema_json`.
 
+## Sub-Asset Publishing
+
+The template includes `src/examples/subasset-example.ts`, which shows the V1
+sub-asset convention:
+
+- put the full parent asset path in `topic`
+- put only the leaf sub-asset name in `asset`
+
+For example, `topic: "enterprise/site/area/line-1/"` and `asset: "pump-1"`
+publish `enterprise/site/area/line-1/pump-1/equipment/main/temperature`.
+Downstream QuestDB storage keeps the existing columns: `topic` is the parent
+asset path and `asset` is the leaf sub-asset.
+
 ## Datahub client (last value)
 
 `UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. Prefer a long-lived service token if available; you can pass it directly and skip username/password auth.
