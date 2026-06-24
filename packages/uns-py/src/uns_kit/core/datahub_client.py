@@ -201,44 +201,42 @@ class UnsClient:
         else:
             self.base_url = stripped_base_url
             self.api_url = f"{stripped_base_url}{self.api_base_path}"
-        self.access_token = token
+        self.manual_access_token = token
         self.timeout = timeout
         self.auth_client = auth_client
         self._opener = urllib.request.build_opener()
 
     def set_token(self, token: Optional[str]) -> None:
-        self.access_token = token
+        self.manual_access_token = token
 
-    def ensure_token(self) -> None:
-        if self.access_token:
-            return
+    def ensure_token(self) -> Optional[str]:
+        if self.manual_access_token:
+            return self.manual_access_token
         try:
             if self.auth_client is None:
                 self.auth_client = AuthClient.create()
-            self.access_token = self.auth_client.get_access_token()
+            return self.auth_client.get_access_token()
 
         except Exception as exc:
             raise RuntimeError("No access token available, please login again.") from exc
 
     def get(self, endpoint: str, params: Optional[dict[str, Any]] = None, *, base_url: Optional[str] = None, authorize: bool = True) -> RawResponse:
-        if authorize:
-            self.ensure_token()
+        token = self.ensure_token() if authorize else None
         query = urllib.parse.urlencode(params or {})
         suffix = f"?{query}" if query else ""
         return self._request(
             "GET",
             f"{self._build_url(endpoint, base_url=base_url)}{suffix}",
-            token=self.access_token if authorize else None,
+            token=token,
         )
 
     def post(self, endpoint: str, data: Optional[dict[str, Any]] = None, *, base_url: Optional[str] = None, authorize: bool = True) -> dict[str, Any]:
-        if authorize:
-            self.ensure_token()
+        token = self.ensure_token() if authorize else None
         return self._request_json(
             "POST",
             self._build_url(endpoint, base_url=base_url),
             body=data or {},
-            token=self.access_token if authorize else None,
+            token=token,
         )
 
     def get_data(
@@ -259,8 +257,7 @@ class UnsClient:
             raise ValueError("Maximum 500 topics per request.")
         effective_token = token
         if effective_token is None:
-            self.ensure_token()
-            effective_token = self.access_token
+            effective_token = self.ensure_token()
         try:
             payload = self._request_json(
                 "POST",
@@ -291,8 +288,7 @@ class UnsClient:
     ) -> Optional[RangeResult]:
         effective_token = token
         if effective_token is None:
-            self.ensure_token()
-            effective_token = self.access_token
+            effective_token = self.ensure_token()
         encoded_topic_path = urllib.parse.quote(topic_path, safe="")
         url = f"{self._build_url(f'catchall/{encoded_topic_path}')}{self._build_query_suffix(self._normalize_range_query(query))}"
         try:
@@ -317,8 +313,7 @@ class UnsClient:
             raise ValueError("Maximum 500 topics per request.")
         effective_token = token
         if effective_token is None:
-            self.ensure_token()
-            effective_token = self.access_token
+            effective_token = self.ensure_token()
         try:
             payload = self._request_json(
                 "POST",

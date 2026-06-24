@@ -106,7 +106,7 @@ export class AuthClient {
     const getSetCookie = typeof anyHeaders.getSetCookie === "function" ? anyHeaders.getSetCookie.bind(anyHeaders) : null;
     const candidates: string[] = getSetCookie ? getSetCookie() : (resp.headers.get("set-cookie") ? [resp.headers.get("set-cookie") as string] : []);
     for (const header of candidates) {
-      const match = header.match(/(?:^|;\s*)RefreshToken=([^;]+)/i);
+      const match = header.match(/(?:^|;\s*)(?:RefreshToken|rt)=([^;]+)/i);
       if (match) return match[1];
     }
     return null;
@@ -133,21 +133,26 @@ export class AuthClient {
 
   private async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string; }> {
     const url = AuthClient.endpoint(this.restBase, "auth/refresh");
-    const resp = await AuthClient.fetchWithTimeout(url, {
-      method: "POST",
-      headers: {
-        // server expects cookie RefreshToken
-        "Cookie": `RefreshToken=${refreshToken}`,
-      },
-    }, 8_000);
+    let lastError: Error | undefined;
+    for (const cookieName of ["RefreshToken", "rt"]) {
+      const resp = await AuthClient.fetchWithTimeout(url, {
+        method: "POST",
+        headers: {
+          "Cookie": `${cookieName}=${refreshToken}`,
+        },
+      }, 8_000);
 
-    if (!resp.ok) {
-      throw new Error(`Refresh failed: ${resp.status} ${resp.statusText}`);
+      if (!resp.ok) {
+        lastError = new Error(`Refresh failed: ${resp.status} ${resp.statusText}`);
+        continue;
+      }
+      const data = (await resp.json()) as LoginResponse;
+      const newRefreshToken = AuthClient.extractRefreshCookie(resp) || refreshToken;
+      if (!data?.accessToken) throw new Error("Refresh response missing accessToken");
+      return { accessToken: data.accessToken, refreshToken: newRefreshToken };
     }
-    const data = (await resp.json()) as LoginResponse;
-    const newRefreshToken = AuthClient.extractRefreshCookie(resp) || refreshToken;
-    if (!data?.accessToken) throw new Error("Refresh response missing accessToken");
-    return { accessToken: data.accessToken, refreshToken: newRefreshToken };
+
+    throw lastError ?? new Error("Refresh failed.");
   }
 
   private async persistTokens(accessToken: string, refreshToken: string): Promise<void> {

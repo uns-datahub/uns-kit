@@ -98,19 +98,28 @@ class AuthClient:
     def refresh_access_token(self) -> str:
         if not self.refresh_token:
             raise RuntimeError("No refresh token available")
-        response = self._request_json(
-            "POST",
-            self._endpoint("auth/refresh"),
-            headers={"Cookie": f"RefreshToken={self.refresh_token}"},
-        )
-        access_token = response.get("accessToken")
-        if not isinstance(access_token, str):
-            raise RuntimeError("Refresh response missing accessToken")
-        self.access_token = access_token
-        self.refresh_token = self._read_refresh_token_cookie() or self.refresh_token
-        if self.refresh_token:
-            self._persist_tokens(self.access_token, self.refresh_token)
-        return access_token
+        last_error: Optional[Exception] = None
+        for cookie_name in ("RefreshToken", "rt"):
+            try:
+                response = self._request_json(
+                    "POST",
+                    self._endpoint("auth/refresh"),
+                    headers={"Cookie": f"{cookie_name}={self.refresh_token}"},
+                )
+            except Exception as exc:
+                last_error = exc
+                continue
+
+            access_token = response.get("accessToken")
+            if not isinstance(access_token, str):
+                raise RuntimeError("Refresh response missing accessToken")
+            self.access_token = access_token
+            self.refresh_token = self._read_refresh_token_cookie() or self.refresh_token
+            if self.refresh_token:
+                self._persist_tokens(self.access_token, self.refresh_token)
+            return access_token
+
+        raise RuntimeError("Refresh failed") from last_error
 
     def clear_tokens(self) -> None:
         self.access_token = None

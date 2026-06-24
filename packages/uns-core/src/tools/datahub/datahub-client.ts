@@ -238,7 +238,7 @@ export class UnsClient {
   private readonly apiUrl: string;
   private readonly timeoutMs: number;
   private readonly authClient?: AuthClient;
-  private accessToken?: string;
+  private manualAccessToken?: string;
 
   constructor(baseUrl: string, options: UnsClientOptions = {}) {
     const apiBasePath = UnsClient.normalizeBasePath(options.apiBasePath ?? "/api");
@@ -253,19 +253,17 @@ export class UnsClient {
     this.apiBasePath = apiBasePath;
     this.timeoutMs = options.timeoutMs ?? 10_000;
     this.authClient = options.authClient;
-    this.accessToken = options.token;
+    this.manualAccessToken = options.token;
   }
 
   setToken(token?: string): void {
-    this.accessToken = token;
+    this.manualAccessToken = token;
   }
 
   async ensureToken(): Promise<string | undefined> {
-    if (this.accessToken) return this.accessToken;
+    if (this.manualAccessToken) return this.manualAccessToken;
     if (!this.authClient) return undefined;
-    const token = await this.authClient.getAccessToken();
-    this.accessToken = token;
-    return token;
+    return this.authClient.getAccessToken();
   }
 
   async get(endpoint: string, params?: Record<string, string | number | boolean>, options: RequestOptions = {}): Promise<Response> {
