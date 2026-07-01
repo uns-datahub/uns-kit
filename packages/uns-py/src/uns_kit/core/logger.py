@@ -43,6 +43,7 @@ _logger_config: dict[str, Any] = {
     "graylog_host": _DEFAULT_GRAYLOG_HOST,
     "graylog_port": _DEFAULT_GRAYLOG_PORT,
 }
+_managed_handlers: list[logging.Handler] = []
 
 
 class JsonFormatter(logging.Formatter):
@@ -82,13 +83,25 @@ class GraylogContextFilter(logging.Filter):
         return True
 
 
+def _clear_managed_handlers(logger: logging.Logger) -> None:
+    while _managed_handlers:
+        handler = _managed_handlers.pop()
+        logger.removeHandler(handler)
+        handler.close()
+
+
+def _register_managed_handler(logger: logging.Logger, handler: logging.Handler) -> None:
+    logger.addHandler(handler)
+    _managed_handlers.append(handler)
+
+
 def configure_logger(
     *,
     settings: LoggerSettings | None = None,
     force_reconfigure: bool = False,
 ) -> logging.Logger:
     """
-    Configure the shared ``uns_kit`` logger and return it.
+    Configure shared logging handlers and return the root logger.
 
     Configure logger outputs from a single standardized ``settings`` object.
 
@@ -123,7 +136,7 @@ def configure_logger(
         log.info("started", extra={"device_id": "line-7"})
     """
 
-    logger = logging.getLogger("uns_kit")
+    logger = logging.getLogger()
     desired = dict(_logger_config)
 
     if settings is not None:
@@ -151,19 +164,18 @@ def configure_logger(
             elif graylog_settings.get("host"):
                 desired["use_graylog"] = True
 
-    should_reconfigure = force_reconfigure or not logger.handlers or desired != _logger_config
+    should_reconfigure = force_reconfigure or not _managed_handlers or desired != _logger_config
     if not should_reconfigure:
         return logger
 
-    logger.handlers.clear()
+    _clear_managed_handlers(logger)
     logger.setLevel(desired["level"])
-    logger.propagate = False
 
     if desired["console"]:
         stream_handler = logging.StreamHandler(stream=sys.stdout)
         stream_handler.setLevel(desired["level"])
         stream_handler.setFormatter(JsonFormatter())
-        logger.addHandler(stream_handler)
+        _register_managed_handler(logger, stream_handler)
 
     if desired["file_path"]:
         file_dir = os.path.dirname(desired["file_path"])
@@ -178,7 +190,7 @@ def configure_logger(
         )
         file_handler.setLevel(desired["level"])
         file_handler.setFormatter(JsonFormatter())
-        logger.addHandler(file_handler)
+        _register_managed_handler(logger, file_handler)
 
     if desired["use_graylog"]:
         if not desired["graylog_host"]:
@@ -193,7 +205,7 @@ def configure_logger(
         graylog_handler = graypy.GELFUDPHandler(desired["graylog_host"], desired["graylog_port"])
         graylog_handler.setLevel(desired["level"])
         graylog_handler.addFilter(GraylogContextFilter())
-        logger.addHandler(graylog_handler)
+        _register_managed_handler(logger, graylog_handler)
 
     _logger_config.update(desired)
     return logger
@@ -206,10 +218,10 @@ def set_log_level(level: str | int) -> logging.Logger:
 
 
 def get_logger(name: str | None = None, level: str | int | None = None) -> logging.Logger:
-    """Return the base logger or a named child logger, optionally overriding level."""
+    """Return the root logger or a named logger, optionally overriding level."""
 
-    base = configure_logger()
-    logger = base if not name else base.getChild(name)
+    configure_logger()
+    logger = logging.getLogger(name)
     if level is not None:
         logger.setLevel(level)
     return logger
