@@ -83,6 +83,7 @@ mqttInput.event.on("input", async (event) => {
         assetDescription,
         objectType: GeneratedObjectTypes["energy-resource"],
         objectId: "main",
+        virtualGroup: "metering",
         attributes: [
           {
             attribute: "measurements",
