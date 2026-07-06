@@ -246,6 +246,20 @@ an archiver may persist a `table` packet with `dataGroup: "metering"` into a
 separate physical table family while the UNS path still comes from
 `topic/asset/objectType/objectId/attribute`.
 
+## High-throughput publishing
+
+For higher publish rates, configure bounded parallel publishing instead of relying on a single in-flight broker callback:
+
+```ts
+const proxy = await proc.createUnsMqttProxy(config.infra.host!, "output", "force", true, {
+  publishThrottlingDelay: 0,
+  publishConcurrency: 16,
+  maxPendingPublishes: 5000,
+});
+```
+
+`publishMqttMessage()` resolves when a message is accepted into the local bounded publisher queue. Asynchronous broker publish failures are logged and emitted on the proxy `error` event.
+
 ## Sync UNS schema from the controller
 
 `sync-uns-schema` fetches the canonical UNS dictionary and measurements from the controller REST API and refreshes local JSON files and generated TypeScript artifacts.

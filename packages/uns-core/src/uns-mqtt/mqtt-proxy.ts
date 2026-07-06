@@ -253,8 +253,7 @@ export default class MqttProxy {
     this.updatePublishTransformationStats(JSON.stringify(message).length);
     const client = this.mqttClient;
     if (!client) {
-      logger.warn(`${this.instanceName} - MQTT client missing; dropping publish to ${topic}`);
-      return;
+      throw new Error(`${this.instanceName} - MQTT client missing; cannot publish to ${topic}`);
     }
 
     if (!client.connected) {
@@ -263,8 +262,7 @@ export default class MqttProxy {
     }
 
     if (!client.connected) {
-      logger.warn(`${this.instanceName} - MQTT client still disconnected; dropping publish to ${topic}`);
-      return;
+      throw new Error(`${this.instanceName} - MQTT client still disconnected; publish failed for ${topic}`);
     }
 
     return new Promise((resolve, reject) => {

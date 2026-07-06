@@ -113,6 +113,8 @@ export interface IUnsParameters {
   password?: string;
   mqttSSL?: boolean;
   publishThrottlingDelay?: number; // Delay in milliseconds; default is 1ms
+  publishConcurrency?: number; // Maximum concurrent outgoing publishes; default is 1
+  maxPendingPublishes?: number; // Maximum accepted queued+in-flight publishes; default is unlimited
   subscribeThrottlingDelay?: number; // Delay in milliseconds; default is 1ms
   rejectUnauthorized?: boolean;
   clientId?: string;

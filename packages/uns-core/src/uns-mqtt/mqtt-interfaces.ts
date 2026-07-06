@@ -53,6 +53,8 @@ export interface HandoverManagerEvents {
 
 export interface IMqttWorkerData {
   publishThrottlingDelay?: number; // Delay in milliseconds; default is 1ms
+  publishConcurrency?: number; // Maximum concurrent outgoing publishes; default is 1
+  maxPendingPublishes?: number; // Maximum accepted queued+in-flight publishes; default is unlimited
   subscribeThrottlingDelay?: number; // Delay in milliseconds; default is 1ms
   persistToDisk?: boolean; // Whether to persist the queue to disk; default is false
   mqttHost: string; // MQTT broker host

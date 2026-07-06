@@ -15,6 +15,8 @@ export class MqttWorker {
 
   constructor(workerData: IMqttWorkerData) {
     const publishThrottlingDelay = workerData.publishThrottlingDelay ?? 1;
+    const publishConcurrency = workerData.publishConcurrency ?? 1;
+    const maxPendingPublishes = workerData.maxPendingPublishes;
     const subscribeThrottlingDelay = workerData.subscribeThrottlingDelay ?? 1;
     const persistToDisk = workerData.persistToDisk ?? false;
     const mqttHost = workerData.mqttHost;
@@ -49,22 +51,8 @@ export class MqttWorker {
       const publishOptions = options ?? defaultPublishOptions;
       try {
         await this.mqttProxy.publish(topic, message, publishOptions);
-        parentPort?.postMessage({
-          command: "enqueueResult",
-          id,
-          status: "success",
-          topic,
-          message,
-          options: publishOptions,
-        });
       } catch (reason: any) {
         logger.error(`${instanceName} - Error publishing message to topic ${topic}: ${reason?.message ?? String(reason)}`);
-        parentPort?.postMessage({
-          command: "enqueueResult",
-          id,
-          status: "error",
-          error: reason?.message ?? String(reason),
-        });
         throw reason;
       }
     };
@@ -77,6 +65,8 @@ export class MqttWorker {
       join(basePath, "/workerQueue/", "throttled-publisher-queue.json"),
       instanceName,
       publisherActive,
+      publishConcurrency,
+      maxPendingPublishes,
     );
 
     // Define the message handler for incoming messages.
@@ -109,9 +99,37 @@ export class MqttWorker {
     parentPort?.on("message", async (msg) => {
       if (msg && msg.command === "enqueue" && msg.id && msg.topic && msg.message !== undefined) {
         try {
-          await this.publisher.enqueue(msg.topic, msg.message, msg.id, msg.options);
+          const publishPromise = this.publisher.enqueue(msg.topic, msg.message, msg.id, msg.options);
+          parentPort?.postMessage({
+            command: "enqueueAccepted",
+            id: msg.id,
+            status: "accepted",
+          });
+          void publishPromise
+            .then(() => {
+              parentPort?.postMessage({
+                command: "publishResult",
+                id: msg.id,
+                status: "success",
+                topic: msg.topic,
+              });
+            })
+            .catch((error: any) => {
+              parentPort?.postMessage({
+                command: "publishResult",
+                id: msg.id,
+                status: "error",
+                topic: msg.topic,
+                error: error?.message ?? String(error),
+              });
+            });
         } catch (error: any) {
-          // Error
+          parentPort?.postMessage({
+            command: "enqueueAccepted",
+            id: msg.id,
+            status: "error",
+            error: error?.message ?? String(error),
+          });
         }
       } else if (msg && msg.command === "subscribeAsync" && msg.topics) {
         this.mqttProxy.subscribeAsync(msg.topics);

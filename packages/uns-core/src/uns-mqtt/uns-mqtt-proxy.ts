@@ -69,6 +69,7 @@ export default class UnsMqttProxy extends UnsProxy {
   private lastValues: Map<string, { value: ValueType; uom: string; timestamp: Date }> = new Map();
   private worker: Worker;
   private pendingEnqueues: Map<string, { resolve: () => void; reject: (reason?: any) => void }> = new Map();
+  private pendingPublishCompletions = 0;
   private unsParameters: IUnsParameters;
   protected processStatusTopic: string;
   public instanceName: string;
@@ -183,6 +184,8 @@ export default class UnsMqttProxy extends UnsProxy {
   ): void {
     const workerData: IMqttWorkerData = {
       publishThrottlingDelay: this.unsParameters.publishThrottlingDelay ?? 1,
+      publishConcurrency: this.unsParameters.publishConcurrency ?? 1,
+      maxPendingPublishes: this.unsParameters.maxPendingPublishes,
       subscribeThrottlingDelay: this.unsParameters.subscribeThrottlingDelay ?? 1,
       persistToDisk: false,
       mqttHost: mqttHost,
@@ -196,15 +199,26 @@ export default class UnsMqttProxy extends UnsProxy {
     this.worker = new Worker(workerScriptPath, { workerData });
 
     this.worker.on("message", (msg) => {
-      if (msg && msg.command === "enqueueResult" && msg.id) {
+      if (msg && msg.command === "enqueueAccepted" && msg.id) {
         const pending = this.pendingEnqueues.get(msg.id);
         if (pending) {
-          if (msg.status === "success" && msg.topic && msg.message) {
+          if (msg.status === "accepted") {
             pending.resolve();
           } else {
+            if (this.pendingPublishCompletions > 0) {
+              this.pendingPublishCompletions -= 1;
+            }
             pending.reject(new Error(msg.error));
           }
           this.pendingEnqueues.delete(msg.id);
+        }
+      } else if (msg && msg.command === "publishResult" && msg.id) {
+        if (this.pendingPublishCompletions > 0) {
+          this.pendingPublishCompletions -= 1;
+        }
+        if (msg.status === "error") {
+          const errorMessage = msg.error ?? `Error publishing to topic ${msg.topic ?? "unknown"}`;
+          this.event.emit("error", { code: 0, message: errorMessage });
         }
       } else if (msg && msg.command === "input") {
         this.event.emit("input", { topic: msg.topic, message: msg.message.toString(), packet: msg.packet });
@@ -218,6 +232,7 @@ export default class UnsMqttProxy extends UnsProxy {
     this.worker.on("error", (err) => {
       logger.error("Error in worker:", err);
       const reason = err instanceof Error ? err : new Error(String(err));
+      this.pendingPublishCompletions = 0;
       for (const pending of this.pendingEnqueues.values()) {
         pending.reject(reason);
       }
@@ -228,6 +243,7 @@ export default class UnsMqttProxy extends UnsProxy {
       if (code !== 0) {
         logger.error(`Worker exited with code ${code}`);
         const reason = new Error(`MQTT worker exited with code ${code}`);
+        this.pendingPublishCompletions = 0;
         for (const pending of this.pendingEnqueues.values()) {
           pending.reject(reason);
         }
@@ -242,12 +258,13 @@ export default class UnsMqttProxy extends UnsProxy {
    * @param topic - The topic to which the message belongs.
    * @param message - The message to be enqueued.
    * @param options - Optional publish options.
-   * @returns A promise that resolves when the message is successfully enqueued.
+   * @returns A promise that resolves when the message is accepted into the worker queue.
    */
   private async enqueueMessageToWorkerQueue(topic: string, message: string, options?: IClientPublishOptions): Promise<void> {
     return new Promise((resolve, reject) => {
       // const id: string = String(this.currentSequenceId.get(topic) ?? 0);
       const id = `${Date.now()}-${Math.random()}`;
+      this.pendingPublishCompletions += 1;
       this.pendingEnqueues.set(id, { resolve, reject });
       this.worker.postMessage({ command: "enqueue", id, topic, message, options });
     });
@@ -313,7 +330,7 @@ export default class UnsMqttProxy extends UnsProxy {
   public async setSubscriberPassiveAndDrainQueue(): Promise<UnsEvents["mqttWorker"]> {
     return new Promise(async (resolve) => {
       const mqttWorkerData = await this.setSubscriberPassive();
-      while (this.pendingEnqueues.size > 0) {
+      while (this.pendingEnqueues.size > 0 || this.pendingPublishCompletions > 0) {
         await new Promise((resolve) => setTimeout(resolve, 100)); // Poll every 100ms
       }
       logger.info(`${this.instanceNameWithSuffix} - Subscriber set to passive and queue drained.`);
@@ -424,7 +441,7 @@ export default class UnsMqttProxy extends UnsProxy {
    *
    * @param topic - The MQTT topic.
    * @param message - The message to publish.
-   * @returns A promise that resolves when enqueued.
+   * @returns A promise that resolves when the message is accepted into the worker queue.
    */
   public publishMessage(topic: string, message: string, options?: IClientPublishOptions): Promise<void> {
     return this.enqueueMessageToWorkerQueue(topic, message, options);
@@ -571,6 +588,7 @@ export default class UnsMqttProxy extends UnsProxy {
       }
     } catch (error: any) {
       logger.error(`${this.instanceNameWithSuffix} - Error publishing message to topic ${msg.topic}${msg.attribute}: ${error.message}`);
+      throw error;
     }
   }
 
@@ -594,6 +612,7 @@ export default class UnsMqttProxy extends UnsProxy {
       pending.reject(new Error("UnsProxy has been stopped"));
       this.pendingEnqueues.delete(id);
     }
+    this.pendingPublishCompletions = 0;
   }
 
 }

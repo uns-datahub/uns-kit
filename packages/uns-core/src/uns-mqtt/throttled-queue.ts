@@ -14,6 +14,8 @@ abstract class ThrottledQueue<T> {
   protected queue: T[] = [];
   protected lastProcessedItems: T[] = [];
   protected isProcessing = false;
+  protected inFlight = 0;
+  protected maxConcurrency: number;
   public delay: number;
   protected persistToDisk: boolean;
   protected persistenceFilePath: string;
@@ -22,10 +24,11 @@ abstract class ThrottledQueue<T> {
   protected active: boolean = true;
   private inactiveLogSent = false;
 
-  constructor(delay: number, persistToDisk: boolean, instanceName: string) {
+  constructor(delay: number, persistToDisk: boolean, instanceName: string, maxConcurrency: number = 1) {
     this.delay = delay;
     this.persistToDisk = persistToDisk;
     this.instanceName = instanceName;
+    this.maxConcurrency = Math.max(1, maxConcurrency);
 
     if (this.persistToDisk) {
       this.loadQueueFromDisk();
@@ -37,7 +40,6 @@ abstract class ThrottledQueue<T> {
    */
   protected async processQueue(): Promise<void> {
     if (this.isProcessing) return;
-    this.isProcessing = true;
 
     if (!this.active) {
       if (!this.inactiveLogSent) {
@@ -47,45 +49,70 @@ abstract class ThrottledQueue<T> {
       this.isProcessing = false;
       return;
     }
+    this.isProcessing = true;
     // Reset the flag when processing actually starts.
     this.inactiveLogSent = false;
-  
-    while (this.queue.length > 0) {
-      // Check if the queue is active
-      if (!this.active) {
-        logger.info(`${this.instanceName} - Queue processing paused.`);
-        this.isProcessing = false;
-        return; // Exit the loop and stop processing
-      }
 
-      const item = this.queue.shift();
-      if (item) {
-        try {
-          await this.processItem(item);
-          // Only store 10 last processed items
-          if (this.lastProcessedItems.length >= 10) {
-            this.lastProcessedItems.shift();
-          }
-          // Store the last processed item
-          this.lastProcessedItems.push(item);
-        } catch (error) {
-          // Specific error handling can be done in the subclass if needed.
-          logger.error(`${this.instanceName} - Error processing item: ${(error as Error).message}`);
+    try {
+      while (this.queue.length > 0 && this.inFlight < this.maxConcurrency) {
+        // Check if the queue is active
+        if (!this.active) {
+          logger.info(`${this.instanceName} - Queue processing paused.`);
+          return; // Exit the loop and stop processing
         }
+
+        const item = this.queue.shift();
+        if (!item) {
+          continue;
+        }
+
+        this.inFlight += 1;
+        void this.processItemWithBookkeeping(item);
 
         if (this.persistToDisk) {
           this.saveQueueToDisk();
         }
 
-        if (this.delay > 0) {
+        this.logQueueSize();
+
+        if (this.delay > 0 && this.queue.length > 0 && this.inFlight < this.maxConcurrency) {
           await new Promise((resolve) => setTimeout(resolve, this.delay));
         }
-
-        this.logQueueSize();
+      }
+    } finally {
+      this.isProcessing = false;
+      if (this.active && this.queue.length > 0 && this.inFlight < this.maxConcurrency) {
+        void this.processQueue();
       }
     }
+  }
 
-    this.isProcessing = false;
+  private async processItemWithBookkeeping(item: T): Promise<void> {
+    try {
+      await this.processItem(item);
+      // Only store 10 last processed items
+      if (this.lastProcessedItems.length >= 10) {
+        this.lastProcessedItems.shift();
+      }
+      // Store the last processed item
+      this.lastProcessedItems.push(item);
+    } catch (error) {
+      // Specific error handling can be done in the subclass if needed.
+      logger.error(`${this.instanceName} - Error processing item: ${(error as Error).message}`);
+    } finally {
+      this.inFlight = Math.max(0, this.inFlight - 1);
+
+      if (this.persistToDisk) {
+        this.saveQueueToDisk();
+      }
+
+      this.logQueueSize();
+
+      // Check if the queue is active
+      if (this.active && this.queue.length > 0) {
+        void this.processQueue();
+      }
+    }
   }
 
   /**
@@ -93,17 +120,22 @@ abstract class ThrottledQueue<T> {
    */
   protected logQueueSize(): void {
     const className = `${this.constructor.name.includes("Publisher") ? "Publisher" : this.constructor.name.includes("Subscriber") ? "Subscriber" : "Unknown"}`;
+    const pendingCount = this.getPendingCount();
     if (
-      this.queue.length > 1
-      && this.queue.length > this.previousLoggedSize
-      && Math.floor(this.queue.length / 100) > Math.floor(this.previousLoggedSize / 100)
+      pendingCount > 1
+      && pendingCount > this.previousLoggedSize
+      && Math.floor(pendingCount / 100) > Math.floor(this.previousLoggedSize / 100)
     ) {
-      logger.info(`${this.instanceName} - ${className} queue size length is ${this.queue.length}.`);
-      this.previousLoggedSize = this.queue.length;
-    } else if (this.queue.length === 0 && this.previousLoggedSize > 0) {
+      logger.info(`${this.instanceName} - ${className} queue size length is ${pendingCount}.`);
+      this.previousLoggedSize = pendingCount;
+    } else if (pendingCount === 0 && this.previousLoggedSize > 0) {
       logger.info(`${this.instanceName} - ${className} queue is empty.`);
       this.previousLoggedSize = 0;
     }
+  }
+
+  protected getPendingCount(): number {
+    return this.queue.length + this.inFlight;
   }
 
   /**
@@ -172,6 +204,7 @@ interface PublisherQueueItem {
  */
 export class ThrottledPublisher extends ThrottledQueue<PublisherQueueItem> {
   private publishFunction: (topic: string, message: string, id: string, options?: IClientPublishOptions) => Promise<void>;
+  private maxPendingPublishes?: number;
 
   /**
    * @param delay Delay between messages in milliseconds.
@@ -187,11 +220,14 @@ export class ThrottledPublisher extends ThrottledQueue<PublisherQueueItem> {
     persistenceFilePath: string = join(basePath, "/publisherQueue/", "throttled-publisher-queue.json"),
     instanceName: string,
     active: boolean,
+    maxConcurrency: number = 1,
+    maxPendingPublishes?: number,
   ) {
-    super(delay, persistToDisk, instanceName);
+    super(delay, persistToDisk, instanceName, maxConcurrency);
     this.persistenceFilePath = persistenceFilePath;
     this.publishFunction = publishFunction;
     this.active = active;
+    this.maxPendingPublishes = maxPendingPublishes;
     if (active) {
       logger.info(`${this.instanceName} - Publisher is active.`);
     } else {
@@ -204,6 +240,11 @@ export class ThrottledPublisher extends ThrottledQueue<PublisherQueueItem> {
    */
   public enqueue(topic: string, message: string, id: string, options?: IClientPublishOptions): Promise<void> {
     return new Promise((resolve, reject) => {
+      if (this.maxPendingPublishes !== undefined && this.getPendingCount() >= this.maxPendingPublishes) {
+        reject(new Error(`${this.instanceName} - Publisher queue is full (${this.maxPendingPublishes}).`));
+        return;
+      }
+
       this.queue.push({ topic, message, id, options, resolve, reject });
 
       // Trigger logging after a new message is added.
