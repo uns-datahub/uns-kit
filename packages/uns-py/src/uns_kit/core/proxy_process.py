@@ -39,6 +39,8 @@ class UnsParameters:
     keepalive: Optional[int] = None
     clean: Optional[bool] = None
     reconnect_period: Optional[int] = None
+    publish_concurrency: Optional[int] = None
+    max_pending_publishes: Optional[int] = None
 
     @staticmethod
     def from_mapping(mapping: Mapping[str, Any]) -> "UnsParameters":
@@ -51,6 +53,8 @@ class UnsParameters:
             keepalive=mapping.get("keepalive"),
             clean=mapping.get("clean"),
             reconnect_period=_pick(mapping, "reconnect_period", "reconnectPeriod"),
+            publish_concurrency=_pick(mapping, "publish_concurrency", "publishConcurrency"),
+            max_pending_publishes=_pick(mapping, "max_pending_publishes", "maxPendingPublishes"),
         )
 
 
@@ -265,6 +269,8 @@ class UnsProxyProcess:
                 True if self.process_parameters.clean is None else self.process_parameters.clean
             ),
             reconnect_interval=reconnect_interval_s,
+            publish_concurrency=params.publish_concurrency if params.publish_concurrency is not None else 32,
+            max_pending_publishes=params.max_pending_publishes,
         )
         await proxy.connect()
         self._proxies.append(proxy)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -29,6 +30,12 @@ class LastValueEntry:
     timestamp: datetime
 
 
+@dataclass
+class QueuedPublish:
+    topic: str
+    payload: str | bytes
+
+
 class UnsMqttProxy(UnsProxy):
     def __init__(
         self,
@@ -47,6 +54,8 @@ class UnsMqttProxy(UnsProxy):
         clean_session: bool = True,
         reconnect_interval: float = 2.0,
         max_reconnect_interval: float = 30.0,
+        publish_concurrency: int = 32,
+        max_pending_publishes: Optional[int] = None,
     ) -> None:
         self.topic_builder = TopicBuilder(package_name, package_version, process_name)
         self.instance_status_topic = self.topic_builder.instance_status_topic(instance_name)
@@ -70,20 +79,32 @@ class UnsMqttProxy(UnsProxy):
         self._last_values: Dict[str, LastValueEntry] = {}
         self._sequence_ids: Dict[str, int] = {}
         self._delta_mode_deprecation_warned = False
+        self._publish_concurrency = max(1, publish_concurrency)
+        self._max_pending_publishes = (
+            None if max_pending_publishes is None or max_pending_publishes <= 0 else max_pending_publishes
+        )
+        if self._max_pending_publishes is None:
+            self._publish_queue: asyncio.Queue[QueuedPublish | None] = asyncio.Queue()
+        else:
+            self._publish_queue = asyncio.Queue(maxsize=self._max_pending_publishes)
+        self._publish_workers: list[asyncio.Task[None]] = []
+        self._publish_workers_started = False
 
     async def connect(self) -> None:
         await self.client.connect()
+        self._ensure_publish_workers_started()
         await self.start()
 
     async def close(self) -> None:
+        await self._stop_publish_workers()
         await self.stop()
         await self.client.close()
 
     async def publish_message(self, topic: str, payload: str | bytes) -> None:
-        await self.client.publish_raw(topic, payload)
+        await self._enqueue_publish(topic, payload)
 
     async def publish_packet(self, topic: str, packet: Dict[str, Any]) -> None:
-        await self.client.publish_packet(topic, packet)
+        await self._enqueue_publish(topic, UnsPacket.to_json(packet))
 
     async def publish_mqtt_message(self, mqtt_message: Dict[str, Any], mode: MessageMode = MessageMode.RAW) -> None:
         attrs = mqtt_message.get("attributes")
@@ -205,6 +226,41 @@ class UnsMqttProxy(UnsProxy):
     def _normalize_topic(self, topic: str) -> str:
         return topic if topic.endswith("/") else f"{topic}/"
 
+    def _ensure_publish_workers_started(self) -> None:
+        if self._publish_workers_started:
+            return
+        self._publish_workers_started = True
+        self._publish_workers = [
+            asyncio.create_task(self._publish_worker(), name=f"{self._instance_name}-publish-{index}")
+            for index in range(self._publish_concurrency)
+        ]
+
+    async def _stop_publish_workers(self) -> None:
+        if not self._publish_workers_started:
+            return
+        await self._publish_queue.join()
+        for _ in self._publish_workers:
+            await self._publish_queue.put(None)
+        await asyncio.gather(*self._publish_workers, return_exceptions=True)
+        self._publish_workers = []
+        self._publish_workers_started = False
+
+    async def _publish_worker(self) -> None:
+        while True:
+            item = await self._publish_queue.get()
+            try:
+                if item is None:
+                    return
+                await self.client.publish_raw(item.topic, item.payload)
+            except Exception:
+                logger.exception("Error publishing message to topic %s", item.topic if item else "<shutdown>")
+            finally:
+                self._publish_queue.task_done()
+
+    async def _enqueue_publish(self, topic: str, payload: str | bytes) -> None:
+        self._ensure_publish_workers_started()
+        await self._publish_queue.put(QueuedPublish(topic=topic, payload=payload))
+
     async def _process_and_publish(self, msg: Dict[str, Any], *, value_is_cumulative: bool) -> None:
         self._resolve_object_identity(msg)
         base_topic = self._normalize_topic(msg.get("topic", ""))
@@ -280,13 +336,13 @@ class UnsMqttProxy(UnsProxy):
                     data["value"] = delta
                     data["time"] = isoformat(current_time)
                 self._last_values[publish_topic] = LastValueEntry(new_value, new_uom, current_time)
-                await self.client.publish_raw(publish_topic, UnsPacket.to_json(packet))
+                await self._enqueue_publish(publish_topic, UnsPacket.to_json(packet))
             else:
                 self._last_values[publish_topic] = LastValueEntry(new_value, new_uom, current_time)
                 # For delta mode with no previous value, skip to avoid bogus delta; otherwise publish.
                 if not value_is_cumulative:
-                    await self.client.publish_raw(publish_topic, UnsPacket.to_json(packet))
+                    await self._enqueue_publish(publish_topic, UnsPacket.to_json(packet))
         elif isinstance(table, dict):
-            await self.client.publish_raw(publish_topic, UnsPacket.to_json(packet))
+            await self._enqueue_publish(publish_topic, UnsPacket.to_json(packet))
         else:
             raise ValueError("packet.message must include data or table")
