@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from uns_kit import AuthClient, ConfigFile, UnsClient
+from uns_kit.core.auth_client import AuthClient
+from uns_kit.core.config_file import ConfigFile
+from uns_kit.core.datahub_client import UnsClient
 
 
 def main() -> None:

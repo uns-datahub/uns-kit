@@ -80,6 +80,46 @@ If your service publishes UNS topics, prefer:
 
 That is the default application pattern for generated Python services and the path that also maintains the retained `.../topics` registry used for discovery. Direct `UnsMqttClient` publishing is lower-level and should not be the default service pattern unless you have a specific reason.
 
+### Sync integration pattern
+If you need to integrate into a sync-only Python app, use `UnsProxyProcessSync`.
+It runs the existing async runtime on a private background event loop and exposes
+blocking MQTT proxy methods without requiring the host application to refactor to
+`asyncio`.
+
+```python
+from uns_kit import UnsProcessParameters, UnsProxyProcessSync
+
+process = UnsProxyProcessSync(
+    "localhost",
+    UnsProcessParameters(process_name="my-sync-service"),
+)
+process.start()
+proxy = process.create_mqtt_proxy_sync("publisher")
+proxy.publish_mqtt_message({
+    "topic": "raw/data/",
+    "asset": "line-1",
+    "objectType": "motor",
+    "objectId": "main",
+    "attributes": {
+        "attribute": "status",
+        "data": {"time": "2026-01-01T00:00:00Z", "value": "RUNNING"},
+    },
+})
+process.stop()
+```
+
+Sync subscriptions are also available:
+
+```python
+subscription = proxy.subscribe(
+    "uns-infra/#",
+    on_message=lambda message: print(message.topic, message.payload.decode()),
+)
+
+# Later on shutdown:
+subscription.close()
+```
+
 ### Validity / Liveliness
 
 UNS attributes can declare how the controller decides whether they are live or stale; in most apps this is primarily used to drive UI liveliness/activity indicators. In app-level modeling we use two modes only:
@@ -310,6 +350,8 @@ async for msg in client.resilient_messages("uns-infra/#"):
 ### Examples
 - `examples/publish.py` — publish 5 data packets.
 - `examples/subscribe.py` — resilient subscription with auto-reconnect.
+- `examples/data_example_sync.py` — sync publishing with `UnsProxyProcessSync`.
+- `examples/subscribe_sync.py` — sync subscription with `UnsProxyProcessSync`.
 - `examples/load_test.py` — interactive publish burst.
 
 ### Create a new project

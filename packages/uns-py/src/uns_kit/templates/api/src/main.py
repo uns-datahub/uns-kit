@@ -1,8 +1,10 @@
 import asyncio
 from pathlib import Path
 
-from uns_kit.api import register_api_catalog
-from uns_kit.core import ConfigFile, UnsProxyProcess, configure_logger, get_logger
+from uns_kit.api.event_routing import register_api_catalog
+from uns_kit.core.config_file import ConfigFile
+from uns_kit.core.logger import configure_logger, get_logger
+from uns_kit.core.proxy_process import UnsProxyProcess
 
 from api_routes import service_apis
 

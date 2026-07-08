@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from uns_kit.api import (
+from uns_kit.api.data_catalog import (
     define_data_catalog_field,
     define_data_catalog_schema,
+)
+from uns_kit.api.interfaces import (
     define_service_api,
 )
 

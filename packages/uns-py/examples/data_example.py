@@ -2,9 +2,12 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from uns_kit import ConfigFile, TopicBuilder, UnsMqttClient, UnsProcessParameters, UnsProxyProcess
-from uns_kit.packet import isoformat
-from uns_kit.logger import configure_logger, get_logger
+from uns_kit.core.client import UnsMqttClient
+from uns_kit.core.config_file import ConfigFile
+from uns_kit.core.logger import configure_logger, get_logger
+from uns_kit.core.packet import isoformat
+from uns_kit.core.proxy_process import UnsProcessParameters, UnsProxyProcess
+from uns_kit.core.topic_builder import TopicBuilder
 
 configure_logger(
     settings={

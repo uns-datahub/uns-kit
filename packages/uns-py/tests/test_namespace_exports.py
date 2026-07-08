@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from uns_kit.api import UnsApiProxy
-from uns_kit.core import AuthClient, ConfigFile, UnsClient, UnsProxyProcess
+from uns_kit.core import AuthClient, ConfigFile, UnsClient, UnsProxyProcess, UnsProxyProcessSync
 from uns_kit.cron import UnsCronProxy
 from uns_kit.database import DatabaseManager, compile_named_params
 
@@ -9,6 +9,7 @@ from uns_kit.database import DatabaseManager, compile_named_params
 def test_namespaced_exports_exist() -> None:
     assert ConfigFile is not None
     assert UnsProxyProcess is not None
+    assert UnsProxyProcessSync is not None
     assert UnsApiProxy is not None
     assert UnsCronProxy is not None
     assert UnsClient is not None
