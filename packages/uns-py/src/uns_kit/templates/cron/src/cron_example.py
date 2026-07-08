@@ -3,7 +3,9 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-from uns_kit.core import ConfigFile, UnsProxyProcess, configure_logger
+from uns_kit.core.config_file import ConfigFile
+from uns_kit.core.logger import configure_logger
+from uns_kit.core.proxy_process import UnsProxyProcess
 
 
 configure_logger(settings={"level": "INFO", "console": True})

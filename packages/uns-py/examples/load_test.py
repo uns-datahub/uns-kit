@@ -3,8 +3,9 @@ import math
 from datetime import datetime, timezone
 from pathlib import Path
 
-from uns_kit import ConfigFile, UnsProcessParameters, UnsProxyProcess
-from uns_kit.logger import configure_logger, get_logger
+from uns_kit.core.config_file import ConfigFile
+from uns_kit.core.logger import configure_logger, get_logger
+from uns_kit.core.proxy_process import UnsProcessParameters, UnsProxyProcess
 
 configure_logger(
     settings={

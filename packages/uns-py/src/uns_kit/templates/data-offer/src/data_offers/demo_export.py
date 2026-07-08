@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import Response
 
-from uns_kit.api import (
+from uns_kit.api.data_catalog import (
     define_data_catalog_field,
     define_data_catalog_offer_source,
     define_data_catalog_query_param,
