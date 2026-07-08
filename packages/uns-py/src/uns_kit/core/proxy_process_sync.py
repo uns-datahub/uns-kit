@@ -43,9 +43,20 @@ class _LoopThread:
         if self._closed:
             return
         self._closed = True
+        future = asyncio.run_coroutine_threadsafe(self._shutdown_pending_tasks(), self._loop)
+        with contextlib.suppress(Exception):
+            future.result(timeout=5)
         self._loop.call_soon_threadsafe(self._loop.stop)
         self._thread.join(timeout=5)
         self._loop.close()
+
+    async def _shutdown_pending_tasks(self) -> None:
+        current = asyncio.current_task()
+        tasks = [task for task in asyncio.all_tasks(self._loop) if task is not current and not task.done()]
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
 
 
 class _SyncSubscriptionIterator(Iterator[Any]):

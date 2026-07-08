@@ -177,10 +177,15 @@ class UnsProxyProcess:
                 await self._activate_task
             except asyncio.CancelledError:
                 pass
+        for proxy in list(self._proxies):
+            await proxy.close()
+        self._proxies.clear()
         for proxy in list(self._api_proxies):
             await proxy.stop()
+        self._api_proxies.clear()
         for proxy in list(self._cron_proxies):
             await proxy.stop()
+        self._cron_proxies.clear()
         await self._status_monitor.stop()
         await self._client.close()
 
