@@ -130,6 +130,7 @@ async def main() -> None:
             if delay_s:
                 await asyncio.sleep(delay_s)
     finally:
+        await mqtt_output.flush()
         end = asyncio.get_event_loop().time()
         duration = end - start
         rate = count / duration if duration > 0 else 0

@@ -51,8 +51,17 @@ class _FakeAsyncProxy:
     async def publish_mqtt_message(self, mqtt_message: dict[str, Any], mode: MessageMode = MessageMode.RAW) -> None:
         self.calls.append(("publish_mqtt_message", mqtt_message, mode))
 
-    async def close(self) -> None:
-        self.calls.append(("close",))
+    async def drain_publishes(self, *, timeout: float | None = None) -> None:
+        self.calls.append(("drain_publishes", timeout))
+
+    async def flush(self, *, timeout: float | None = None) -> None:
+        self.calls.append(("flush", timeout))
+
+    async def stop(self, *, drain: bool = True, timeout: float | None = None) -> None:
+        self.calls.append(("stop", drain, timeout))
+
+    async def close(self, *, drain: bool = True, timeout: float | None = None) -> None:
+        self.calls.append(("close", drain, timeout))
 
 
 def test_sync_process_wraps_async_mqtt_proxy(monkeypatch) -> None:
@@ -62,7 +71,7 @@ def test_sync_process_wraps_async_mqtt_proxy(monkeypatch) -> None:
     async def fake_start(self) -> None:
         state["started"] += 1
 
-    async def fake_stop(self) -> None:
+    async def fake_stop(self, *, drain: bool = True, timeout: float | None = None) -> None:
         state["stopped"] += 1
 
     async def fake_create_mqtt_proxy(self, instance_name: str, **kwargs: Any) -> _FakeAsyncProxy:
@@ -104,6 +113,9 @@ def test_sync_process_wraps_async_mqtt_proxy(monkeypatch) -> None:
     with proxy.messages("uns-infra/#") as messages:
         assert [msg.payload for msg in messages] == [b"one", b"two"]
     assert [msg.payload for msg in proxy.resilient_messages("uns-infra/#")] == [b"three"]
+    proxy.drain_publishes()
+    proxy.flush()
+    proxy.stop()
     proxy.close()
     process.stop()
 
@@ -126,7 +138,10 @@ def test_sync_process_wraps_async_mqtt_proxy(monkeypatch) -> None:
             },
             MessageMode.RAW,
         ),
-        ("close",),
+        ("drain_publishes", None),
+        ("flush", None),
+        ("stop", True, 30.0),
+        ("close", True, 30.0),
     ]
     assert fake_proxy.client.messages_calls == ["uns-infra/#"]
     assert fake_proxy.client.resilient_calls == ["uns-infra/#"]
@@ -141,7 +156,7 @@ def test_sync_proxy_subscribe_invokes_on_message(monkeypatch) -> None:
     async def fake_start(self) -> None:
         state["started"] += 1
 
-    async def fake_stop(self) -> None:
+    async def fake_stop(self, *, drain: bool = True, timeout: float | None = None) -> None:
         state["stopped"] += 1
 
     async def fake_create_mqtt_proxy(self, instance_name: str, **kwargs: Any) -> _FakeAsyncProxy:
@@ -179,7 +194,7 @@ def test_sync_process_context_manager_starts_and_stops(monkeypatch) -> None:
     async def fake_start(self) -> None:
         state["started"] += 1
 
-    async def fake_stop(self) -> None:
+    async def fake_stop(self, *, drain: bool = True, timeout: float | None = None) -> None:
         state["stopped"] += 1
 
     monkeypatch.setattr(UnsProxyProcess, "start", fake_start)

@@ -12,8 +12,15 @@ configure_logger(settings={"level": "INFO", "console": True})
 logger = logging.getLogger("uns_kit").getChild(__name__)
 
 
+def load_config() -> dict:
+    cfg_path = Path("config.json")
+    if cfg_path.exists():
+        return ConfigFile.load_config(cfg_path)
+    return {"infra": {"host": "localhost"}, "uns": {"processName": "uns-process"}}
+
+
 async def run() -> None:
-    config = ConfigFile.load_config(Path("config.json"))
+    config = load_config()
     infra = config.get("infra") or {}
     uns = config.get("uns") or {}
 
@@ -56,6 +63,7 @@ async def run() -> None:
     try:
         await asyncio.Event().wait()
     finally:
+        await mqtt_output.flush()
         await mqtt_output.close()
         await process.stop()
 

@@ -16,8 +16,15 @@ configure_logger(
 log = logging.getLogger("uns_kit").getChild(__name__)
 
 
+def load_config() -> dict:
+    cfg_path = Path("config.json")
+    if cfg_path.exists():
+        return ConfigFile.load_config(cfg_path)
+    return {"infra": {"host": "localhost"}, "uns": {"processName": "uns-process"}}
+
+
 async def run():
-    cfg = ConfigFile.load_config(Path("config.json"))
+    cfg = load_config()
     infra = cfg.get("infra") or {}
     uns = cfg.get("uns") or {}
     host = infra.get("host") or "localhost"
@@ -63,6 +70,7 @@ async def run():
         while True:
             await asyncio.sleep(5)
     finally:
+        await output.flush()
         await output.close()
         await process.stop()
 

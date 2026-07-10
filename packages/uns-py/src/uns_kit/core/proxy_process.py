@@ -170,7 +170,7 @@ class UnsProxyProcess:
         if self._activate_task is None or self._activate_task.done():
             self._activate_task = asyncio.create_task(self._activate_after_delay())
 
-    async def stop(self) -> None:
+    async def stop(self, *, drain: bool = True, timeout: Optional[float] = UnsMqttProxy.DEFAULT_DRAIN_TIMEOUT_S) -> None:
         if self._activate_task and not self._activate_task.done():
             self._activate_task.cancel()
             try:
@@ -178,7 +178,7 @@ class UnsProxyProcess:
             except asyncio.CancelledError:
                 pass
         for proxy in list(self._proxies):
-            await proxy.close()
+            await proxy.close(drain=drain, timeout=timeout)
         self._proxies.clear()
         for proxy in list(self._api_proxies):
             await proxy.stop()

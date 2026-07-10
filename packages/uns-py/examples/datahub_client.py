@@ -6,11 +6,18 @@ from uns_kit.core.config_file import ConfigFile
 from uns_kit.core.datahub_client import UnsClient
 
 
+def load_config() -> dict:
+    cfg_path = Path("config.json")
+    if cfg_path.exists():
+        return ConfigFile.load_config(cfg_path)
+    return {"infra": {"host": "localhost"}, "uns": {"processName": "uns-process"}}
+
+
 def main() -> None:
-    cfg = ConfigFile.load_config(Path("config.json"))
+    cfg = load_config()
     uns = cfg["uns"]
     token = uns.get("token") if isinstance(uns.get("token"), str) else None
-    auth_client = None if token else AuthClient.create(Path("config.json"))
+    auth_client = None if token or not Path("config.json").exists() else AuthClient.create(Path("config.json"))
     client = UnsClient(uns["rest"], token=token, auth_client=auth_client)
 
     value_topic = "sij/acroni/vv/hrm-furnace/equipment/pusher/output-quantity"

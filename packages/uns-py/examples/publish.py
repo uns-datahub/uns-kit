@@ -1,5 +1,7 @@
 import asyncio
+from pathlib import Path
 
+from uns_kit.core.config_file import ConfigFile
 from uns_kit.core.client import UnsMqttClient
 from uns_kit.core.logger import configure_logger, get_logger
 from uns_kit.core.packet import UnsPacket
@@ -13,11 +15,22 @@ configure_logger(
 )
 log = get_logger(__name__)
 
+
+def load_config() -> dict:
+    cfg_path = Path("config.json")
+    if cfg_path.exists():
+        return ConfigFile.load_config(cfg_path)
+    return {"infra": {"host": "localhost"}, "uns": {"processName": "uns-process"}}
+
+
 async def main() -> None:
+    cfg = load_config()
+    infra = cfg.get("infra") or {}
+    host = infra.get("host") or "localhost"
     tb = TopicBuilder("py-demo")
-    client = UnsMqttClient("localhost", topic_builder=tb, instance_name="py-demo", reconnect_interval=1)
+    client = UnsMqttClient(host, topic_builder=tb, instance_name="py-demo", reconnect_interval=1)
     await client.connect()
-    log.info("connected host=%s", "localhost")
+    log.info("connected host=%s", host)
 
     for i in range(5):
         packet = UnsPacket.data(value=i, uom="count")

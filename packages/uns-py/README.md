@@ -66,6 +66,7 @@ async def main():
         msg = await messages.__anext__()
         print(msg.topic, msg.payload.decode())
 
+    await mqtt.flush()
     await mqtt.close()
     await process.stop()
 
@@ -79,6 +80,10 @@ If your service publishes UNS topics, prefer:
 - `await proxy.publish_mqtt_message(...)`
 
 That is the default application pattern for generated Python services and the path that also maintains the retained `.../topics` registry used for discovery. Direct `UnsMqttClient` publishing is lower-level and should not be the default service pattern unless you have a specific reason.
+
+`publish_message()` and `publish_mqtt_message()` resolve when a message is accepted into the local bounded publish queue, not when the MQTT broker confirms delivery. If the queue is full, the publish call raises immediately. Broker publish failures are emitted later on the proxy `error` event.
+
+Use `await proxy.flush()` or `await proxy.drain_publishes()` before shutdown or before assuming all accepted messages have finished publishing. `close()` and `UnsProxyProcess.stop()` drain by default with a timeout, but explicit flush is clearer in application code.
 
 ### Sync integration pattern
 If you need to integrate into a sync-only Python app, use `UnsProxyProcessSync`.
@@ -105,6 +110,7 @@ proxy.publish_mqtt_message({
         "data": {"time": "2026-01-01T00:00:00Z", "value": "RUNNING"},
     },
 })
+proxy.flush()
 process.stop()
 ```
 

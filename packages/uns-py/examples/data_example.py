@@ -17,9 +17,15 @@ configure_logger(
 )
 log = get_logger(__name__)
 
-async def main() -> None:
+
+def load_config() -> dict:
     cfg_path = Path("config.json")
-    cfg = ConfigFile.load_config(cfg_path) if cfg_path.exists() else {"infra": {"host": "localhost"}, "uns": {"processName": "uns-process"}}
+    if cfg_path.exists():
+        return ConfigFile.load_config(cfg_path)
+    return {"infra": {"host": "localhost"}, "uns": {"processName": "uns-process"}}
+
+async def main() -> None:
+    cfg = load_config()
     infra = cfg.get("infra") or {}
     uns = cfg.get("uns") or {}
     host = infra.get("host") or "localhost"
@@ -129,6 +135,7 @@ async def main() -> None:
     except KeyboardInterrupt:
         pass
     finally:
+        await mqtt_output.flush()
         await mqtt_input.close()
         await mqtt_output.close()
         await process.stop()

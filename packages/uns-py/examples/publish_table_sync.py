@@ -19,10 +19,10 @@ log = get_logger(__name__)
 
 
 def load_config() -> dict:
-    try:
-        return ConfigFile.load_config("config.json")
-    except FileNotFoundError:
-        return {"infra": {"host": "localhost"}, "uns": {"processName": "uns-process"}}
+    cfg_path = Path("config.json")
+    if cfg_path.exists():
+        return ConfigFile.load_config(cfg_path)
+    return {"infra": {"host": "localhost"}, "uns": {"processName": "uns-process"}}
 
 
 def main() -> None:
@@ -65,6 +65,7 @@ def main() -> None:
             log.info("[publish-table-sync] Published sample packet %s at %s", index, now)
             time.sleep(1)
     finally:
+        proxy.flush()
         process.stop()
 
 

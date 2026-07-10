@@ -85,6 +85,7 @@ def main() -> None:
             log.info("[data-example-sync] Published sample packet %s at %s", index, now)
             time.sleep(1)
     finally:
+        proxy.flush()
         process.stop()
 
 

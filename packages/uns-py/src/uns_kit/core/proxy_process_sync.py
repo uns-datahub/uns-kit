@@ -176,8 +176,27 @@ class UnsMqttProxySync:
     ) -> None:
         self._loop_thread.run(self._proxy.publish_mqtt_message(mqtt_message, mode), timeout=timeout)
 
-    def close(self, *, timeout: Optional[float] = None) -> None:
-        self._loop_thread.run(self._proxy.close(), timeout=timeout)
+    def drain_publishes(self, *, timeout: Optional[float] = None) -> None:
+        self._loop_thread.run(self._proxy.drain_publishes(timeout=timeout), timeout=timeout)
+
+    def flush(self, *, timeout: Optional[float] = None) -> None:
+        self._loop_thread.run(self._proxy.flush(timeout=timeout), timeout=timeout)
+
+    def stop(
+        self,
+        *,
+        drain: bool = True,
+        timeout: Optional[float] = UnsMqttProxy.DEFAULT_DRAIN_TIMEOUT_S,
+    ) -> None:
+        self._loop_thread.run(self._proxy.stop(drain=drain, timeout=timeout), timeout=timeout)
+
+    def close(
+        self,
+        *,
+        drain: bool = True,
+        timeout: Optional[float] = UnsMqttProxy.DEFAULT_DRAIN_TIMEOUT_S,
+    ) -> None:
+        self._loop_thread.run(self._proxy.close(drain=drain, timeout=timeout), timeout=timeout)
 
     def messages(self, topics: str | list[str]) -> SyncMessagesContext:
         return SyncMessagesContext(self.client, self._loop_thread, topics, resilient=False)
@@ -227,14 +246,24 @@ class UnsProxyProcessSync:
     def start(self, *, timeout: Optional[float] = None) -> None:
         self._loop_thread.run(self._process.start(), timeout=timeout)
 
-    def stop(self, *, timeout: Optional[float] = None) -> None:
+    def stop(
+        self,
+        *,
+        drain: bool = True,
+        timeout: Optional[float] = UnsMqttProxy.DEFAULT_DRAIN_TIMEOUT_S,
+    ) -> None:
         try:
-            self._loop_thread.run(self._process.stop(), timeout=timeout)
+            self._loop_thread.run(self._process.stop(drain=drain, timeout=timeout), timeout=timeout)
         finally:
             self._loop_thread.close()
 
-    def close(self, *, timeout: Optional[float] = None) -> None:
-        self.stop(timeout=timeout)
+    def close(
+        self,
+        *,
+        drain: bool = True,
+        timeout: Optional[float] = UnsMqttProxy.DEFAULT_DRAIN_TIMEOUT_S,
+    ) -> None:
+        self.stop(drain=drain, timeout=timeout)
 
     def set_active(self, active: bool) -> None:
         self._process.set_active(active)

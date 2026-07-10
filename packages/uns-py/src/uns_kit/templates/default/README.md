@@ -11,8 +11,11 @@ For UNS topic outputs, the default and recommended application pattern is:
 - `UnsProxyProcess`
 - `await process.create_mqtt_proxy(...)`
 - `await output.publish_mqtt_message(...)`
+- `await output.flush()` before shutdown when you need to wait for broker publish completion
 
 Avoid ad-hoc direct MQTT publishing in normal service code unless there is a special reason. The scaffolded app is intended to be extended from that proxy-based pattern so published UNS topics are also reflected in the retained `.../topics` registry.
+
+`publish_mqtt_message()` resolves when the message is accepted into the local publish queue. Queue-full is reported immediately to the caller. Broker publish failures are emitted later on the proxy `error` event, so call `await output.flush()` before shutdown or before assuming accepted messages have finished publishing.
 
 ## Validity / Liveliness
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-
 import pytest
 
 from uns_kit.core.uns_mqtt_proxy import UnsMqttProxy
@@ -65,7 +64,68 @@ async def test_publish_message_allows_unbounded_queue_configuration() -> None:
 
 
 @pytest.mark.asyncio
-async def test_close_waits_for_enqueued_publishes() -> None:
+async def test_publish_message_rejects_when_bounded_queue_is_full() -> None:
+    proxy = UnsMqttProxy(
+        "localhost",
+        process_name="test-process",
+        instance_name="test-instance",
+        publish_concurrency=1,
+        max_pending_publishes=2,
+    )
+
+    release_publish = asyncio.Event()
+
+    async def fake_publish_raw(topic: str, payload: str | bytes, *, qos: int = 0, retain: bool = False) -> None:
+        await release_publish.wait()
+
+    proxy.client.publish_raw = fake_publish_raw  # type: ignore[method-assign]
+
+    await proxy.publish_message("test/0", "payload-0")
+    await proxy.publish_message("test/1", "payload-1")
+
+    with pytest.raises(RuntimeError, match="Publisher queue is full"):
+        await proxy.publish_message("test/2", "payload-2")
+
+    release_publish.set()
+    await proxy._stop_publish_workers()
+
+
+@pytest.mark.asyncio
+async def test_flush_waits_for_delayed_async_publish_completions() -> None:
+    proxy = UnsMqttProxy(
+        "localhost",
+        process_name="test-process",
+        instance_name="test-instance",
+        publish_concurrency=2,
+        max_pending_publishes=10,
+    )
+
+    release_publish = asyncio.Event()
+    published: list[str] = []
+
+    async def fake_publish_raw(topic: str, payload: str | bytes, *, qos: int = 0, retain: bool = False) -> None:
+        await release_publish.wait()
+        published.append(topic)
+
+    proxy.client.publish_raw = fake_publish_raw  # type: ignore[method-assign]
+
+    await proxy.publish_message("test/0", "payload-0")
+    await proxy.publish_message("test/1", "payload-1")
+
+    flush_task = asyncio.create_task(proxy.flush(timeout=1.0))
+    await asyncio.sleep(0)
+    assert not flush_task.done()
+
+    release_publish.set()
+    await flush_task
+
+    assert sorted(published) == ["test/0", "test/1"]
+    assert proxy._pending_publish_completions == 0
+    await proxy._stop_publish_workers()
+
+
+@pytest.mark.asyncio
+async def test_close_waits_for_enqueued_publishes_by_default() -> None:
     proxy = UnsMqttProxy(
         "localhost",
         process_name="test-process",
@@ -83,12 +143,8 @@ async def test_close_waits_for_enqueued_publishes() -> None:
     async def fake_client_close() -> None:
         return None
 
-    async def fake_proxy_stop() -> None:
-        return None
-
     proxy.client.publish_raw = fake_publish_raw  # type: ignore[method-assign]
     proxy.client.close = fake_client_close  # type: ignore[method-assign]
-    proxy.stop = fake_proxy_stop  # type: ignore[method-assign]
 
     for index in range(5):
         await proxy.publish_message(f"test/{index}", f"payload-{index}")
@@ -96,3 +152,65 @@ async def test_close_waits_for_enqueued_publishes() -> None:
     await proxy.close()
 
     assert len(published) == 5
+
+
+@pytest.mark.asyncio
+async def test_publish_failure_emits_error_event_and_allows_flush_to_finish() -> None:
+    proxy = UnsMqttProxy(
+        "localhost",
+        process_name="test-process",
+        instance_name="test-instance",
+        publish_concurrency=1,
+        max_pending_publishes=10,
+    )
+
+    failures: list[dict[str, object]] = []
+
+    async def on_error(payload: dict[str, object]) -> None:
+        failures.append(payload)
+
+    async def fake_publish_raw(topic: str, payload: str | bytes, *, qos: int = 0, retain: bool = False) -> None:
+        raise RuntimeError("broker rejected publish")
+
+    proxy.event.on("error", on_error)
+    proxy.client.publish_raw = fake_publish_raw  # type: ignore[method-assign]
+
+    await proxy.publish_message("test/failure", "payload")
+    await proxy.flush(timeout=1.0)
+
+    assert proxy._pending_publish_completions == 0
+    assert len(failures) == 1
+    assert failures[0]["topic"] == "test/failure"
+    assert isinstance(failures[0]["error"], RuntimeError)
+    await proxy._stop_publish_workers()
+
+
+@pytest.mark.asyncio
+async def test_flush_does_not_hang_if_publish_worker_exits() -> None:
+    proxy = UnsMqttProxy(
+        "localhost",
+        process_name="test-process",
+        instance_name="test-instance",
+        publish_concurrency=1,
+        max_pending_publishes=10,
+    )
+
+    entered_publish = asyncio.Event()
+
+    async def fake_publish_raw(topic: str, payload: str | bytes, *, qos: int = 0, retain: bool = False) -> None:
+        entered_publish.set()
+        await asyncio.sleep(10)
+
+    proxy.client.publish_raw = fake_publish_raw  # type: ignore[method-assign]
+
+    await proxy.publish_message("test/0", "payload-0")
+    await proxy.publish_message("test/1", "payload-1")
+    await entered_publish.wait()
+
+    worker = proxy._publish_workers[0]
+    worker.cancel()
+
+    with pytest.raises(RuntimeError, match="publish worker exited unexpectedly"):
+        await proxy.flush(timeout=1.0)
+
+    await proxy._stop_publish_workers(drain=False)

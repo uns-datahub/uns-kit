@@ -4,6 +4,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+from collections.abc import Awaitable
 from typing import Any, Dict, Optional
 
 from .client import UnsMqttClient
@@ -37,6 +38,8 @@ class QueuedPublish:
 
 
 class UnsMqttProxy(UnsProxy):
+    DEFAULT_DRAIN_TIMEOUT_S = 30.0
+
     def __init__(
         self,
         host: str,
@@ -89,24 +92,53 @@ class UnsMqttProxy(UnsProxy):
             self._publish_queue = asyncio.Queue(maxsize=self._max_pending_publishes)
         self._publish_workers: list[asyncio.Task[None]] = []
         self._publish_workers_started = False
+        self._publish_workers_stop_requested = False
+        self._pending_enqueue_operations = 0
+        self._pending_publish_completions = 0
+        self._drain_condition = asyncio.Condition()
+        self._publish_worker_failure: Exception | None = None
 
     async def connect(self) -> None:
         await self.client.connect()
         self._ensure_publish_workers_started()
         await self.start()
 
-    async def close(self) -> None:
-        await self._stop_publish_workers()
-        await self.stop()
+    async def stop(self, *, drain: bool = True, timeout: Optional[float] = DEFAULT_DRAIN_TIMEOUT_S) -> None:
+        await self._stop_publish_workers(drain=drain, timeout=timeout)
+        await super().stop()
+
+    async def close(self, *, drain: bool = True, timeout: Optional[float] = DEFAULT_DRAIN_TIMEOUT_S) -> None:
+        await self.stop(drain=drain, timeout=timeout)
         await self.client.close()
 
     async def publish_message(self, topic: str, payload: str | bytes) -> None:
-        await self._enqueue_publish(topic, payload)
+        await self._track_enqueue_operation(self._enqueue_publish(topic, payload))
 
     async def publish_packet(self, topic: str, packet: Dict[str, Any]) -> None:
-        await self._enqueue_publish(topic, UnsPacket.to_json(packet))
+        await self._track_enqueue_operation(self._enqueue_publish(topic, UnsPacket.to_json(packet)))
 
     async def publish_mqtt_message(self, mqtt_message: Dict[str, Any], mode: MessageMode = MessageMode.RAW) -> None:
+        await self._track_enqueue_operation(self._publish_mqtt_message_impl(mqtt_message, mode))
+
+    async def drain_publishes(self, *, timeout: Optional[float] = None) -> None:
+        deadline = None if timeout is None else asyncio.get_running_loop().time() + timeout
+        while True:
+            async with self._drain_condition:
+                if self._pending_enqueue_operations == 0 and self._pending_publish_completions == 0:
+                    return
+                self._raise_if_drain_blocked()
+                if deadline is None:
+                    await self._drain_condition.wait()
+                    continue
+                remaining = deadline - asyncio.get_running_loop().time()
+                if remaining <= 0:
+                    raise TimeoutError("Timed out waiting for pending MQTT publishes to drain.")
+                await asyncio.wait_for(self._drain_condition.wait(), timeout=remaining)
+
+    async def flush(self, *, timeout: Optional[float] = None) -> None:
+        await self.drain_publishes(timeout=timeout)
+
+    async def _publish_mqtt_message_impl(self, mqtt_message: Dict[str, Any], mode: MessageMode = MessageMode.RAW) -> None:
         attrs = mqtt_message.get("attributes")
         if attrs is None:
             raise ValueError("mqtt_message must include attributes")
@@ -230,17 +262,33 @@ class UnsMqttProxy(UnsProxy):
         if self._publish_workers_started:
             return
         self._publish_workers_started = True
+        self._publish_workers_stop_requested = False
+        self._publish_worker_failure = None
         self._publish_workers = [
             asyncio.create_task(self._publish_worker(), name=f"{self._instance_name}-publish-{index}")
             for index in range(self._publish_concurrency)
         ]
+        for task in self._publish_workers:
+            task.add_done_callback(self._handle_publish_worker_done)
 
-    async def _stop_publish_workers(self) -> None:
+    async def _stop_publish_workers(
+        self,
+        *,
+        drain: bool = True,
+        timeout: Optional[float] = DEFAULT_DRAIN_TIMEOUT_S,
+    ) -> None:
         if not self._publish_workers_started:
             return
-        await self._publish_queue.join()
-        for _ in self._publish_workers:
-            await self._publish_queue.put(None)
+        if drain:
+            await self.flush(timeout=timeout)
+            self._publish_workers_stop_requested = True
+            for _ in self._publish_workers:
+                await self._publish_queue.put(None)
+        else:
+            self._publish_workers_stop_requested = True
+            await self._discard_queued_publishes()
+            for task in self._publish_workers:
+                task.cancel()
         await asyncio.gather(*self._publish_workers, return_exceptions=True)
         self._publish_workers = []
         self._publish_workers_started = False
@@ -252,14 +300,29 @@ class UnsMqttProxy(UnsProxy):
                 if item is None:
                     return
                 await self.client.publish_raw(item.topic, item.payload)
-            except Exception:
+            except Exception as exc:
                 logger.exception("Error publishing message to topic %s", item.topic if item else "<shutdown>")
+                await self.event.emit(
+                    "error",
+                    {
+                        "topic": item.topic if item else None,
+                        "payload": item.payload if item else None,
+                        "error": exc,
+                    },
+                )
             finally:
+                if item is not None:
+                    await self._mark_publish_completed()
                 self._publish_queue.task_done()
 
     async def _enqueue_publish(self, topic: str, payload: str | bytes) -> None:
         self._ensure_publish_workers_started()
-        await self._publish_queue.put(QueuedPublish(topic=topic, payload=payload))
+        try:
+            self._publish_queue.put_nowait(QueuedPublish(topic=topic, payload=payload))
+        except asyncio.QueueFull as exc:
+            queue_limit = self._max_pending_publishes if self._max_pending_publishes is not None else "unbounded"
+            raise RuntimeError(f"{self._instance_name} - Publisher queue is full ({queue_limit}).") from exc
+        await self._mark_publish_accepted()
 
     async def _process_and_publish(self, msg: Dict[str, Any], *, value_is_cumulative: bool) -> None:
         self._resolve_object_identity(msg)
@@ -346,3 +409,66 @@ class UnsMqttProxy(UnsProxy):
             await self._enqueue_publish(publish_topic, UnsPacket.to_json(packet))
         else:
             raise ValueError("packet.message must include data or table")
+
+    async def _track_enqueue_operation(self, operation: Awaitable[None]) -> None:
+        await self._increment_pending_enqueues()
+        try:
+            await operation
+        finally:
+            await self._decrement_pending_enqueues()
+
+    async def _increment_pending_enqueues(self) -> None:
+        async with self._drain_condition:
+            self._pending_enqueue_operations += 1
+            self._drain_condition.notify_all()
+
+    async def _decrement_pending_enqueues(self) -> None:
+        async with self._drain_condition:
+            if self._pending_enqueue_operations > 0:
+                self._pending_enqueue_operations -= 1
+            self._drain_condition.notify_all()
+
+    async def _mark_publish_accepted(self) -> None:
+        async with self._drain_condition:
+            self._pending_publish_completions += 1
+            self._drain_condition.notify_all()
+
+    async def _mark_publish_completed(self) -> None:
+        async with self._drain_condition:
+            if self._pending_publish_completions > 0:
+                self._pending_publish_completions -= 1
+            self._drain_condition.notify_all()
+
+    async def _discard_queued_publishes(self) -> None:
+        discarded = 0
+        while True:
+            try:
+                item = self._publish_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+            if item is not None:
+                discarded += 1
+            self._publish_queue.task_done()
+        if discarded == 0:
+            return
+        async with self._drain_condition:
+            self._pending_publish_completions = max(0, self._pending_publish_completions - discarded)
+            self._drain_condition.notify_all()
+
+    def _handle_publish_worker_done(self, task: asyncio.Task[None]) -> None:
+        if task.cancelled():
+            failure: Exception | None = RuntimeError("MQTT publish worker stopped before pending publishes drained.")
+        else:
+            failure = task.exception()
+        if failure is not None and not self._publish_workers_stop_requested and self._publish_worker_failure is None:
+            self._publish_worker_failure = failure
+        if not task.cancelled() or self._publish_worker_failure is not None:
+            asyncio.create_task(self._notify_drain_waiters())
+
+    async def _notify_drain_waiters(self) -> None:
+        async with self._drain_condition:
+            self._drain_condition.notify_all()
+
+    def _raise_if_drain_blocked(self) -> None:
+        if self._publish_worker_failure is not None:
+            raise RuntimeError("MQTT publish drain aborted because a publish worker exited unexpectedly.") from self._publish_worker_failure
