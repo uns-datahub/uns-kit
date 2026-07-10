@@ -144,6 +144,7 @@ await proxy.publishMqttMessage({
     },
   },
 });
+await proxy.flush();
 ```
 
 This publishes
@@ -172,6 +173,7 @@ await proxy.publishMqttMessage({
     lifecycleEndValue: "STOPPED",
   },
 });
+await proxy.flush();
 ```
 
 ## Counter Attributes
@@ -205,6 +207,7 @@ await proxy.publishMqttMessage({
     },
   },
 });
+await proxy.flush();
 ```
 
 For a `Table` attribute, keep the table as the source row and mark chartable
@@ -238,6 +241,7 @@ await proxy.publishMqttMessage({
     },
   },
 });
+await proxy.flush();
 ```
 
 `dataGroup` is a storage/routing hint for consumers such as archivers. It is not
@@ -259,6 +263,8 @@ const proxy = await proc.createUnsMqttProxy(config.infra.host!, "output", "force
 ```
 
 `publishMqttMessage()` resolves when a message is accepted into the local bounded publisher queue. Asynchronous broker publish failures are logged and emitted on the proxy `error` event.
+
+If the bounded queue is full, `publishMessage()` / `publishMqttMessage()` reject immediately. Use `await proxy.flush()` or `await proxy.drainPublishes()` before shutdown or before assuming all accepted messages have reached the broker. `await proxy.stop()` drains by default with a timeout; use `await proxy.stop({ drain: false })` only when dropping queued messages is acceptable.
 
 ## Sync UNS schema from the controller
 

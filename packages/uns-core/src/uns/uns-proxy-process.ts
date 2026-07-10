@@ -11,6 +11,7 @@ import { PACKAGE_INFO, MQTT_UPDATE_INTERVAL } from "./process-config.js";
 import { MqttTopicBuilder } from "../uns-mqtt/mqtt-topic-builder.js";
 import { StatusMonitor } from "./status-monitor.js";
 import { UnsPacket } from "./uns-packet.js";
+import type { UnsMqttProxyStopOptions } from "../uns-mqtt/uns-mqtt-proxy.js";
 import {
   buildUnsServiceMetadata,
   type UnsServiceMetadata,
@@ -278,7 +279,7 @@ class UnsProxyProcess {
    * Shuts down the process by clearing intervals, timeouts, and removing
    * MQTT event listeners, and stopping the StatusMonitor.
    */
-  public shutdown(): void {
+  public async shutdown(options: UnsMqttProxyStopOptions = {}): Promise<void> {
     logger.info(`${this.processName} - Shutting down UnsProxyProcess...`);
     try {
       this.statusMonitor.stop();
@@ -291,8 +292,14 @@ class UnsProxyProcess {
     }
     
     try {
+      await Promise.all(this.unsMqttProxies.map((proxy) => proxy.stop(options)));
+    } catch (e: any) {
+      logger.error(`${this.processName} - Error stopping UNS MQTT proxies: ${e.message}`);
+    }
+
+    try {
       if (typeof this.processMqttProxy.stop === "function") {
-        this.processMqttProxy.stop();
+        await this.processMqttProxy.stop();
       }
     } catch (e: any) {
       logger.error(`${this.processName} - Error stopping MQTT proxy: ${e.message}`);

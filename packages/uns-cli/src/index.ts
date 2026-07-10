@@ -452,6 +452,10 @@ async function main(): Promise<void> {
     });
   }
 
+  await mqttOutput.flush();
+  await mqttOutput.stop();
+  await unsProcess.shutdown();
+
   console.log(\`UNS process '\${processName}' published \${outputContracts.length} interval example output(s).\`);
 }
 

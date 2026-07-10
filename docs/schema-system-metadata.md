@@ -34,6 +34,7 @@ await uns.publishMqttMessage({
     },
   },
 });
+await uns.flush();
 ```
 
 After the controller has this schema metadata, a runtime or operator action can
@@ -66,4 +67,5 @@ await uns.publishMqttMessage({
     },
   },
 });
+await uns.flush();
 ```

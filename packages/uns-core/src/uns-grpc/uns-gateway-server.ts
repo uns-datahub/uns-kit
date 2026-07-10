@@ -328,7 +328,7 @@ export class UnsGatewayServer {
         },
       };
 
-      this.mqttOutput.publishMqttMessage(
+      await this.mqttOutput.publishMqttMessage(
         mqttMsg,
         message.data && valueIsCumulative ? MessageMode.Delta : MessageMode.Raw,
       );
@@ -600,7 +600,7 @@ export class UnsGatewayServer {
         await new Promise<void>((resolve) => this.server!.tryShutdown(() => resolve()));
         this.server = null;
       }
-      if (this.unsProcess) this.unsProcess.shutdown();
+      if (this.unsProcess) await this.unsProcess.shutdown();
     } catch (e: any) {
       logger.error(`Gateway shutdown error: ${e.message}`);
     }

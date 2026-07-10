@@ -77,7 +77,7 @@ mqttInput.event.on("input", async (event) => {
       const topic: UnsTopics = "enterprise/site/area/line/";
       const asset = resolveGeneratedAsset("asset");
       const assetDescription = ""; // customize manually
-      mqttOutput.publishMqttMessage({
+      await mqttOutput.publishMqttMessage({
         topic,
         asset,
         assetDescription,

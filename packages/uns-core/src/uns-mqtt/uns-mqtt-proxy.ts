@@ -39,6 +39,11 @@ export enum MessageMode {
   Both = 'both'    // Send both the original and delta messages
 }
 
+export interface UnsMqttProxyStopOptions {
+  drain?: boolean;
+  timeoutMs?: number;
+}
+
 type InternalMqttMessage = {
   topic: UnsTopics;
   attribute: UnsAttribute;
@@ -66,6 +71,7 @@ type InternalMqttMessage = {
 };
 
 export default class UnsMqttProxy extends UnsProxy {
+  public static readonly DEFAULT_DRAIN_TIMEOUT_MS = 30_000;
   private lastValues: Map<string, { value: ValueType; uom: string; timestamp: Date }> = new Map();
   private worker: Worker;
   private pendingEnqueues: Map<string, { resolve: () => void; reject: (reason?: any) => void }> = new Map();
@@ -76,6 +82,8 @@ export default class UnsMqttProxy extends UnsProxy {
   private currentSequenceId: Map<string, number> = new Map();
   private topicBuilder: MqttTopicBuilder;
   private deltaModeDeprecationWarned = false;
+  private drainWaiters: Array<{ resolve: () => void; reject: (reason?: any) => void; timer?: NodeJS.Timeout }> = [];
+  private workerFailure: Error | null = null;
 
   constructor(
     mqttHost: string,
@@ -203,14 +211,13 @@ export default class UnsMqttProxy extends UnsProxy {
         const pending = this.pendingEnqueues.get(msg.id);
         if (pending) {
           if (msg.status === "accepted") {
+            this.pendingPublishCompletions += 1;
             pending.resolve();
           } else {
-            if (this.pendingPublishCompletions > 0) {
-              this.pendingPublishCompletions -= 1;
-            }
             pending.reject(new Error(msg.error));
           }
           this.pendingEnqueues.delete(msg.id);
+          this.notifyDrainWaiters();
         }
       } else if (msg && msg.command === "publishResult" && msg.id) {
         if (this.pendingPublishCompletions > 0) {
@@ -220,6 +227,7 @@ export default class UnsMqttProxy extends UnsProxy {
           const errorMessage = msg.error ?? `Error publishing to topic ${msg.topic ?? "unknown"}`;
           this.event.emit("error", { code: 0, message: errorMessage });
         }
+        this.notifyDrainWaiters();
       } else if (msg && msg.command === "input") {
         this.event.emit("input", { topic: msg.topic, message: msg.message.toString(), packet: msg.packet });
       } else if (msg && (msg.command === "handover_subscriber" || msg.command === "handover_publisher")) {
@@ -232,22 +240,14 @@ export default class UnsMqttProxy extends UnsProxy {
     this.worker.on("error", (err) => {
       logger.error("Error in worker:", err);
       const reason = err instanceof Error ? err : new Error(String(err));
-      this.pendingPublishCompletions = 0;
-      for (const pending of this.pendingEnqueues.values()) {
-        pending.reject(reason);
-      }
-      this.pendingEnqueues.clear();
+      this.failPendingPublishes(reason);
     });
 
     this.worker.on("exit", (code) => {
       if (code !== 0) {
         logger.error(`Worker exited with code ${code}`);
         const reason = new Error(`MQTT worker exited with code ${code}`);
-        this.pendingPublishCompletions = 0;
-        for (const pending of this.pendingEnqueues.values()) {
-          pending.reject(reason);
-        }
-        this.pendingEnqueues.clear();
+        this.failPendingPublishes(reason);
       }
     });
   }
@@ -262,11 +262,14 @@ export default class UnsMqttProxy extends UnsProxy {
    */
   private async enqueueMessageToWorkerQueue(topic: string, message: string, options?: IClientPublishOptions): Promise<void> {
     return new Promise((resolve, reject) => {
-      // const id: string = String(this.currentSequenceId.get(topic) ?? 0);
+      if (this.workerFailure) {
+        reject(this.workerFailure);
+        return;
+      }
       const id = `${Date.now()}-${Math.random()}`;
-      this.pendingPublishCompletions += 1;
       this.pendingEnqueues.set(id, { resolve, reject });
       this.worker.postMessage({ command: "enqueue", id, topic, message, options });
+      this.notifyDrainWaiters();
     });
   }
 
@@ -330,12 +333,34 @@ export default class UnsMqttProxy extends UnsProxy {
   public async setSubscriberPassiveAndDrainQueue(): Promise<UnsEvents["mqttWorker"]> {
     return new Promise(async (resolve) => {
       const mqttWorkerData = await this.setSubscriberPassive();
-      while (this.pendingEnqueues.size > 0 || this.pendingPublishCompletions > 0) {
-        await new Promise((resolve) => setTimeout(resolve, 100)); // Poll every 100ms
-      }
+      await this.flush();
       logger.info(`${this.instanceNameWithSuffix} - Subscriber set to passive and queue drained.`);
       resolve(mqttWorkerData);
     });
+  }
+
+  public async drainPublishes(timeoutMs: number = UnsMqttProxy.DEFAULT_DRAIN_TIMEOUT_MS): Promise<void> {
+    if (this.workerFailure) {
+      throw this.workerFailure;
+    }
+    if (this.pendingEnqueues.size === 0 && this.pendingPublishCompletions === 0) {
+      return;
+    }
+    await new Promise<void>((resolve, reject) => {
+      const waiter = { resolve, reject, timer: undefined as NodeJS.Timeout | undefined };
+      if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
+        waiter.timer = setTimeout(() => {
+          this.removeDrainWaiter(waiter);
+          reject(new Error(`Timed out waiting for MQTT publishes to drain after ${timeoutMs}ms.`));
+        }, timeoutMs);
+      }
+      this.drainWaiters.push(waiter);
+      this.notifyDrainWaiters();
+    });
+  }
+
+  public async flush(timeoutMs: number = UnsMqttProxy.DEFAULT_DRAIN_TIMEOUT_MS): Promise<void> {
+    await this.drainPublishes(timeoutMs);
   }
 
   /**
@@ -595,9 +620,21 @@ export default class UnsMqttProxy extends UnsProxy {
   /**
    * Stops the UnsProxy instance and cleans up resources.
    */
-  public async stop(): Promise<void> {
-    super.stop();
-    // Terminate the worker thread if it exists.
+  public async stop(options: UnsMqttProxyStopOptions = {}): Promise<void> {
+    await super.stop();
+    const drain = options.drain ?? true;
+    const timeoutMs = options.timeoutMs ?? UnsMqttProxy.DEFAULT_DRAIN_TIMEOUT_MS;
+    let drainError: Error | null = null;
+
+    if (drain) {
+      try {
+        await this.flush(timeoutMs);
+      } catch (error: any) {
+        drainError = error instanceof Error ? error : new Error(String(error));
+        logger.error(`${this.instanceNameWithSuffix} - Error draining publishes before stop: ${drainError.message}`);
+      }
+    }
+
     if (this.worker) {
       try {
         const exitCode = await this.worker.terminate();
@@ -606,13 +643,49 @@ export default class UnsMqttProxy extends UnsProxy {
         logger.error(`${this.instanceNameWithSuffix} - Error terminating worker: ${error.message}`);
       }
     }
-    
-    // Optionally, handle any pending enqueues.
-    for (const [id, pending] of this.pendingEnqueues) {
-      pending.reject(new Error("UnsProxy has been stopped"));
-      this.pendingEnqueues.delete(id);
+
+    this.failPendingPublishes(drainError ?? new Error("UnsProxy has been stopped"));
+
+    if (drainError) {
+      throw drainError;
     }
+  }
+
+  private failPendingPublishes(reason: Error): void {
+    this.workerFailure = reason;
+    for (const pending of this.pendingEnqueues.values()) {
+      pending.reject(reason);
+    }
+    this.pendingEnqueues.clear();
     this.pendingPublishCompletions = 0;
+    this.notifyDrainWaiters();
+  }
+
+  private notifyDrainWaiters(): void {
+    if (this.workerFailure) {
+      const waiters = this.drainWaiters.splice(0);
+      for (const waiter of waiters) {
+        if (waiter.timer) {
+          clearTimeout(waiter.timer);
+        }
+        waiter.reject(this.workerFailure);
+      }
+      return;
+    }
+    if (this.pendingEnqueues.size !== 0 || this.pendingPublishCompletions !== 0) {
+      return;
+    }
+    const waiters = this.drainWaiters.splice(0);
+    for (const waiter of waiters) {
+      if (waiter.timer) {
+        clearTimeout(waiter.timer);
+      }
+      waiter.resolve();
+    }
+  }
+
+  private removeDrainWaiter(waiterToRemove: { resolve: () => void; reject: (reason?: any) => void; timer?: NodeJS.Timeout }): void {
+    this.drainWaiters = this.drainWaiters.filter((waiter) => waiter !== waiterToRemove);
   }
 
 }

@@ -60,7 +60,7 @@ mqttInput.event.on("input", async (event) => {
       const asset = resolveGeneratedAsset("asset");
       const assetDescription = ""; // customize manually
 
-      mqttOutput.publishMqttMessage({
+      await mqttOutput.publishMqttMessage({
         topic,
         asset,
         assetDescription,

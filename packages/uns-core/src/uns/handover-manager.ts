@@ -245,9 +245,7 @@ export class HandoverManager {
         this.handoverInProgress = false;
         this.requestingHandover = false;
 
-        this.unsMqttProxies.forEach((unsProxy: UnsMqttProxy) => {
-          unsProxy.stop();
-        });
+        await Promise.all(this.unsMqttProxies.map((unsProxy: UnsMqttProxy) => unsProxy.stop()));
       }
 
       // Requestor process

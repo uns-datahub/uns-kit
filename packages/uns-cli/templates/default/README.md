@@ -42,7 +42,10 @@ await proxy.publishMqttMessage({
     lifecycleEndValue: "STOPPED",
   },
 });
+await proxy.flush();
 ```
+
+`publishMqttMessage()` resolves when the message is accepted into the local bounded publisher queue, not when the broker confirms it. Queue-full is reported immediately to the caller. Broker publish failures are emitted later on the proxy `error` event, so use `await proxy.flush()` before shutdown or before assuming all accepted messages were published.
 
 ## Schema System Metadata
 

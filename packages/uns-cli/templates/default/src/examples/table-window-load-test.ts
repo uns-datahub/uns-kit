@@ -431,8 +431,7 @@ async function main() {
       }
     }
 
-    // Give the worker queue a moment to publish before exiting.
-    await sleep(500);
+    await mqttOutput?.flush();
   } finally {
     rl.close();
     await mqttOutput?.stop();

@@ -239,12 +239,26 @@ export class ThrottledPublisher extends ThrottledQueue<PublisherQueueItem> {
    * Enqueue a publish request.
    */
   public enqueue(topic: string, message: string, id: string, options?: IClientPublishOptions): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.maxPendingPublishes !== undefined && this.getPendingCount() >= this.maxPendingPublishes) {
-        reject(new Error(`${this.instanceName} - Publisher queue is full (${this.maxPendingPublishes}).`));
-        return;
-      }
+    this.assertCanAcceptPublish();
+    return this.enqueueAcceptedPublish(topic, message, id, options);
+  }
 
+  /**
+   * Enqueue a publish request and throw synchronously if the bounded queue is full.
+   */
+  public enqueueOrThrow(topic: string, message: string, id: string, options?: IClientPublishOptions): Promise<void> {
+    this.assertCanAcceptPublish();
+    return this.enqueueAcceptedPublish(topic, message, id, options);
+  }
+
+  private assertCanAcceptPublish(): void {
+    if (this.maxPendingPublishes !== undefined && this.getPendingCount() >= this.maxPendingPublishes) {
+      throw new Error(`${this.instanceName} - Publisher queue is full (${this.maxPendingPublishes}).`);
+    }
+  }
+
+  private enqueueAcceptedPublish(topic: string, message: string, id: string, options?: IClientPublishOptions): Promise<void> {
+    return new Promise((resolve, reject) => {
       this.queue.push({ topic, message, id, options, resolve, reject });
 
       // Trigger logging after a new message is added.

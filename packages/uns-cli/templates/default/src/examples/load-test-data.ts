@@ -80,8 +80,8 @@ async function main() {
               }
             }
 
-            logger.info(`Sleeping for 50ms.`);
-            await new Promise((resolve) => setTimeout(resolve, 50));
+            await mqttOutput.flush();
+            await mqttOutput.stop();
 
             const endTime = Date.now();
             const duration = (endTime - startTime) / 1000;

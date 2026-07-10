@@ -50,9 +50,7 @@ describe("ThrottledPublisher", () => {
 
     const first = publisher.enqueue("a", "1", "1");
     const second = publisher.enqueue("a", "2", "2");
-    const third = publisher.enqueue("a", "3", "3");
-
-    await expect(third).rejects.toThrow("Publisher queue is full");
+    expect(() => publisher.enqueue("a", "3", "3")).toThrow("Publisher queue is full");
     await Promise.all([first, second]);
   });
 });

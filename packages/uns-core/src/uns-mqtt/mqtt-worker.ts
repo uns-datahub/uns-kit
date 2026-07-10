@@ -99,7 +99,7 @@ export class MqttWorker {
     parentPort?.on("message", async (msg) => {
       if (msg && msg.command === "enqueue" && msg.id && msg.topic && msg.message !== undefined) {
         try {
-          const publishPromise = this.publisher.enqueue(msg.topic, msg.message, msg.id, msg.options);
+          const publishPromise = this.publisher.enqueueOrThrow(msg.topic, msg.message, msg.id, msg.options);
           parentPort?.postMessage({
             command: "enqueueAccepted",
             id: msg.id,
