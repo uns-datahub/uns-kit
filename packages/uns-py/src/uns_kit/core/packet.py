@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime, timezone
 import re
 from typing import Any, Dict, Literal, Optional, TypeAlias
@@ -81,7 +81,7 @@ class DataPayload:
 @dataclass
 class TableColumnPayload:
     name: str
-    type: str
+    type: Optional[str]
     value: TableValue
     uom: Optional[str] = None
 
@@ -89,7 +89,7 @@ class TableColumnPayload:
 @dataclass
 class TablePayload:
     time: str
-    columns: list[TableColumnPayload | Dict[str, Any]]
+    columns: list[TableColumnPayload | Dict[str, Any]] | Dict[str, TableColumnPayload | Dict[str, Any]]
     dataGroup: Optional[str] = None
     intervalStart: Optional[str | int] = None
     intervalEnd: Optional[str | int] = None
@@ -147,29 +147,109 @@ def _validate_data_payload(payload: Dict[str, Any]) -> None:
 
 def _validate_table_payload(payload: Dict[str, Any]) -> None:
     columns = payload.get("columns")
-    if not isinstance(columns, list) or len(columns) == 0:
-        raise ValueError("table.columns must be a non-empty list")
+    if isinstance(columns, list):
+        if len(columns) == 0:
+            raise ValueError("table.columns must be a non-empty array or object")
 
-    for index, column in enumerate(columns):
-        if not isinstance(column, dict):
-            raise ValueError(f"table.columns[{index}] must be an object")
+        seen_names: set[str] = set()
+        for index, raw_column in enumerate(columns):
+            try:
+                column = _coerce_object(raw_column)
+            except TypeError as exc:
+                raise ValueError(f"table.columns[{index}] must be an object") from exc
 
-        name = column.get("name")
-        if not isinstance(name, str) or not name.strip():
-            raise ValueError(f"table.columns[{index}].name must be a non-empty string")
+            name = column.get("name")
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError(f"table.columns[{index}].name must be a non-empty string")
+            if name in seen_names:
+                raise ValueError(f"table.columns contains duplicate column name '{name}'")
+            seen_names.add(name)
 
-        column_type = column.get("type")
-        if not is_questdb_type(column_type):
-            raise ValueError(
-                f"table.columns[{index}].type must be a valid QuestDB type literal"
-            )
+            _validate_named_column_payload(name, column, f"table.columns[{index}]")
+        return
 
-        if "value" not in column:
-            raise ValueError(f"table.columns[{index}].value is required")
-        if not _is_table_value(column["value"]):
-            raise ValueError(
-                f"table.columns[{index}].value must be string, number, boolean, or null"
-            )
+    if isinstance(columns, dict):
+        if len(columns) == 0:
+            raise ValueError("table.columns must be a non-empty array or object")
+
+        for name, raw_column in columns.items():
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError("table.columns keys must be non-empty strings")
+            try:
+                column = _coerce_object(raw_column)
+            except TypeError as exc:
+                raise ValueError(f"table.columns.{name} must be an object") from exc
+
+            _validate_named_column_payload(name, column, f"table.columns.{name}")
+        return
+
+    raise ValueError("table.columns must be a non-empty array or object")
+
+
+def _validate_named_column_payload(name: str, column: Dict[str, Any], path: str) -> None:
+    column_type = column.get("type")
+    if column_type is not None and not is_questdb_type(column_type):
+        raise ValueError(f"{path}.type must be a valid QuestDB type literal")
+
+    if "value" not in column:
+        raise ValueError(f"{path}.value is required")
+    if not _is_table_value(column["value"]):
+        raise ValueError(
+            f"{path}.value must be string, number, boolean, or null"
+        )
+
+
+def _coerce_object(value: Any) -> Dict[str, Any]:
+    if is_dataclass(value):
+        coerced = asdict(value)
+    elif isinstance(value, dict):
+        coerced = dict(value)
+    else:
+        raise TypeError("value must be a dict or dataclass")
+    return coerced
+
+
+def _normalize_table_columns(columns: Any) -> list[Dict[str, Any]] | Dict[str, Dict[str, Any]]:
+    if isinstance(columns, list):
+        if len(columns) == 0:
+            raise ValueError("table.columns must be a non-empty array or object")
+
+        normalized: list[Dict[str, Any]] = []
+        seen_names: set[str] = set()
+        for index, raw_column in enumerate(columns):
+            try:
+                column = _coerce_object(raw_column)
+            except TypeError as exc:
+                raise ValueError(f"table.columns[{index}] must be an object") from exc
+
+            name = column.get("name")
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError(f"table.columns[{index}].name must be a non-empty string")
+            if name in seen_names:
+                raise ValueError(f"table.columns contains duplicate column name '{name}'")
+            seen_names.add(name)
+
+            _prune_none(column)
+            normalized.append(column)
+        return normalized
+
+    if isinstance(columns, dict):
+        if len(columns) == 0:
+            raise ValueError("table.columns must be a non-empty array or object")
+
+        normalized = {}
+        for name, raw_column in columns.items():
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError("table.columns keys must be non-empty strings")
+            try:
+                column = _coerce_object(raw_column)
+            except TypeError as exc:
+                raise ValueError(f"table.columns.{name} must be an object") from exc
+            _prune_none(column)
+            normalized[name] = column
+        return normalized
+
+    raise ValueError("table.columns must be a non-empty array or object")
 
 
 def _normalize_payload_fields(payload: Dict[str, Any], extra: Dict[str, Any]) -> None:
@@ -232,7 +312,7 @@ class UnsPacket:
     def table(
         table: Optional[Dict[str, Any]] = None,
         *,
-        columns: Optional[list[TableColumnPayload | Dict[str, Any]]] = None,
+        columns: Optional[list[TableColumnPayload | Dict[str, Any]] | Dict[str, TableColumnPayload | Dict[str, Any]]] = None,
         time: Optional[datetime | str] = None,
         data_group: Optional[str] = None,
         created_at: Optional[datetime | str] = None,
@@ -261,6 +341,8 @@ class UnsPacket:
 
         _normalize_payload_fields(payload, extra)
         _prune_none(payload)
+        if "columns" in payload:
+            payload["columns"] = _normalize_table_columns(payload["columns"])
         _validate_table_payload(payload)
         message: Dict[str, Any] = {"table": payload}
         if created_at is not None:
@@ -295,6 +377,8 @@ class UnsPacket:
         table = msg.get("table")
         if isinstance(table, dict):
             table = dict(table)
+            if "columns" in table:
+                table["columns"] = _normalize_table_columns(table["columns"])
             _validate_table_payload(table)
             msg["table"] = table
         elif table is not None:
