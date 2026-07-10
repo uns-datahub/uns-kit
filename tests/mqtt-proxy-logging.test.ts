@@ -93,6 +93,28 @@ describe("MqttProxy logging", () => {
     expect(debugMessages).toContain("controller-cluster - Disconnected from MQTT broker.");
   });
 
+  it("resolves stop only after the MQTT client finishes disconnecting", async () => {
+    const proxy = new MqttProxy("127.0.0.1", "controller-cluster", { statusTopic: "" });
+    const client = new FakeMqttClient();
+    let finishDisconnect!: () => void;
+    client.end.mockImplementation((_force?: boolean, callback?: () => void) => {
+      finishDisconnect = () => callback?.();
+      return client as any;
+    });
+    (proxy as any).mqttClient = client;
+
+    const stopPromise = proxy.stop({ reason: "shutdown" });
+    let stopped = false;
+    void stopPromise.then(() => {
+      stopped = true;
+    });
+    await Promise.resolve();
+    expect(stopped).toBe(false);
+
+    finishDisconnect();
+    await expect(stopPromise).resolves.toBeUndefined();
+  });
+
   it("restores isConnected on reconnect without duplicating subscribe or interval setup", async () => {
     const client = new FakeMqttClient();
     connectMock.mockReturnValue(client);

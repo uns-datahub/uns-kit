@@ -50,7 +50,27 @@ describe("ThrottledPublisher", () => {
 
     const first = publisher.enqueue("a", "1", "1");
     const second = publisher.enqueue("a", "2", "2");
-    expect(() => publisher.enqueue("a", "3", "3")).toThrow("Publisher queue is full");
+    const third = publisher.enqueue("a", "3", "3");
+    await expect(third).rejects.toThrow("Publisher queue is full");
     await Promise.all([first, second]);
+  });
+
+  it("offers a synchronous queue-full check for worker acceptance", async () => {
+    const publisher = new ThrottledPublisher(
+      0,
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      },
+      false,
+      undefined,
+      "test-publisher",
+      true,
+      1,
+      1,
+    );
+
+    const first = publisher.enqueueOrThrow("a", "1", "1");
+    expect(() => publisher.enqueueOrThrow("a", "2", "2")).toThrow("Publisher queue is full");
+    await first;
   });
 });

@@ -290,7 +290,7 @@ export default class MqttProxy {
     return this.mqttClient.unsubscribeAsync(topics);
   }
 
-  public stop(options: MqttStopOptions = {}) {
+  public stop(options: MqttStopOptions = {}): Promise<void> {
     const silent = options.silent === true || options.reason === "retry";
     const shouldLogDisconnect = !silent && this.hasEstablishedConnection;
 
@@ -298,46 +298,46 @@ export default class MqttProxy {
       logger.debug(`${this.instanceName} - Disconnecting from MQTT broker...`);
     }
 
-    try {
-      if (this.statusUpdateInterval) {
-        clearInterval(this.statusUpdateInterval);
-        this.statusUpdateInterval = null;
-      }
-      if (this.transformationStatsInterval) {
-        clearInterval(this.transformationStatsInterval);
-        this.transformationStatsInterval = null;
-      }
-      if (this.mqttClient) {
-        this.mqttClient.end(false, () => {
-          this.isConnected = false;
-          this.pendingReconnectWait = null;
-          this.startupSettled = false;
-          this.hasEstablishedConnection = false;
-          this.startupResolve = null;
-          this.startupReject = null;
-          if (shouldLogDisconnect) {
-            logger.debug(`${this.instanceName} - Disconnected from MQTT broker.`);
-          }
-        });
-      } else {
+    return new Promise((resolve, reject) => {
+      const resetState = () => {
         this.isConnected = false;
         this.pendingReconnectWait = null;
         this.startupSettled = false;
         this.hasEstablishedConnection = false;
         this.startupResolve = null;
         this.startupReject = null;
+      };
+
+      try {
+        if (this.statusUpdateInterval) {
+          clearInterval(this.statusUpdateInterval);
+          this.statusUpdateInterval = null;
+        }
+        if (this.transformationStatsInterval) {
+          clearInterval(this.transformationStatsInterval);
+          this.transformationStatsInterval = null;
+        }
+        if (this.mqttClient) {
+          this.mqttClient.end(false, () => {
+            resetState();
+            if (shouldLogDisconnect) {
+              logger.debug(`${this.instanceName} - Disconnected from MQTT broker.`);
+            }
+            resolve();
+          });
+        } else {
+          resetState();
+          resolve();
+        }
+      } catch (error) {
+        resetState();
+        const reason = error instanceof Error ? error : new Error(String(error));
+        if (!silent) {
+          logger.error(`${this.instanceName} - Error during stop: ${formatMqttError(reason).message}`);
+        }
+        reject(reason);
       }
-    } catch (error) {
-      if (!silent) {
-        logger.error(`${this.instanceName} - Error during stop: ${formatMqttError(error).message}`);
-      }
-      this.isConnected = false;
-      this.pendingReconnectWait = null;
-      this.startupSettled = false;
-      this.hasEstablishedConnection = false;
-      this.startupResolve = null;
-      this.startupReject = null;
-    }
+    });
   }
 
   private handleMqttConnect(): void {

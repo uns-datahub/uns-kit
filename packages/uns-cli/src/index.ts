@@ -416,12 +416,25 @@ function topicPrefixForPublish(topicPrefix: string): string {
   return topicPrefix.endsWith("/") ? topicPrefix : \`\${topicPrefix}/\`;
 }
 
+let activeProcess: UnsProxyProcess | undefined;
+
 async function main(): Promise<void> {
   const config = await ConfigFile.loadConfig();
   const processName = config.uns.processName ?? ${processName};
   const unsProcess = new UnsProxyProcess(config.infra.host ?? "localhost", {
     processName,
   });
+  activeProcess = unsProcess;
+  const shutdown = (signal: NodeJS.Signals): void => {
+    console.log("Received " + signal + "; shutting down UNS process '" + processName + "'.");
+    void unsProcess.shutdown().catch((error: unknown) => {
+      const reason = error instanceof Error ? error : new Error(String(error));
+      console.error("UNS process '" + processName + "' shutdown failed: " + reason.message);
+      process.exitCode = 1;
+    });
+  };
+  process.once("SIGINT", () => shutdown("SIGINT"));
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
 
   const mqttOutput = await unsProcess.createUnsMqttProxy(
     config.output?.host ?? "localhost",
@@ -453,13 +466,21 @@ async function main(): Promise<void> {
   }
 
   await mqttOutput.flush();
-  await mqttOutput.stop();
-  await unsProcess.shutdown();
 
   console.log(\`UNS process '\${processName}' published \${outputContracts.length} interval example output(s).\`);
 }
 
-void main();
+void main().catch(async (error: unknown) => {
+  const reason = error instanceof Error ? error : new Error(String(error));
+  try {
+    await activeProcess?.shutdown();
+  } catch (shutdownError) {
+    const shutdownReason = shutdownError instanceof Error ? shutdownError : new Error(String(shutdownError));
+    console.error("UNS process cleanup failed: " + shutdownReason.message);
+  }
+  console.error("UNS process startup failed: " + reason.message);
+  process.exitCode = 1;
+});
 `;
 }
 

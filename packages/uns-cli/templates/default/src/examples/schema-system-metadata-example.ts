@@ -120,7 +120,5 @@ try {
 
   logger.info(`Published schema-system metadata example for material ${currentMaterialId}.`);
 } finally {
-  await mqttOutput.flush();
-  await mqttOutput.stop();
   await unsProxyProcess.shutdown();
 }

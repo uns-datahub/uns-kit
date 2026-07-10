@@ -594,15 +594,26 @@ export class UnsGatewayServer {
   }
 
   public async shutdown(): Promise<void> {
+    const shutdownErrors: Error[] = [];
+
     try {
       for (const h of Array.from(this.handlers)) this.cleanupHandler(h);
       if (this.server) {
         await new Promise<void>((resolve) => this.server!.tryShutdown(() => resolve()));
         this.server = null;
       }
+    } catch (error) {
+      shutdownErrors.push(error instanceof Error ? error : new Error(String(error)));
+    }
+
+    try {
       if (this.unsProcess) await this.unsProcess.shutdown();
-    } catch (e: any) {
-      logger.error(`Gateway shutdown error: ${e.message}`);
+    } catch (error) {
+      shutdownErrors.push(error instanceof Error ? error : new Error(String(error)));
+    }
+
+    if (shutdownErrors.length > 0) {
+      throw new AggregateError(shutdownErrors, "Gateway shutdown completed with errors.");
     }
   }
 }

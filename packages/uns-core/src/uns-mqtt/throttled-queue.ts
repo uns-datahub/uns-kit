@@ -239,8 +239,12 @@ export class ThrottledPublisher extends ThrottledQueue<PublisherQueueItem> {
    * Enqueue a publish request.
    */
   public enqueue(topic: string, message: string, id: string, options?: IClientPublishOptions): Promise<void> {
-    this.assertCanAcceptPublish();
-    return this.enqueueAcceptedPublish(topic, message, id, options);
+    try {
+      this.assertCanAcceptPublish();
+      return this.enqueueAcceptedPublish(topic, message, id, options);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 
   /**

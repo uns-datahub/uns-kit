@@ -114,7 +114,7 @@ export interface IUnsParameters {
   mqttSSL?: boolean;
   publishThrottlingDelay?: number; // Delay in milliseconds; default is 1ms
   publishConcurrency?: number; // Maximum concurrent outgoing publishes; default is 1
-  maxPendingPublishes?: number; // Maximum accepted queued+in-flight publishes; default is unlimited
+  maxPendingPublishes?: number; // Maximum pending publishes across the API boundary and worker; default is unlimited
   subscribeThrottlingDelay?: number; // Delay in milliseconds; default is 1ms
   rejectUnauthorized?: boolean;
   clientId?: string;

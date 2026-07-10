@@ -90,6 +90,25 @@ describe("UnsMqttProxy publish drain contract", () => {
     await proxy.stop({ drain: false });
   });
 
+  it("bounds pending publish admission before messages enter the worker channel", async () => {
+    const proxy = new UnsMqttProxy("localhost", "proc", "instance", {
+      maxPendingPublishes: 2,
+    });
+    const worker = getLastWorker();
+
+    const first = proxy.publishMessage("raw/data", "first");
+    const second = proxy.publishMessage("raw/data", "second");
+    const third = proxy.publishMessage("raw/data", "third");
+
+    await expect(third).rejects.toThrow("Publisher queue is full (2)");
+    expect(worker.postedMessages.filter((message) => message.command === "enqueue")).toHaveLength(2);
+
+    const firstRejection = expect(first).rejects.toThrow("UnsProxy has been stopped");
+    const secondRejection = expect(second).rejects.toThrow("UnsProxy has been stopped");
+    await proxy.stop({ drain: false });
+    await Promise.all([firstRejection, secondRejection]);
+  });
+
   it("flush waits for delayed async publish completions", async () => {
     const proxy = new UnsMqttProxy("localhost", "proc", "instance");
     const worker = getLastWorker();
@@ -130,6 +149,50 @@ describe("UnsMqttProxy publish drain contract", () => {
     expect(worker.terminate).toHaveBeenCalledOnce();
   });
 
+  it("is idempotent and terminates the worker only once", async () => {
+    const proxy = new UnsMqttProxy("localhost", "proc", "instance");
+    const worker = getLastWorker();
+
+    const firstStop = proxy.stop({ drain: false });
+    const secondStop = proxy.stop();
+
+    expect(secondStop).toBe(firstStop);
+    await expect(firstStop).resolves.toBeUndefined();
+    await expect(proxy.stop()).resolves.toBeUndefined();
+    expect(worker.terminate).toHaveBeenCalledOnce();
+  });
+
+  it("rejects new publishes as soon as stop starts", async () => {
+    const proxy = new UnsMqttProxy("localhost", "proc", "instance");
+    const worker = getLastWorker();
+    let finishTerminate!: (exitCode: number) => void;
+    worker.terminate.mockImplementationOnce(() => new Promise<number>((resolve) => {
+      finishTerminate = resolve;
+    }));
+
+    const stopPromise = proxy.stop({ drain: false });
+    await vi.waitFor(() => expect(worker.terminate).toHaveBeenCalledOnce());
+    const enqueueCount = worker.postedMessages.length;
+
+    await expect(proxy.publishMessage("raw/data", "too-late")).rejects.toThrow("MQTT proxy is stopping");
+    expect(worker.postedMessages).toHaveLength(enqueueCount);
+
+    finishTerminate(1);
+    await expect(stopPromise).resolves.toBeUndefined();
+  });
+
+  it("does not treat the exit from intentional worker termination as a failure", async () => {
+    const proxy = new UnsMqttProxy("localhost", "proc", "instance");
+    const worker = getLastWorker();
+    worker.terminate.mockImplementationOnce(async () => {
+      worker.emit("exit", 1);
+      return 1;
+    });
+
+    await expect(proxy.stop({ drain: false })).resolves.toBeUndefined();
+    await expect(proxy.flush()).resolves.toBeUndefined();
+  });
+
   it("emits async proxy error events for broker publish failure after acceptance and still drains", async () => {
     const proxy = new UnsMqttProxy("localhost", "proc", "instance");
     const worker = getLastWorker();
@@ -167,7 +230,21 @@ describe("UnsMqttProxy publish drain contract", () => {
     const flushPromise = proxy.flush(1000);
     worker.emit("exit", 1);
 
-    await expect(flushPromise).rejects.toThrow("MQTT worker exited with code 1");
+    await expect(flushPromise).rejects.toThrow("MQTT worker exited unexpectedly with code 1");
     await proxy.stop({ drain: false }).catch(() => undefined);
+  });
+
+  it("propagates handover drain failures instead of leaving the handover pending", async () => {
+    const proxy = new UnsMqttProxy("localhost", "proc", "instance");
+    vi.spyOn(proxy, "setSubscriberPassive").mockResolvedValue({
+      command: "handover_subscriber",
+      batchSize: 0,
+      referenceHash: "",
+      instanceName: "instance",
+    });
+    vi.spyOn(proxy, "flush").mockRejectedValue(new Error("handover drain failed"));
+
+    await expect(proxy.setSubscriberPassiveAndDrainQueue()).rejects.toThrow("handover drain failed");
+    await proxy.stop({ drain: false });
   });
 });

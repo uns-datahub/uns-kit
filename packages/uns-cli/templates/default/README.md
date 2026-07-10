@@ -47,6 +47,8 @@ await proxy.flush();
 
 `publishMqttMessage()` resolves when the message is accepted into the local bounded publisher queue, not when the broker confirms it. Queue-full is reported immediately to the caller. Broker publish failures are emitted later on the proxy `error` event, so use `await proxy.flush()` before shutdown or before assuming all accepted messages were published.
 
+The generated `src/index.ts` is a long-running service. It keeps the UNS process active after the startup publish and calls `UnsProxyProcess.shutdown()` from `SIGINT` and `SIGTERM` handlers. For process-owned MQTT proxies, use that process-level shutdown path instead of stopping the same proxy separately.
+
 ## Schema System Metadata
 
 The template includes `src/examples/schema-system-metadata-example.ts`, which

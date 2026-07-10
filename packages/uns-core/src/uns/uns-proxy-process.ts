@@ -49,6 +49,7 @@ class UnsProxyProcess {
   private handoverManager: HandoverManager;
   private statusMonitor: StatusMonitor;
   private serviceMetadataTopic: string;
+  private shutdownPromise: Promise<void> | null = null;
 
   // Plugin
   static pluginApiVersion = 1;
@@ -279,22 +280,46 @@ class UnsProxyProcess {
    * Shuts down the process by clearing intervals, timeouts, and removing
    * MQTT event listeners, and stopping the StatusMonitor.
    */
-  public async shutdown(options: UnsMqttProxyStopOptions = {}): Promise<void> {
+  public shutdown(options: UnsMqttProxyStopOptions = {}): Promise<void> {
+    if (this.shutdownPromise) {
+      return this.shutdownPromise;
+    }
+
+    this.shutdownPromise = this.performShutdown(options);
+    return this.shutdownPromise;
+  }
+
+  private async performShutdown(options: UnsMqttProxyStopOptions): Promise<void> {
     logger.info(`${this.processName} - Shutting down UnsProxyProcess...`);
+    const shutdownErrors: Error[] = [];
+
     try {
       this.statusMonitor.stop();
     } catch (e: any) {
-      logger.error(`${this.processName} - Error stopping StatusMonitor: ${e.message}`);
+      const reason = e instanceof Error ? e : new Error(String(e));
+      logger.error(`${this.processName} - Error stopping StatusMonitor: ${reason.message}`);
+      shutdownErrors.push(reason);
     }
     
     if (this.mqttInputHandler) {
-      this.processMqttProxy.event.off("input", this.mqttInputHandler);
+      try {
+        this.processMqttProxy.event.off("input", this.mqttInputHandler);
+      } catch (e: any) {
+        const reason = e instanceof Error ? e : new Error(String(e));
+        logger.error(`${this.processName} - Error removing MQTT input handler: ${reason.message}`);
+        shutdownErrors.push(reason);
+      }
     }
     
-    try {
-      await Promise.all(this.unsMqttProxies.map((proxy) => proxy.stop(options)));
-    } catch (e: any) {
-      logger.error(`${this.processName} - Error stopping UNS MQTT proxies: ${e.message}`);
+    const proxyStopResults = await Promise.allSettled(
+      this.unsMqttProxies.map((proxy) => proxy.stop(options)),
+    );
+    for (const result of proxyStopResults) {
+      if (result.status === "rejected") {
+        const reason = result.reason instanceof Error ? result.reason : new Error(String(result.reason));
+        logger.error(`${this.processName} - Error stopping UNS MQTT proxy: ${reason.message}`);
+        shutdownErrors.push(reason);
+      }
     }
 
     try {
@@ -302,9 +327,15 @@ class UnsProxyProcess {
         await this.processMqttProxy.stop();
       }
     } catch (e: any) {
-      logger.error(`${this.processName} - Error stopping MQTT proxy: ${e.message}`);
+      const reason = e instanceof Error ? e : new Error(String(e));
+      logger.error(`${this.processName} - Error stopping MQTT proxy: ${reason.message}`);
+      shutdownErrors.push(reason);
     }
-    
+
+    if (shutdownErrors.length > 0) {
+      throw new AggregateError(shutdownErrors, `${this.processName} - Shutdown completed with errors.`);
+    }
+
     logger.info(`${this.processName} - Shutdown complete.`);
   }
   

@@ -84,6 +84,9 @@ describe("uns-kit create --bundle", () => {
     const indexTs = await readFile(path.join(targetDir, "src", "index.ts"), "utf8");
     expect(indexTs).toContain("createUnsMqttProxy");
     expect(indexTs).not.toContain("createMqttProxy");
+    expect(indexTs).toContain('process.once("SIGINT"');
+    expect(indexTs).toContain('process.once("SIGTERM"');
+    expect(indexTs).not.toContain("await mqttOutput.stop()");
   });
 
   it("writes a bundle-aware interval publisher example from output contracts", async () => {
@@ -130,6 +133,8 @@ describe("uns-kit create --bundle", () => {
     expect(indexTs).toContain('"expectedIntervalMs": 5000');
     expect(indexTs).toContain('validityMode: "interval"');
     expect(indexTs).toContain("expectedIntervalMs: output.expectedIntervalMs");
+    expect(indexTs).toContain('process.once("SIGINT"');
+    expect(indexTs).not.toContain("await mqttOutput.stop()");
 
     const serviceSpec = await readFile(path.join(targetDir, "SERVICE_SPEC.md"), "utf8");
     expect(serviceSpec).toContain('validityMode: "interval"');
@@ -215,6 +220,9 @@ describe("uns-kit create --bundle", () => {
     expect(result.status).toBe(0);
     expect(existsSync(path.join(workdir, "legacy-app", "package.json"))).toBe(true);
     expect(existsSync(path.join(workdir, "legacy-app", "service.bundle.json"))).toBe(false);
+    const indexTs = await readFile(path.join(workdir, "legacy-app", "src", "index.ts"), "utf8");
+    expect(indexTs).toContain('process.once("SIGINT"');
+    expect(indexTs).not.toContain("await mqttOutput.stop()");
   });
 });
 

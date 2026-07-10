@@ -71,7 +71,5 @@ try {
       `${parentAssetTopic}${subAsset}/equipment/main/temperature`,
   );
 } finally {
-  await mqttOutput.flush();
-  await mqttOutput.stop();
   await unsProxyProcess.shutdown();
 }

@@ -264,7 +264,9 @@ const proxy = await proc.createUnsMqttProxy(config.infra.host!, "output", "force
 
 `publishMqttMessage()` resolves when a message is accepted into the local bounded publisher queue. Asynchronous broker publish failures are logged and emitted on the proxy `error` event.
 
-If the bounded queue is full, `publishMessage()` / `publishMqttMessage()` reject immediately. Use `await proxy.flush()` or `await proxy.drainPublishes()` before shutdown or before assuming all accepted messages have reached the broker. `await proxy.stop()` drains by default with a timeout; use `await proxy.stop({ drain: false })` only when dropping queued messages is acceptable.
+If the bounded queue is full, `publishMessage()` / `publishMqttMessage()` reject before another message enters the worker channel. The limit covers requests awaiting worker acceptance plus accepted queued and in-flight publishes, so callers cannot create an unbounded main-thread backlog.
+
+Use `await proxy.flush()` or `await proxy.drainPublishes()` before assuming all accepted messages have reached the broker. `await proxy.stop()` closes publish admission immediately and drains by default with a timeout; repeated `stop()` calls share the same result. Use `await proxy.stop({ drain: false })` only when dropping queued messages is acceptable. When a proxy belongs to `UnsProxyProcess`, call `await process.shutdown()` instead of stopping the proxy separately. Process shutdown attempts every cleanup and rejects with an `AggregateError` if any drain or stop fails.
 
 ## Sync UNS schema from the controller
 
