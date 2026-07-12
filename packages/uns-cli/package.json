@@ -36,6 +36,7 @@
     "@uns-kit/core": "2.0.71",
     "@uns-kit/api": "2.0.71",
     "@uns-kit/cron": "2.0.71",
-    "@uns-kit/database": "2.0.71"
+    "@uns-kit/database": "2.0.71",
+    "@uns-kit/assistant-workflow": "2.0.71"
   }
 }

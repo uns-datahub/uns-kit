@@ -1,0 +1,341 @@
+{
+  "name": "@uns-kit/assistant-workflow",
+  "version": "2.0.71",
+  "description": "Typed, provider-neutral workflow definitions, policies, execution plans, and trace helpers for assistants.",
+  "author": "Aljosa Vister",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uns-datahub/uns-kit.git",
+    "directory": "packages/uns-assistant-workflow"
+  },
+  "keywords": [
+    "assistant",
+    "agent",
+    "workflow",
+    "llm",
+    "tools",
+    "typescript"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./clarification-policy": {
+      "types": "./dist/clarification-policy.d.ts",
+      "default": "./dist/clarification-policy.js"
+    },
+    "./decision": {
+      "types": "./dist/decision.d.ts",
+      "default": "./dist/decision.js"
+    },
+    "./definition": {
+      "types": "./dist/definition.d.ts",
+      "default": "./dist/definition.js"
+    },
+    "./definition-catalog": {
+      "types": "./dist/definition-catalog.d.ts",
+      "default": "./dist/definition-catalog.js"
+    },
+    "./definition-catalog-replay": {
+      "types": "./dist/definition-catalog-replay.d.ts",
+      "default": "./dist/definition-catalog-replay.js"
+    },
+    "./definition-diagnostics": {
+      "types": "./dist/definition-diagnostics.d.ts",
+      "default": "./dist/definition-diagnostics.js"
+    },
+    "./definition-diff": {
+      "types": "./dist/definition-diff.d.ts",
+      "default": "./dist/definition-diff.js"
+    },
+    "./definition-json": {
+      "types": "./dist/definition-json.d.ts",
+      "default": "./dist/definition-json.js"
+    },
+    "./definition-manifest": {
+      "types": "./dist/definition-manifest.d.ts",
+      "default": "./dist/definition-manifest.js"
+    },
+    "./definition-package": {
+      "types": "./dist/definition-package.d.ts",
+      "default": "./dist/definition-package.js"
+    },
+    "./definition-package-execution-json": {
+      "types": "./dist/definition-package-execution-json.d.ts",
+      "default": "./dist/definition-package-execution-json.js"
+    },
+    "./definition-package-execution-replay": {
+      "types": "./dist/definition-package-execution-replay.d.ts",
+      "default": "./dist/definition-package-execution-replay.js"
+    },
+    "./definition-package-executor": {
+      "types": "./dist/definition-package-executor.d.ts",
+      "default": "./dist/definition-package-executor.js"
+    },
+    "./definition-package-loader": {
+      "types": "./dist/definition-package-loader.d.ts",
+      "default": "./dist/definition-package-loader.js"
+    },
+    "./definition-package-replay": {
+      "types": "./dist/definition-package-replay.d.ts",
+      "default": "./dist/definition-package-replay.js"
+    },
+    "./definition-package-resolver": {
+      "types": "./dist/definition-package-resolver.d.ts",
+      "default": "./dist/definition-package-resolver.js"
+    },
+    "./definition-package-review": {
+      "types": "./dist/definition-package-review.d.ts",
+      "default": "./dist/definition-package-review.js"
+    },
+    "./definition-package-run": {
+      "types": "./dist/definition-package-run.d.ts",
+      "default": "./dist/definition-package-run.js"
+    },
+    "./definition-package-run-report": {
+      "types": "./dist/definition-package-run-report.d.ts",
+      "default": "./dist/definition-package-run-report.js"
+    },
+    "./definition-package-selection": {
+      "types": "./dist/definition-package-selection.d.ts",
+      "default": "./dist/definition-package-selection.js"
+    },
+    "./definition-package-smoke": {
+      "types": "./dist/definition-package-smoke.d.ts",
+      "default": "./dist/definition-package-smoke.js"
+    },
+    "./definition-tuning": {
+      "types": "./dist/definition-tuning.d.ts",
+      "default": "./dist/definition-tuning.js"
+    },
+    "./definition-tuning-approval": {
+      "types": "./dist/definition-tuning-approval.d.ts",
+      "default": "./dist/definition-tuning-approval.js"
+    },
+    "./definition-tuning-json": {
+      "types": "./dist/definition-tuning-json.d.ts",
+      "default": "./dist/definition-tuning-json.js"
+    },
+    "./definition-tuning-promotion": {
+      "types": "./dist/definition-tuning-promotion.d.ts",
+      "default": "./dist/definition-tuning-promotion.js"
+    },
+    "./definition-tuning-replay": {
+      "types": "./dist/definition-tuning-replay.d.ts",
+      "default": "./dist/definition-tuning-replay.js"
+    },
+    "./definition-tuning-review": {
+      "types": "./dist/definition-tuning-review.d.ts",
+      "default": "./dist/definition-tuning-review.js"
+    },
+    "./definition-tuning-review-artifact": {
+      "types": "./dist/definition-tuning-review-artifact.d.ts",
+      "default": "./dist/definition-tuning-review-artifact.js"
+    },
+    "./definition-tuning-source-patch": {
+      "types": "./dist/definition-tuning-source-patch.d.ts",
+      "default": "./dist/definition-tuning-source-patch.js"
+    },
+    "./direct-route-invocation": {
+      "types": "./dist/direct-route-invocation.d.ts",
+      "default": "./dist/direct-route-invocation.js"
+    },
+    "./direct-route-policy": {
+      "types": "./dist/direct-route-policy.d.ts",
+      "default": "./dist/direct-route-policy.js"
+    },
+    "./eval-case": {
+      "types": "./dist/eval-case.d.ts",
+      "default": "./dist/eval-case.js"
+    },
+    "./eval-replay": {
+      "types": "./dist/eval-replay.d.ts",
+      "default": "./dist/eval-replay.js"
+    },
+    "./eval-result": {
+      "types": "./dist/eval-result.d.ts",
+      "default": "./dist/eval-result.js"
+    },
+    "./eval-runner": {
+      "types": "./dist/eval-runner.d.ts",
+      "default": "./dist/eval-runner.js"
+    },
+    "./eval-suite": {
+      "types": "./dist/eval-suite.d.ts",
+      "default": "./dist/eval-suite.js"
+    },
+    "./execution-plan": {
+      "types": "./dist/execution-plan.d.ts",
+      "default": "./dist/execution-plan.js"
+    },
+    "./hosted-tool-policy": {
+      "types": "./dist/hosted-tool-policy.d.ts",
+      "default": "./dist/hosted-tool-policy.js"
+    },
+    "./memory-policy": {
+      "types": "./dist/memory-policy.d.ts",
+      "default": "./dist/memory-policy.js"
+    },
+    "./memory-updates": {
+      "types": "./dist/memory-updates.d.ts",
+      "default": "./dist/memory-updates.js"
+    },
+    "./outcome": {
+      "types": "./dist/outcome.d.ts",
+      "default": "./dist/outcome.js"
+    },
+    "./outcome-trace": {
+      "types": "./dist/outcome-trace.d.ts",
+      "default": "./dist/outcome-trace.js"
+    },
+    "./policy-resolution": {
+      "types": "./dist/policy-resolution.d.ts",
+      "default": "./dist/policy-resolution.js"
+    },
+    "./planner-compiler": {
+      "types": "./dist/planner-compiler.d.ts",
+      "default": "./dist/planner-compiler.js"
+    },
+    "./planning": {
+      "types": "./dist/planning.d.ts",
+      "default": "./dist/planning.js"
+    },
+    "./run": {
+      "types": "./dist/run.d.ts",
+      "default": "./dist/run.js"
+    },
+    "./run-parity": {
+      "types": "./dist/run-parity.d.ts",
+      "default": "./dist/run-parity.js"
+    },
+    "./run-evaluation": {
+      "types": "./dist/run-evaluation.d.ts",
+      "default": "./dist/run-evaluation.js"
+    },
+    "./run-report": {
+      "types": "./dist/run-report.d.ts",
+      "default": "./dist/run-report.js"
+    },
+    "./run-report-batch": {
+      "types": "./dist/run-report-batch.d.ts",
+      "default": "./dist/run-report-batch.js"
+    },
+    "./run-report-json": {
+      "types": "./dist/run-report-json.d.ts",
+      "default": "./dist/run-report-json.js"
+    },
+    "./tool-bindings": {
+      "types": "./dist/tool-bindings.d.ts",
+      "default": "./dist/tool-bindings.js"
+    },
+    "./tool-capabilities": {
+      "types": "./dist/tool-capabilities.d.ts",
+      "default": "./dist/tool-capabilities.js"
+    },
+    "./tool-executor": {
+      "types": "./dist/tool-executor.d.ts",
+      "default": "./dist/tool-executor.js"
+    },
+    "./tool-fixtures": {
+      "types": "./dist/tool-fixtures.d.ts",
+      "default": "./dist/tool-fixtures.js"
+    },
+    "./tool-invocations": {
+      "types": "./dist/tool-invocations.d.ts",
+      "default": "./dist/tool-invocations.js"
+    },
+    "./tool-provider-executors": {
+      "types": "./dist/tool-provider-executors.d.ts",
+      "default": "./dist/tool-provider-executors.js"
+    },
+    "./tool-result-cache": {
+      "types": "./dist/tool-result-cache.d.ts",
+      "default": "./dist/tool-result-cache.js"
+    },
+    "./tool-runtime": {
+      "types": "./dist/tool-runtime.d.ts",
+      "default": "./dist/tool-runtime.js"
+    },
+    "./tool-selection-evaluation": {
+      "types": "./dist/tool-selection-evaluation.d.ts",
+      "default": "./dist/tool-selection-evaluation.js"
+    },
+    "./tool-selection-json": {
+      "types": "./dist/tool-selection-json.d.ts",
+      "default": "./dist/tool-selection-json.js"
+    },
+    "./tool-selection-policy": {
+      "types": "./dist/tool-selection-policy.d.ts",
+      "default": "./dist/tool-selection-policy.js"
+    },
+    "./tool-selection-rules": {
+      "types": "./dist/tool-selection-rules.d.ts",
+      "default": "./dist/tool-selection-rules.js"
+    },
+    "./tool-selection-replay": {
+      "types": "./dist/tool-selection-replay.d.ts",
+      "default": "./dist/tool-selection-replay.js"
+    },
+    "./tool-selection-trace-export": {
+      "types": "./dist/tool-selection-trace-export.d.ts",
+      "default": "./dist/tool-selection-trace-export.js"
+    },
+    "./tool-results": {
+      "types": "./dist/tool-results.d.ts",
+      "default": "./dist/tool-results.js"
+    },
+    "./trace-events": {
+      "types": "./dist/trace-events.d.ts",
+      "default": "./dist/trace-events.js"
+    },
+    "./trace-payload": {
+      "types": "./dist/trace-payload.d.ts",
+      "default": "./dist/trace-payload.js"
+    },
+    "./trace-stages": {
+      "types": "./dist/trace-stages.d.ts",
+      "default": "./dist/trace-stages.js"
+    },
+    "./trace-replay": {
+      "types": "./dist/trace-replay.d.ts",
+      "default": "./dist/trace-replay.js"
+    },
+    "./trace-report": {
+      "types": "./dist/trace-report.d.ts",
+      "default": "./dist/trace-report.js"
+    },
+    "./value-readers": {
+      "types": "./dist/value-readers.d.ts",
+      "default": "./dist/value-readers.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "clean": "node ./scripts/clean.mjs",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "build": "pnpm run clean && tsc -p tsconfig.build.json",
+    "test": "vitest run --reporter=dot --silent=true tests/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:verify": "tsc -p tsconfig.verify.json",
+    "pack:check": "npm pack --dry-run --json",
+    "verify": "pnpm run typecheck && pnpm run typecheck:verify && pnpm run test && pnpm run build && pnpm run pack:check",
+    "postversion": "node ../../scripts/update-cli-package-version.cjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.0"
+  }
+}
