@@ -139,7 +139,12 @@ uns-kit upgrade           # upgrade current directory
 uns-kit upgrade ./my-app  # upgrade a specific project
 ```
 
-Removes scripts that have been superseded (`generate-uns-dictionary`, `generate-uns-measurements`, `generate-uns-reference`, `generate-uns-metadata`) and ensures `sync-uns-schema` is present.
+Removes scripts that have been superseded (`generate-uns-dictionary`, `generate-uns-measurements`, `generate-uns-reference`, `generate-uns-metadata`), ensures the `sync-uns-*` scripts are present, and adds an idempotent managed section to `AGENTS.md` that directs agents to version-bounded `@uns-kit/core` migrations. Existing project-specific agent instructions are preserved.
+
+The installed migration guide is `node_modules/@uns-kit/core/MIGRATIONS.md`.
+For example, an upgrade crossing `<2.0.71` to `>=2.0.71` must review MQTT
+shutdown ownership, while an upgrade starting at `2.0.71` or newer must not
+rewrite shutdown code solely because of that migration.
 
 ### `uns-kit help`
 Display usage information.

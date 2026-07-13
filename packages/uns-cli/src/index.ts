@@ -641,6 +641,63 @@ const OBSOLETE_SCRIPTS = [
   "generate-uns-metadata",
 ] as const;
 
+const AGENT_MIGRATION_START = "<!-- uns-kit:migrations:start -->";
+const AGENT_MIGRATION_END = "<!-- uns-kit:migrations:end -->";
+const AGENT_MIGRATION_BLOCK = [
+  AGENT_MIGRATION_START,
+  "## UNS Kit dependency upgrades",
+  "",
+  "- Before changing any `@uns-kit/*` version, record the installed source version and intended target version.",
+  "- After installing the target version, read `node_modules/@uns-kit/core/MIGRATIONS.md` and apply every migration whose version boundary is crossed. Do not apply unrelated migrations.",
+  "- When crossing `<2.0.71` to `>=2.0.71`, inspect MQTT proxy ownership and follow the documented shutdown migration. Process-owned and standalone proxies have different shutdown paths.",
+  AGENT_MIGRATION_END,
+].join("\n");
+
+type AgentMigrationGuidanceResult = "created" | "updated" | "unchanged";
+
+async function ensureAgentMigrationGuidance(targetDir: string): Promise<AgentMigrationGuidanceResult> {
+  const agentsPath = path.join(targetDir, "AGENTS.md");
+  let existing: string;
+
+  try {
+    existing = await readFile(agentsPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+
+    await writeFile(agentsPath, `# AGENTS\n\n${AGENT_MIGRATION_BLOCK}\n`, "utf8");
+    return "created";
+  }
+
+  const startIndex = existing.indexOf(AGENT_MIGRATION_START);
+  const endIndex = existing.indexOf(AGENT_MIGRATION_END);
+  const hasStart = startIndex >= 0;
+  const hasEnd = endIndex >= 0;
+
+  if (hasStart !== hasEnd || (hasStart && endIndex < startIndex)) {
+    throw new Error(
+      `Malformed UNS Kit migration block in ${agentsPath}. Remove the unmatched migration marker and run upgrade again.`,
+    );
+  }
+
+  let next: string;
+  if (hasStart) {
+    const afterEnd = endIndex + AGENT_MIGRATION_END.length;
+    next = existing.slice(0, startIndex) + AGENT_MIGRATION_BLOCK + existing.slice(afterEnd);
+  } else {
+    const separator = existing.endsWith("\n\n") ? "" : existing.endsWith("\n") ? "\n" : "\n\n";
+    next = `${existing}${separator}${AGENT_MIGRATION_BLOCK}\n`;
+  }
+
+  if (next === existing) {
+    return "unchanged";
+  }
+
+  await writeFile(agentsPath, next, "utf8");
+  return "updated";
+}
+
 async function configureDevops(targetPath?: string, options?: ConfigureTemplateOptions): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
   await ensureGitRepository(targetDir);
@@ -1143,7 +1200,10 @@ async function upgradeProject(targetPath?: string): Promise<void> {
   const syncScriptsChanged = ensureUnsReferenceScripts(scripts);
   changed = syncScriptsChanged || changed;
 
-  if (changed) {
+  const agentGuidanceResult = await ensureAgentMigrationGuidance(targetDir);
+  changed = agentGuidanceResult !== "unchanged" || changed;
+
+  if (removed.length > 0 || syncScriptsChanged) {
     await writeFile(packagePath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
   }
 
@@ -1158,6 +1218,13 @@ async function upgradeProject(targetPath?: string): Promise<void> {
     console.log("  Added/updated: sync-uns-schema, sync-uns-metadata");
   } else {
     console.log("  Ensured: sync-uns-schema, sync-uns-metadata");
+  }
+  if (agentGuidanceResult === "created") {
+    console.log("  Created AGENTS.md with version-bounded migration guidance.");
+  } else if (agentGuidanceResult === "updated") {
+    console.log("  Added/updated version-bounded migration guidance in AGENTS.md.");
+  } else {
+    console.log("  Ensured version-bounded migration guidance in AGENTS.md.");
   }
   if (!changed) {
     console.log("  Already up to date.");

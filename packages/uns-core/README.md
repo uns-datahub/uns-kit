@@ -268,6 +268,10 @@ If the bounded queue is full, `publishMessage()` / `publishMqttMessage()` reject
 
 Use `await proxy.flush()` or `await proxy.drainPublishes()` before assuming all accepted messages have reached the broker. `await proxy.stop()` closes publish admission immediately and drains by default with a timeout; repeated `stop()` calls share the same result. Use `await proxy.stop({ drain: false })` only when dropping queued messages is acceptable. When a proxy belongs to `UnsProxyProcess`, call `await process.shutdown()` instead of stopping the proxy separately. Process shutdown attempts every cleanup and rejects with an `AggregateError` if any drain or stop fails.
 
+When upgrading an existing application, read [`MIGRATIONS.md`](./MIGRATIONS.md)
+and apply only the migrations whose version boundaries are crossed. The
+`2.0.71` migration documents the MQTT publish and shutdown ownership changes.
+
 ## Sync UNS schema from the controller
 
 `sync-uns-schema` fetches the canonical UNS dictionary and measurements from the controller REST API and refreshes local JSON files and generated TypeScript artifacts.

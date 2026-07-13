@@ -52,6 +52,8 @@ describe("uns-kit create --bundle", () => {
     expect(agents).toContain("# AGENTS");
     expect(agents).toContain("bootstrapped from `service.bundle.json`");
     expect(agents).toContain("Read `service.bundle.json` first");
+    expect(agents).toContain("node_modules/@uns-kit/core/MIGRATIONS.md");
+    expect(agents).toContain("When crossing `<2.0.71` to `>=2.0.71`");
     expect(agents).toContain("pnpm build");
 
     const packageJson = JSON.parse(await readFile(path.join(targetDir, "package.json"), "utf8")) as {

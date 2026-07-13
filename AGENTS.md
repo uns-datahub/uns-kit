@@ -8,4 +8,6 @@
   - Do not run by default: `pnpm run ts:publish` requires interactive/manual handling; user will publish by hand unless explicitly requested otherwise.
 - Commits:
   - It’s OK to commit directly to `master` (no PR needed); prioritize good commit messages.
+- Downstream migrations:
+  - When a runtime behavior change requires application changes, add a version-bounded entry to `packages/uns-core/MIGRATIONS.md` and keep generated `AGENTS.md` upgrade guidance aligned with it.
 </INSTRUCTIONS>
