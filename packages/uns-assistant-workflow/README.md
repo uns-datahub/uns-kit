@@ -20,11 +20,50 @@ pnpm add @uns-kit/assistant-workflow
   MCP, and controlled REPL integrations;
 - deterministic plan/run construction, execution queues, parity checks, and
   safe trace/report serialization;
+- exact host-provided tool handoff selection, bound to a rebuilt invocation,
+  reviewed allowlist, and application-owned argument validator;
 - definition packages, catalog loading, replay, evaluation, and review helpers.
 
 The package deliberately does not contain provider credentials, database access,
 HTTP transport, UNS-specific tool implementations, or application-specific
 workflow definitions.
+
+## Exact Tool Handoffs
+
+When a host has rebuilt a workflow plan and wants to delegate exactly one
+reviewed read-only tool, use `selectAssistantWorkflowApprovedToolInvocation`.
+It does not infer arguments from assistant text or choose among broad tool
+permissions: it binds one host-provided handoff to one invocation in the rebuilt
+plan and rejects ambiguous handoffs.
+
+```ts
+import { selectAssistantWorkflowApprovedToolInvocation } from "@uns-kit/assistant-workflow";
+
+const approved = selectAssistantWorkflowApprovedToolInvocation({
+  invocations: rebuiltRun.toolInvocationQueue.invocations,
+  handoffs: [{
+    invocationId: "fetch_document:read_document",
+    toolName: "read_document",
+    args: { documentId: "manual-1" },
+  }],
+  policies: [{
+    toolName: "read_document",
+    normalizeArgs: (args) =>
+      typeof args.documentId === "string" && Object.keys(args).length === 1
+        ? { documentId: args.documentId }
+        : null,
+  }],
+  allowedToolNames: ["read_document"],
+});
+
+if (approved) {
+  // `approved.args` passed the application-owned exact argument contract.
+}
+```
+
+Tool schemas remain application-owned. The caller must pass only the exact
+controller/host handoff that it already reviewed; multiple handoffs or multiple
+matching policies return `null`.
 
 ## Development
 

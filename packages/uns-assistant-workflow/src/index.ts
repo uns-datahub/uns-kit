@@ -50,6 +50,7 @@ export * from "./run-report.js";
 export * from "./run-report-batch.js";
 export * from "./run-report-json.js";
 export * from "./tool-invocations.js";
+export * from "./tool-handoffs.js";
 export * from "./tool-provider-executors.js";
 export * from "./tool-result-cache.js";
 export * from "./tool-runtime.js";

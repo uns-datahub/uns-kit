@@ -10,6 +10,10 @@ import * as ts from "typescript";
 const require = createRequire(import.meta.url);
 const PACKAGE_ROOT = findPackageRoot();
 const CORE_SOURCE_ROOT = join(PACKAGE_ROOT, "src");
+const PACKAGE_MANIFEST = JSON.parse(readFileSync(join(PACKAGE_ROOT, "package.json"), "utf8")) as {
+  name: string;
+  version: string;
+};
 let packageBuildReady = false;
 
 describe("assistant workflow package boundary", () => {
@@ -44,9 +48,13 @@ describe("assistant workflow package boundary", () => {
     const builtRun = await import(pathToFileURL(join(PACKAGE_ROOT, "dist/run.js")).href) as {
       buildAssistantWorkflowRun: (input: unknown) => unknown;
     };
+    const builtToolHandoffs = await import(pathToFileURL(join(PACKAGE_ROOT, "dist/tool-handoffs.js")).href) as {
+      selectAssistantWorkflowApprovedToolInvocation: (input: unknown) => unknown;
+    };
 
     expect(typeof builtDefinition.defineAssistantWorkflow).toBe("function");
     expect(typeof builtRun.buildAssistantWorkflowRun).toBe("function");
+    expect(typeof builtToolHandoffs.selectAssistantWorkflowApprovedToolInvocation).toBe("function");
   }, 20_000);
 
   it("packs only the assistant workflow package artifact", () => {
@@ -62,9 +70,9 @@ describe("assistant workflow package boundary", () => {
       files: { path: string }[];
     };
 
-    expect(artifact.name).toBe("@uns-kit/assistant-workflow");
-    expect(artifact.version).toBe("2.0.71");
-    expect(artifact.filename).toBe("uns-kit-assistant-workflow-2.0.71.tgz");
+    expect(artifact.name).toBe(PACKAGE_MANIFEST.name);
+    expect(artifact.version).toBe(PACKAGE_MANIFEST.version);
+    expect(artifact.filename).toBe(`uns-kit-assistant-workflow-${PACKAGE_MANIFEST.version}.tgz`);
     expect(artifact.files.length).toBeGreaterThan(0);
 
     const packedPaths = artifact.files.map((file) => file.path).sort();
@@ -72,6 +80,8 @@ describe("assistant workflow package boundary", () => {
     expect(packedPaths).toContain("package.json");
     expect(packedPaths).toContain("dist/index.js");
     expect(packedPaths).toContain("dist/index.d.ts");
+    expect(packedPaths).toContain("dist/tool-handoffs.js");
+    expect(packedPaths).toContain("dist/tool-handoffs.d.ts");
     expect(
       packedPaths.every((path) => path === "README.md" || path === "package.json" || path.startsWith("dist/")),
     ).toBe(true);
@@ -104,7 +114,8 @@ describe("assistant workflow package boundary", () => {
           [
             'import { defineAssistantWorkflow } from "@uns-kit/assistant-workflow";',
             'import { buildAssistantWorkflowRun } from "@uns-kit/assistant-workflow/run";',
-            'if (typeof defineAssistantWorkflow !== "function" || typeof buildAssistantWorkflowRun !== "function") process.exit(1);',
+            'import { selectAssistantWorkflowApprovedToolInvocation } from "@uns-kit/assistant-workflow/tool-handoffs";',
+            'if (typeof defineAssistantWorkflow !== "function" || typeof buildAssistantWorkflowRun !== "function" || typeof selectAssistantWorkflowApprovedToolInvocation !== "function") process.exit(1);',
             'process.stdout.write("consumer-imports-ok");',
           ].join("\n"),
         ],
