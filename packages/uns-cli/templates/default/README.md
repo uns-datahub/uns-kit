@@ -20,6 +20,17 @@ pnpm run sync-uns-metadata -- --controller-url http://localhost:3200 --token <me
 
 Update `config.json` with your broker, UNS URLs, and credentials. The generated file contains sensible defaults for local development. If you use a service token, add `uns.token` and pass it to `UnsClient`.
 
+For standalone local development, `pnpm run dev` and `pnpm run start` load a
+local `.env` file when it exists. The generated `.gitignore` excludes `.env`
+and `.env.*` files so local secrets are not committed. Values already provided
+in the process environment take precedence over values from `.env`, and a
+missing `.env` file does not prevent the application from starting.
+
+`@uns-kit/core` and `ConfigFile.loadConfig()` continue to read the environment
+already prepared for the process; they do not load `.env` themselves. This
+local entry-script behavior does not change production, PM2, controller, or
+Infisical environment handling.
+
 ## Validity / Liveliness
 
 UNS attributes can declare how the controller decides whether they are live or stale; in most apps this is primarily used to drive UI liveliness/activity indicators. In app-level modeling we use two modes only:

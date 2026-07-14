@@ -61,6 +61,10 @@ describe("uns-kit create --bundle", () => {
       scripts?: Record<string, string>;
     };
     expect(packageJson.name).toBe("uns-example-service");
+    expect(packageJson.scripts?.dev).toBe(
+      "node --env-file-if-exists=.env ./node_modules/tsx/dist/cli.mjs watch src/index.ts",
+    );
+    expect(packageJson.scripts?.start).toBe("node --env-file-if-exists=.env dist/index.js");
     expect(packageJson.scripts?.["pull-request"]).toBe(
       "node ./node_modules/@uns-kit/core/dist/tools/pull-request.js",
     );
