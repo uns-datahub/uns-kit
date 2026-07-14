@@ -69,5 +69,6 @@ export * from "./trace-replay.js";
 export * from "./tool-bindings.js";
 export * from "./tool-capabilities.js";
 export * from "./tool-executor.js";
+export * from "./tool-evidence.js";
 export * from "./tool-fixtures.js";
 export * from "./value-readers.js";

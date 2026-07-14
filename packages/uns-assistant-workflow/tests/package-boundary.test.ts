@@ -51,10 +51,14 @@ describe("assistant workflow package boundary", () => {
     const builtToolHandoffs = await import(pathToFileURL(join(PACKAGE_ROOT, "dist/tool-handoffs.js")).href) as {
       selectAssistantWorkflowApprovedToolInvocation: (input: unknown) => unknown;
     };
+    const builtToolEvidence = await import(pathToFileURL(join(PACKAGE_ROOT, "dist/tool-evidence.js")).href) as {
+      parseAssistantWorkflowToolEvidence: (value: unknown, options: unknown) => unknown;
+    };
 
     expect(typeof builtDefinition.defineAssistantWorkflow).toBe("function");
     expect(typeof builtRun.buildAssistantWorkflowRun).toBe("function");
     expect(typeof builtToolHandoffs.selectAssistantWorkflowApprovedToolInvocation).toBe("function");
+    expect(typeof builtToolEvidence.parseAssistantWorkflowToolEvidence).toBe("function");
   }, 20_000);
 
   it("packs only the assistant workflow package artifact", () => {
@@ -82,6 +86,8 @@ describe("assistant workflow package boundary", () => {
     expect(packedPaths).toContain("dist/index.d.ts");
     expect(packedPaths).toContain("dist/tool-handoffs.js");
     expect(packedPaths).toContain("dist/tool-handoffs.d.ts");
+    expect(packedPaths).toContain("dist/tool-evidence.js");
+    expect(packedPaths).toContain("dist/tool-evidence.d.ts");
     expect(
       packedPaths.every((path) => path === "README.md" || path === "package.json" || path.startsWith("dist/")),
     ).toBe(true);
@@ -115,7 +121,8 @@ describe("assistant workflow package boundary", () => {
             'import { defineAssistantWorkflow } from "@uns-kit/assistant-workflow";',
             'import { buildAssistantWorkflowRun } from "@uns-kit/assistant-workflow/run";',
             'import { selectAssistantWorkflowApprovedToolInvocation } from "@uns-kit/assistant-workflow/tool-handoffs";',
-            'if (typeof defineAssistantWorkflow !== "function" || typeof buildAssistantWorkflowRun !== "function" || typeof selectAssistantWorkflowApprovedToolInvocation !== "function") process.exit(1);',
+            'import { parseAssistantWorkflowToolEvidence } from "@uns-kit/assistant-workflow/tool-evidence";',
+            'if (typeof defineAssistantWorkflow !== "function" || typeof buildAssistantWorkflowRun !== "function" || typeof selectAssistantWorkflowApprovedToolInvocation !== "function" || typeof parseAssistantWorkflowToolEvidence !== "function") process.exit(1);',
             'process.stdout.write("consumer-imports-ok");',
           ].join("\n"),
         ],

@@ -22,6 +22,8 @@ pnpm add @uns-kit/assistant-workflow
   safe trace/report serialization;
 - exact host-provided tool handoff selection, bound to a rebuilt invocation,
   reviewed allowlist, and application-owned argument validator;
+- versioned tool-evidence envelope parsing and exact invocation/call binding,
+  with application-owned data-schema validation;
 - definition packages, catalog loading, replay, evaluation, and review helpers.
 
 The package deliberately does not contain provider credentials, database access,
@@ -64,6 +66,33 @@ if (approved) {
 Tool schemas remain application-owned. The caller must pass only the exact
 controller/host handoff that it already reviewed; multiple handoffs or multiple
 matching policies return `null`.
+
+## Tool Evidence
+
+`tool-evidence` validates the generic envelope and its binding to an approved
+invocation. Applications choose the format/version and own `data` validation;
+the package does not interpret database rows, protocol payloads, or tool-specific
+arguments.
+
+```ts
+import {
+  matchesAssistantWorkflowToolEvidenceBinding,
+  parseAssistantWorkflowToolEvidence,
+} from "@uns-kit/assistant-workflow/tool-evidence";
+
+const evidence = parseAssistantWorkflowToolEvidence(rawEvidence, {
+  format: "example.tool-evidence",
+  formatVersion: 1,
+  parseData: (value) => isMyApplicationData(value) ? value : null,
+});
+
+const matches = evidence && matchesAssistantWorkflowToolEvidenceBinding(evidence, {
+  invocationId: approved.invocation.id,
+  toolName: approved.invocation.toolName,
+  callId,
+  expiresAt: delegation.expiresAt,
+});
+```
 
 ## Development
 

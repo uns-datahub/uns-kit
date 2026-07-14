@@ -1,6 +1,6 @@
 {
   "name": "@uns-kit/assistant-workflow",
-  "version": "2.0.75",
+  "version": "2.0.76",
   "description": "Typed, provider-neutral workflow definitions, policies, execution plans, and trace helpers for assistants.",
   "author": "Aljosa Vister",
   "license": "MIT",
@@ -244,6 +244,10 @@
     "./tool-executor": {
       "types": "./dist/tool-executor.d.ts",
       "default": "./dist/tool-executor.js"
+    },
+    "./tool-evidence": {
+      "types": "./dist/tool-evidence.d.ts",
+      "default": "./dist/tool-evidence.js"
     },
     "./tool-fixtures": {
       "types": "./dist/tool-fixtures.d.ts",
