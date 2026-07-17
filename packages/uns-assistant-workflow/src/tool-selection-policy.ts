@@ -50,6 +50,7 @@ export type AssistantWorkflowToolSelectionAuthorityReason =
   | "workflow_unavailable"
   | "workflow_authority_not_enabled"
   | "workflow_blocked"
+  | "workflow_selection_not_exercised"
   | "workflow_differs";
 
 export type AssistantWorkflowToolSelectionAuthority = {
@@ -63,6 +64,8 @@ export type AssistantWorkflowToolSelectionAuthority = {
 export type AssistantWorkflowToolSelectionAuthorityInput = {
   selectedToolNames: readonly string[];
   workflowAvailable: boolean;
+  /** False when the caller deliberately exposed the complete legacy tool set. */
+  selectionExercised?: boolean | null;
   workflowSuggestedToolNames?: readonly string[] | null;
   workflowSelectionCandidateToolNames?: readonly string[] | null;
   workflowStatus?: string | null;
@@ -175,6 +178,7 @@ export function buildAssistantWorkflowToolSelectionDecision(
         workflowSelectionCandidateToolNames: readStringArray(comparisonPayload["workflowSelectionCandidateTools"]),
         workflowStatus: readWorkflowStatus(comparisonPayload),
         workflowAuthorityEnabled,
+        selectionExercised: input.pruningEnabled !== false,
       })
     : buildAssistantWorkflowToolSelectionAuthority({
         selectedToolNames,
@@ -392,6 +396,16 @@ export function buildAssistantWorkflowToolSelectionAuthority(
         ? "workflow_equivalent"
         : "workflow_authority_enabled",
       selectedToolNames: comparableWorkflowToolNames,
+      workflowSuggestedToolNames,
+      workflowStatus,
+    };
+  }
+
+  if (input.selectionExercised === false) {
+    return {
+      source: "legacy-pruner",
+      reason: "workflow_selection_not_exercised",
+      selectedToolNames,
       workflowSuggestedToolNames,
       workflowStatus,
     };

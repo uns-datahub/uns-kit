@@ -365,6 +365,9 @@ function inferLegacyAuthorityReason(
   if (workflowStatus === "blocked" || workflowStatus === "needs-clarification") {
     return "workflow_blocked";
   }
+  if (payload["pruningEnabled"] === false) {
+    return "workflow_selection_not_exercised";
+  }
   const hasWorkflowTools = readStringArray(payload["workflowSelectionCandidateTools"]).length > 0 ||
     readStringArray(payload["workflowSuggestedTools"]).length > 0;
   const hasDiffSignals = readStringArray(payload["missingWorkflowSelectionCandidateTools"]).length > 0 ||

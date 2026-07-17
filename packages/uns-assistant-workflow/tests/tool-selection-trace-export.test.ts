@@ -134,6 +134,32 @@ describe("assistant workflow tool selection trace export", () => {
     });
   });
 
+  it("records a pruning-disabled legacy selection as not exercised", () => {
+    const decision = buildAssistantWorkflowSerializedToolSelectionDecisionFromTraceEvent({
+      stage: "tool_selection.workflow_comparison",
+      payload: {
+        pruningEnabled: false,
+        selectedReason: "disabled",
+        workflowSuggestedTools: ["query_docs"],
+        workflowSelectionCandidateTools: ["query_docs"],
+        missingWorkflowSelectionCandidateTools: ["query_docs"],
+        selectedOutsideWorkflowSelectionCandidate: ["list_docs"],
+      },
+    });
+
+    expect(decision).toMatchObject({
+      authority: {
+        source: "legacy-pruner",
+        reason: "workflow_selection_not_exercised",
+        selectedToolNames: ["list_docs"],
+        workflowSuggestedToolNames: ["query_docs"],
+        workflowStatus: null,
+      },
+      effectiveToolNames: ["list_docs"],
+      effectiveReason: "disabled",
+    });
+  });
+
   it("infers workflow authority for sanitized promoted traces without authority payloads", () => {
     const decision = buildAssistantWorkflowSerializedToolSelectionDecisionFromTraceEvent({
       stage: "tool_selection.workflow_comparison",

@@ -14,6 +14,8 @@ export type AssistantWorkflowToolSelectionEvaluationSignalName =
   | "workflow_unavailable"
   | "workflow_authority_not_enabled"
   | "workflow_blocked"
+  | "workflow_expected_clarification"
+  | "workflow_selection_not_exercised"
   | "workflow_differs"
   | "workflow_candidate_not_selected"
   | "selected_outside_workflow_candidate"
@@ -44,6 +46,8 @@ export type AssistantWorkflowToolSelectionEvaluation = {
   workflowSelectionActiveProfileIds: string[];
   workflowSelectionProfileToolNames: string[];
   workflowSelectionProfileToolCount: number;
+  expectedClarificationBlock: boolean;
+  selectionNotExercised: boolean;
   signalCount: number;
   warningCount: number;
   signals: AssistantWorkflowToolSelectionEvaluationSignal[];
@@ -71,6 +75,8 @@ export type AssistantWorkflowToolSelectionEvaluationIntentReadiness = {
   shadowEquivalentCount: number;
   workflowDiffersCount: number;
   workflowBlockedCount: number;
+  expectedClarificationBlockCount: number;
+  selectionNotExercisedCount: number;
   workflowUnavailableCount: number;
   warningCount: number;
   workflowAuthorityConfirmed: boolean;
@@ -98,11 +104,15 @@ export type AssistantWorkflowToolSelectionMigrationCandidateKind = "intent" | "s
 export type AssistantWorkflowToolSelectionMigrationCandidateStatus =
   | "ready_for_workflow_authority"
   | "workflow_authority_confirmed"
+  | "expected_clarification_only"
+  | "selection_not_exercised_only"
   | "needs_review";
 
 export type AssistantWorkflowToolSelectionMigrationRecommendedAction =
   | "add_intent_to_authority_allow_list"
   | "keep_runtime_authority"
+  | "keep_controller_clarification"
+  | "exercise_pruned_selection"
   | "review_segment_before_authority_change"
   | "review_blockers_before_migration";
 
@@ -118,6 +128,8 @@ export type AssistantWorkflowToolSelectionMigrationCandidate = {
   shadowEquivalentCount: number;
   workflowDiffersCount: number;
   workflowBlockedCount: number;
+  expectedClarificationBlockCount: number;
+  selectionNotExercisedCount: number;
   workflowUnavailableCount: number;
   warningCount: number;
   status: AssistantWorkflowToolSelectionMigrationCandidateStatus;
@@ -142,6 +154,8 @@ export type AssistantWorkflowToolSelectionMigrationReport = {
   readySegmentCandidates: AssistantWorkflowToolSelectionMigrationCandidate[];
   confirmedIntentCandidates: AssistantWorkflowToolSelectionMigrationCandidate[];
   confirmedSegmentCandidates: AssistantWorkflowToolSelectionMigrationCandidate[];
+  expectedClarificationCandidates: AssistantWorkflowToolSelectionMigrationCandidate[];
+  selectionNotExercisedCandidates: AssistantWorkflowToolSelectionMigrationCandidate[];
   reviewCandidates: AssistantWorkflowToolSelectionMigrationCandidate[];
 };
 
@@ -216,6 +230,8 @@ export type AssistantWorkflowToolSelectionMigrationReviewArtifact = {
     readySegmentCandidateKeys: string[];
     confirmedIntentCandidateKeys: string[];
     confirmedSegmentCandidateKeys: string[];
+    expectedClarificationCandidateKeys: string[];
+    selectionNotExercisedCandidateKeys: string[];
   };
   review: {
     reviewIntentIds: string[];
@@ -274,13 +290,15 @@ export function evaluateAssistantWorkflowToolSelectionDecision(
       hop: readNumber(decision.comparisonPayload?.["hop"]),
       selectedReason: readString(decision.comparisonPayload?.["selectedReason"]),
     });
+  const expectedClarificationBlock = isExpectedClarificationBlock(decision);
+  const selectionNotExercised = isWorkflowSelectionNotExercised(decision);
 
   return {
     intentId,
     hop: readNumber(decision.comparisonPayload?.["hop"]),
     selectedReason: readString(decision.comparisonPayload?.["selectedReason"]),
     authoritySource: decision.authority.source,
-    authorityReason: decision.authority.reason,
+    authorityReason: getEvaluationAuthorityReason(decision),
     workflowStatus: decision.authority.workflowStatus,
     workflowAuthorityEnabled: intentId && workflowAuthorityIntentIds.length > 0
       ? workflowAuthorityIntentIds.includes(intentId)
@@ -297,6 +315,8 @@ export function evaluateAssistantWorkflowToolSelectionDecision(
     workflowSelectionActiveProfileIds,
     workflowSelectionProfileToolNames: workflowSelectionProfileToolNames,
     workflowSelectionProfileToolCount: workflowSelectionProfileToolNames.length,
+    expectedClarificationBlock,
+    selectionNotExercised,
     signalCount: signals.length,
     warningCount: signals.filter((signal) => signal.severity === "warning").length,
     signals,
@@ -307,6 +327,9 @@ export function collectAssistantWorkflowToolSelectionEvaluationSignals(
   decision: AssistantWorkflowSerializedToolSelectionDecision,
 ): AssistantWorkflowToolSelectionEvaluationSignal[] {
   const signals: AssistantWorkflowToolSelectionEvaluationSignal[] = [];
+  const expectedClarificationBlock = isExpectedClarificationBlock(decision);
+  const selectionNotExercised = isWorkflowSelectionNotExercised(decision);
+  const authorityReason = getEvaluationAuthorityReason(decision);
   const missingCandidateTools = readStringArray(
     decision.comparisonPayload?.["missingWorkflowSelectionCandidateTools"],
   );
@@ -327,11 +350,11 @@ export function collectAssistantWorkflowToolSelectionEvaluationSignals(
     signals.push({
       name: "legacy_authority",
       severity: "info",
-      detail: decision.authority.reason,
+      detail: authorityReason,
     });
   }
 
-  if (decision.authority.reason === "workflow_unavailable") {
+  if (authorityReason === "workflow_unavailable") {
     signals.push({
       name: "workflow_unavailable",
       severity: "warning",
@@ -339,7 +362,7 @@ export function collectAssistantWorkflowToolSelectionEvaluationSignals(
     });
   }
 
-  if (decision.authority.reason === "workflow_authority_not_enabled") {
+  if (authorityReason === "workflow_authority_not_enabled") {
     signals.push({
       name: "workflow_authority_not_enabled",
       severity: "info",
@@ -347,15 +370,25 @@ export function collectAssistantWorkflowToolSelectionEvaluationSignals(
     });
   }
 
-  if (decision.authority.reason === "workflow_blocked") {
+  if (authorityReason === "workflow_blocked") {
     signals.push({
-      name: "workflow_blocked",
-      severity: "warning",
+      name: expectedClarificationBlock
+        ? "workflow_expected_clarification"
+        : "workflow_blocked",
+      severity: expectedClarificationBlock ? "info" : "warning",
       detail: decision.authority.workflowStatus,
     });
   }
 
-  if (decision.authority.reason === "workflow_differs") {
+  if (authorityReason === "workflow_selection_not_exercised") {
+    signals.push({
+      name: "workflow_selection_not_exercised",
+      severity: "info",
+      detail: "pruning_disabled",
+    });
+  }
+
+  if (authorityReason === "workflow_differs") {
     signals.push({
       name: "workflow_differs",
       severity: "info",
@@ -363,7 +396,7 @@ export function collectAssistantWorkflowToolSelectionEvaluationSignals(
     });
   }
 
-  if (missingCandidateTools.length > 0) {
+  if (missingCandidateTools.length > 0 && !expectedClarificationBlock && !selectionNotExercised) {
     signals.push({
       name: "workflow_candidate_not_selected",
       severity: "warning",
@@ -371,7 +404,7 @@ export function collectAssistantWorkflowToolSelectionEvaluationSignals(
     });
   }
 
-  if (selectedOutsideCandidate.length > 0) {
+  if (selectedOutsideCandidate.length > 0 && !selectionNotExercised) {
     signals.push({
       name: "selected_outside_workflow_candidate",
       severity: "info",
@@ -379,7 +412,7 @@ export function collectAssistantWorkflowToolSelectionEvaluationSignals(
     });
   }
 
-  if (selectedOutsideSuggestions.length > 0) {
+  if (selectedOutsideSuggestions.length > 0 && !selectionNotExercised) {
     signals.push({
       name: "selected_outside_workflow_suggestions",
       severity: "info",
@@ -387,7 +420,7 @@ export function collectAssistantWorkflowToolSelectionEvaluationSignals(
     });
   }
 
-  if (selectedPolicyExcludedOptionalTools.length > 0) {
+  if (selectedPolicyExcludedOptionalTools.length > 0 && !selectionNotExercised) {
     signals.push({
       name: "selected_policy_excluded_optional_tool",
       severity: "info",
@@ -449,6 +482,8 @@ export function buildAssistantWorkflowToolSelectionEvaluationTracePayload(
     workflowSelectionActiveProfileIds: evaluation.workflowSelectionActiveProfileIds,
     workflowSelectionProfileToolNames: evaluation.workflowSelectionProfileToolNames,
     workflowSelectionProfileToolCount: evaluation.workflowSelectionProfileToolCount,
+    expectedClarificationBlock: evaluation.expectedClarificationBlock,
+    selectionNotExercised: evaluation.selectionNotExercised,
     signalCount: evaluation.signalCount,
     warningCount: evaluation.warningCount,
     signals: evaluation.signals.map((signal) => ({
@@ -484,6 +519,8 @@ export function buildAssistantWorkflowToolSelectionEvaluationBatchTracePayload(
       shadowEquivalentCount: intent.shadowEquivalentCount,
       workflowDiffersCount: intent.workflowDiffersCount,
       workflowBlockedCount: intent.workflowBlockedCount,
+      expectedClarificationBlockCount: intent.expectedClarificationBlockCount,
+      selectionNotExercisedCount: intent.selectionNotExercisedCount,
       workflowUnavailableCount: intent.workflowUnavailableCount,
       warningCount: intent.warningCount,
       workflowAuthorityConfirmed: intent.workflowAuthorityConfirmed,
@@ -499,6 +536,8 @@ export function buildAssistantWorkflowToolSelectionEvaluationBatchTracePayload(
       shadowEquivalentCount: segment.shadowEquivalentCount,
       workflowDiffersCount: segment.workflowDiffersCount,
       workflowBlockedCount: segment.workflowBlockedCount,
+      expectedClarificationBlockCount: segment.expectedClarificationBlockCount,
+      selectionNotExercisedCount: segment.selectionNotExercisedCount,
       workflowUnavailableCount: segment.workflowUnavailableCount,
       warningCount: segment.warningCount,
       workflowAuthorityConfirmed: segment.workflowAuthorityConfirmed,
@@ -537,6 +576,12 @@ export function buildAssistantWorkflowToolSelectionMigrationReport(
   const confirmedSegmentCandidates = segmentCandidates.filter((candidate) =>
     candidate.status === "workflow_authority_confirmed"
   );
+  const expectedClarificationCandidates = [...intentCandidates, ...segmentCandidates].filter((candidate) =>
+    candidate.status === "expected_clarification_only"
+  );
+  const selectionNotExercisedCandidates = [...intentCandidates, ...segmentCandidates].filter((candidate) =>
+    candidate.status === "selection_not_exercised_only"
+  );
   const reviewCandidates = [...intentCandidates, ...segmentCandidates].filter((candidate) =>
     candidate.status === "needs_review"
   );
@@ -553,6 +598,8 @@ export function buildAssistantWorkflowToolSelectionMigrationReport(
     readySegmentCandidates,
     confirmedIntentCandidates,
     confirmedSegmentCandidates,
+    expectedClarificationCandidates,
+    selectionNotExercisedCandidates,
     reviewCandidates,
   };
 }
@@ -572,6 +619,8 @@ export function buildAssistantWorkflowToolSelectionMigrationReportTracePayload(
     readySegmentCandidates: report.readySegmentCandidates.map(toMigrationCandidateTracePayload),
     confirmedIntentCandidates: report.confirmedIntentCandidates.map(toMigrationCandidateTracePayload),
     confirmedSegmentCandidates: report.confirmedSegmentCandidates.map(toMigrationCandidateTracePayload),
+    expectedClarificationCandidates: report.expectedClarificationCandidates.map(toMigrationCandidateTracePayload),
+    selectionNotExercisedCandidates: report.selectionNotExercisedCandidates.map(toMigrationCandidateTracePayload),
     reviewCandidates: report.reviewCandidates.map(toMigrationCandidateTracePayload),
   };
 }
@@ -726,6 +775,8 @@ export function buildAssistantWorkflowToolSelectionMigrationReviewArtifact(
       readySegmentCandidateKeys: input.report.readySegmentCandidates.map((candidate) => candidate.key),
       confirmedIntentCandidateKeys: input.report.confirmedIntentCandidates.map((candidate) => candidate.key),
       confirmedSegmentCandidateKeys: input.report.confirmedSegmentCandidates.map((candidate) => candidate.key),
+      expectedClarificationCandidateKeys: input.report.expectedClarificationCandidates.map((candidate) => candidate.key),
+      selectionNotExercisedCandidateKeys: input.report.selectionNotExercisedCandidates.map((candidate) => candidate.key),
     },
     review: {
       reviewIntentIds: input.proposal.reviewIntentIds,
@@ -765,6 +816,8 @@ export function buildAssistantWorkflowToolSelectionMigrationReviewArtifactTraceP
       readySegmentCandidateKeys: artifact.evidence.readySegmentCandidateKeys,
       confirmedIntentCandidateKeys: artifact.evidence.confirmedIntentCandidateKeys,
       confirmedSegmentCandidateKeys: artifact.evidence.confirmedSegmentCandidateKeys,
+      expectedClarificationCandidateKeys: artifact.evidence.expectedClarificationCandidateKeys,
+      selectionNotExercisedCandidateKeys: artifact.evidence.selectionNotExercisedCandidateKeys,
     },
     review: {
       reviewIntentIds: artifact.review.reviewIntentIds,
@@ -799,14 +852,22 @@ function buildMigrationCandidate(
 ): AssistantWorkflowToolSelectionMigrationCandidate {
   const isSegment = isSegmentReadiness(readiness);
   const key = isSegment ? readiness.segmentKey : readiness.intentId;
-  const blockingReasons = collectMigrationBlockingReasons(readiness, minDecisionCount);
-  const status: AssistantWorkflowToolSelectionMigrationCandidateStatus = blockingReasons.length > 0
-    ? "needs_review"
-    : readiness.workflowAuthorityConfirmed
-      ? "workflow_authority_confirmed"
-      : readiness.readyForWorkflowAuthority
-        ? "ready_for_workflow_authority"
-        : "needs_review";
+  const expectedClarificationOnly = isExpectedClarificationOnly(readiness);
+  const selectionNotExercisedOnly = isSelectionNotExercisedOnly(readiness);
+  const blockingReasons = expectedClarificationOnly || selectionNotExercisedOnly
+    ? []
+    : collectMigrationBlockingReasons(readiness, minDecisionCount);
+  const status: AssistantWorkflowToolSelectionMigrationCandidateStatus = expectedClarificationOnly
+    ? "expected_clarification_only"
+    : selectionNotExercisedOnly
+      ? "selection_not_exercised_only"
+    : blockingReasons.length > 0
+      ? "needs_review"
+      : readiness.workflowAuthorityConfirmed
+        ? "workflow_authority_confirmed"
+        : readiness.readyForWorkflowAuthority
+          ? "ready_for_workflow_authority"
+          : "needs_review";
   const recommendedAction = buildMigrationRecommendedAction(kind, status);
 
   return {
@@ -821,6 +882,8 @@ function buildMigrationCandidate(
     shadowEquivalentCount: readiness.shadowEquivalentCount,
     workflowDiffersCount: readiness.workflowDiffersCount,
     workflowBlockedCount: readiness.workflowBlockedCount,
+    expectedClarificationBlockCount: readiness.expectedClarificationBlockCount,
+    selectionNotExercisedCount: readiness.selectionNotExercisedCount,
     workflowUnavailableCount: readiness.workflowUnavailableCount,
     warningCount: readiness.warningCount,
     status,
@@ -828,6 +891,39 @@ function buildMigrationCandidate(
     blockingReasons,
     rationale: buildMigrationRationale(kind, status, readiness, blockingReasons, minDecisionCount),
   };
+}
+
+function isExpectedClarificationOnly(
+  readiness: AssistantWorkflowToolSelectionEvaluationIntentReadiness,
+): boolean {
+  return readiness.expectedClarificationBlockCount > 0 &&
+    readiness.workflowAuthorityCount === 0 &&
+    readiness.shadowEquivalentCount === 0 &&
+    readiness.workflowDiffersCount === 0 &&
+    unexpectedWorkflowBlockedCount(readiness) === 0 &&
+    readiness.workflowUnavailableCount === 0 &&
+    readiness.warningCount === 0;
+}
+
+function isSelectionNotExercisedOnly(
+  readiness: AssistantWorkflowToolSelectionEvaluationIntentReadiness,
+): boolean {
+  return readiness.selectionNotExercisedCount > 0 &&
+    readiness.workflowAuthorityCount === 0 &&
+    readiness.shadowEquivalentCount === 0 &&
+    readiness.workflowDiffersCount === 0 &&
+    unexpectedWorkflowBlockedCount(readiness) === 0 &&
+    readiness.workflowUnavailableCount === 0 &&
+    readiness.warningCount === 0;
+}
+
+function unexpectedWorkflowBlockedCount(
+  readiness: Pick<
+    AssistantWorkflowToolSelectionEvaluationIntentReadiness,
+    "workflowBlockedCount" | "expectedClarificationBlockCount"
+  >,
+): number {
+  return Math.max(0, readiness.workflowBlockedCount - readiness.expectedClarificationBlockCount);
 }
 
 function collectMigrationBlockingReasons(
@@ -839,13 +935,13 @@ function collectMigrationBlockingReasons(
   if (readiness.decisionCount < minDecisionCount) reasons.push("insufficient_decisions");
   if (readiness.warningCount > 0) reasons.push("warnings_present");
   if (readiness.workflowDiffersCount > 0) reasons.push("workflow_differs");
-  if (readiness.workflowBlockedCount > 0) reasons.push("workflow_blocked");
+  if (unexpectedWorkflowBlockedCount(readiness) > 0) reasons.push("workflow_blocked");
   if (readiness.workflowUnavailableCount > 0) reasons.push("workflow_unavailable");
   if (
     readiness.workflowAuthorityCount > 0 &&
     readiness.shadowEquivalentCount > 0 &&
     readiness.workflowDiffersCount === 0 &&
-    readiness.workflowBlockedCount === 0 &&
+    unexpectedWorkflowBlockedCount(readiness) === 0 &&
     readiness.workflowUnavailableCount === 0
   ) {
     reasons.push("mixed_authority_evidence");
@@ -854,7 +950,7 @@ function collectMigrationBlockingReasons(
     readiness.workflowAuthorityCount === 0 &&
     readiness.shadowEquivalentCount === 0 &&
     readiness.workflowDiffersCount === 0 &&
-    readiness.workflowBlockedCount === 0 &&
+    unexpectedWorkflowBlockedCount(readiness) === 0 &&
     readiness.workflowUnavailableCount === 0
   ) {
     reasons.push("no_workflow_equivalence_evidence");
@@ -867,6 +963,8 @@ function buildMigrationRecommendedAction(
   status: AssistantWorkflowToolSelectionMigrationCandidateStatus,
 ): AssistantWorkflowToolSelectionMigrationRecommendedAction {
   if (status === "workflow_authority_confirmed") return "keep_runtime_authority";
+  if (status === "expected_clarification_only") return "keep_controller_clarification";
+  if (status === "selection_not_exercised_only") return "exercise_pruned_selection";
   if (status === "ready_for_workflow_authority") {
     return kind === "intent"
       ? "add_intent_to_authority_allow_list"
@@ -883,11 +981,23 @@ function buildMigrationRationale(
   minDecisionCount: number,
 ): string {
   const scope = kind === "intent" ? `intent ${readiness.intentId}` : `segment ${getReadinessKey(readiness)}`;
+  const clarificationSuffix = readiness.expectedClarificationBlockCount > 0
+    ? ` with ${readiness.expectedClarificationBlockCount} expected clarification block(s)`
+    : "";
+  const selectionNotExercisedSuffix = readiness.selectionNotExercisedCount > 0
+    ? ` with ${readiness.selectionNotExercisedCount} selection-not-exercised decision(s)`
+    : "";
   if (status === "workflow_authority_confirmed") {
-    return `${scope} is already workflow-owned across ${readiness.decisionCount} decision(s) without warnings.`;
+    return `${scope} is already workflow-owned across ${readiness.workflowAuthorityCount} decision(s)${clarificationSuffix} and without warnings.`;
+  }
+  if (status === "expected_clarification_only") {
+    return `${scope} has ${readiness.expectedClarificationBlockCount} expected clarification block(s) and does not require an authority change.`;
+  }
+  if (status === "selection_not_exercised_only") {
+    return `${scope} was observed with pruning disabled and needs a pruned shadow selection before an authority change.`;
   }
   if (status === "ready_for_workflow_authority") {
-    return `${scope} has ${readiness.shadowEquivalentCount} shadow-equivalent decision(s), no warnings, and meets minDecisionCount=${minDecisionCount}.`;
+    return `${scope} has ${readiness.shadowEquivalentCount} shadow-equivalent decision(s)${clarificationSuffix}${selectionNotExercisedSuffix}, no warnings, and meets minDecisionCount=${minDecisionCount}.`;
   }
   return `${scope} is not ready for runtime migration: ${blockingReasons.join(", ") || "unknown_reason"}.`;
 }
@@ -919,6 +1029,8 @@ function toMigrationCandidateTracePayload(
     shadowEquivalentCount: candidate.shadowEquivalentCount,
     workflowDiffersCount: candidate.workflowDiffersCount,
     workflowBlockedCount: candidate.workflowBlockedCount,
+    expectedClarificationBlockCount: candidate.expectedClarificationBlockCount,
+    selectionNotExercisedCount: candidate.selectionNotExercisedCount,
     workflowUnavailableCount: candidate.workflowUnavailableCount,
     warningCount: candidate.warningCount,
     status: candidate.status,
@@ -1003,6 +1115,33 @@ function isInterestingRow(row: AssistantWorkflowToolSelectionEvaluation): boolea
   return row.authoritySource !== "workflow";
 }
 
+function isExpectedClarificationBlock(
+  decision: AssistantWorkflowSerializedToolSelectionDecision,
+): boolean {
+  return decision.authority.reason === "workflow_blocked" &&
+    decision.authority.workflowStatus === "needs-clarification";
+}
+
+function isWorkflowSelectionNotExercised(
+  decision: AssistantWorkflowSerializedToolSelectionDecision,
+): boolean {
+  return decision.authority.source === "legacy-pruner" && (
+    decision.authority.reason === "workflow_selection_not_exercised" ||
+    (
+      decision.authority.reason === "workflow_differs" &&
+      decision.comparisonPayload?.["pruningEnabled"] === false
+    )
+  );
+}
+
+function getEvaluationAuthorityReason(
+  decision: AssistantWorkflowSerializedToolSelectionDecision,
+): string {
+  return isWorkflowSelectionNotExercised(decision)
+    ? "workflow_selection_not_exercised"
+    : decision.authority.reason;
+}
+
 function summarizeDifference(
   missingCandidateTools: readonly string[],
   selectedOutsideCandidate: readonly string[],
@@ -1037,6 +1176,12 @@ function buildIntentReadiness(
       const workflowBlockedCount = intentRows.filter((row) =>
         row.authorityReason === "workflow_blocked"
       ).length;
+      const expectedClarificationBlockCount = intentRows.filter((row) =>
+        row.expectedClarificationBlock
+      ).length;
+      const selectionNotExercisedCount = intentRows.filter((row) =>
+        row.selectionNotExercised
+      ).length;
       const workflowUnavailableCount = intentRows.filter((row) =>
         row.authorityReason === "workflow_unavailable"
       ).length;
@@ -1049,6 +1194,8 @@ function buildIntentReadiness(
         shadowEquivalentCount,
         workflowDiffersCount,
         workflowBlockedCount,
+        expectedClarificationBlockCount,
+        selectionNotExercisedCount,
         workflowUnavailableCount,
         warningCount,
         workflowAuthorityConfirmed: (
@@ -1056,7 +1203,7 @@ function buildIntentReadiness(
           workflowAuthorityCount > 0 &&
           shadowEquivalentCount === 0 &&
           workflowDiffersCount === 0 &&
-          workflowBlockedCount === 0 &&
+          unexpectedWorkflowBlockedCount({ workflowBlockedCount, expectedClarificationBlockCount }) === 0 &&
           workflowUnavailableCount === 0 &&
           warningCount === 0
         ),
@@ -1065,7 +1212,7 @@ function buildIntentReadiness(
           workflowAuthorityCount === 0 &&
           shadowEquivalentCount > 0 &&
           workflowDiffersCount === 0 &&
-          workflowBlockedCount === 0 &&
+          unexpectedWorkflowBlockedCount({ workflowBlockedCount, expectedClarificationBlockCount }) === 0 &&
           workflowUnavailableCount === 0 &&
           warningCount === 0
         ),
@@ -1107,6 +1254,8 @@ function buildSegmentReadiness(
         shadowEquivalentCount: 0,
         workflowDiffersCount: 0,
         workflowBlockedCount: 0,
+        expectedClarificationBlockCount: 0,
+        selectionNotExercisedCount: 0,
         workflowUnavailableCount: 0,
         warningCount: 0,
         workflowAuthorityConfirmed: false,

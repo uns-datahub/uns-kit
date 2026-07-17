@@ -475,6 +475,23 @@ describe("buildAssistantWorkflowToolSelectionCandidate", () => {
     });
   });
 
+  it("marks a deliberately full legacy selection as not exercised instead of different", () => {
+    expect(buildAssistantWorkflowToolSelectionAuthority({
+      selectedToolNames: ["query_docs", "list_docs", "search_docs"],
+      workflowAvailable: true,
+      selectionExercised: false,
+      workflowSuggestedToolNames: ["query_docs", "list_docs"],
+      workflowSelectionCandidateToolNames: ["query_docs"],
+      workflowStatus: "ready",
+    })).toEqual({
+      source: "legacy-pruner",
+      reason: "workflow_selection_not_exercised",
+      selectedToolNames: ["query_docs", "list_docs", "search_docs"],
+      workflowSuggestedToolNames: ["query_docs", "list_docs"],
+      workflowStatus: "ready",
+    });
+  });
+
   it("uses the workflow candidate when workflow authority is explicitly enabled", () => {
     expect(buildAssistantWorkflowToolSelectionAuthority({
       selectedToolNames: ["search_docs"],
