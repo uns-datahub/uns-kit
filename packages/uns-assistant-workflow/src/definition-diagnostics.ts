@@ -313,7 +313,7 @@ function validateReferences(
   }
 
   for (const [index, intent] of workflow.intents.entries()) {
-    validateIntentToolSelectionProfiles(intent, index, toolNames, diagnostics);
+    validateIntentToolSelectionProfiles(intent, index, toolNames, subintentIds, diagnostics);
     validateIntentPlanningStepProfiles(intent, index, planningStepIds, toolNames, subintentIds, presentationIds, diagnostics);
     if (intent.defaultPresentation && !presentationIds.has(intent.defaultPresentation)) {
       addDiagnostic(diagnostics, "error", "unknown_presentation", `intents[${index}].defaultPresentation`, `Assistant workflow intent ${intent.id} references unknown presentation: ${intent.defaultPresentation}.`);
@@ -402,6 +402,7 @@ function validateIntentToolSelectionProfiles(
   intent: AssistantWorkflowDefinition<string, string, string, string>["intents"][number],
   intentIndex: number,
   toolNames: ReadonlySet<string>,
+  subintentIds: ReadonlySet<string>,
   diagnostics: AssistantWorkflowDefinitionDiagnostic[],
 ): void {
   const seen = new Map<string, number>();
@@ -432,7 +433,7 @@ function validateIntentToolSelectionProfiles(
         addDiagnostic(diagnostics, "error", "unknown_tool_capability", `${profilePath}.toolHints`, `Assistant workflow intent ${intent.id} tool selection profile ${normalized} references unknown tool capability: ${toolName}.`);
       }
     }
-    validateToolSelectionProfileCondition(intent.id, profile, profilePath, diagnostics);
+    validateToolSelectionProfileCondition(intent.id, profile, profilePath, subintentIds, diagnostics);
   }
 }
 
@@ -470,9 +471,10 @@ function validateToolSelectionProfileCondition(
   intentId: string,
   profile: NonNullable<AssistantWorkflowDefinition<string, string, string, string>["intents"][number]["toolSelectionProfiles"]>[number],
   profilePath: string,
+  subintentIds: ReadonlySet<string>,
   diagnostics: AssistantWorkflowDefinitionDiagnostic[],
 ): void {
-  const { minHop, maxHop, selectedReason } = profile.condition ?? {};
+  const { minHop, maxHop, selectedReason, subintent } = profile.condition ?? {};
   if (minHop !== undefined && (!Number.isInteger(minHop) || minHop < 0)) {
     addDiagnostic(diagnostics, "error", "invalid_tool_selection_profile_condition", `${profilePath}.condition.minHop`, `Assistant workflow intent ${intentId} tool selection profile ${profile.id} minHop must be a non-negative integer.`);
   }
@@ -481,6 +483,14 @@ function validateToolSelectionProfileCondition(
   }
   if (minHop !== undefined && maxHop !== undefined && minHop > maxHop) {
     addDiagnostic(diagnostics, "error", "invalid_tool_selection_profile_condition", `${profilePath}.condition`, `Assistant workflow intent ${intentId} tool selection profile ${profile.id} minHop must not exceed maxHop.`);
+  }
+  if (subintent !== undefined && subintent !== null) {
+    const normalizedSubintent = subintent.trim();
+    if (!normalizedSubintent.length) {
+      addDiagnostic(diagnostics, "error", "invalid_tool_selection_profile_condition", `${profilePath}.condition.subintent`, `Assistant workflow intent ${intentId} tool selection profile ${profile.id} subintent must not be empty.`);
+    } else if (subintentIds.size > 0 && !subintentIds.has(normalizedSubintent)) {
+      addDiagnostic(diagnostics, "error", "missing_id", `${profilePath}.condition.subintent`, `Assistant workflow intent ${intentId} tool selection profile ${profile.id} references unknown subintent: ${normalizedSubintent}.`);
+    }
   }
   if (selectedReason !== undefined && !selectedReason.trim().length) {
     addDiagnostic(diagnostics, "error", "invalid_tool_selection_profile_condition", `${profilePath}.condition.selectedReason`, `Assistant workflow intent ${intentId} tool selection profile ${profile.id} selectedReason must not be empty.`);

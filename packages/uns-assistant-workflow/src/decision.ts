@@ -32,6 +32,7 @@ export type AssistantWorkflowDecisionInput = {
 
 export type AssistantWorkflowDecision = {
   intent: string | null;
+  subintent: string | null;
   matchedIntent: boolean;
   defaultPresentation: string | null;
   effectivePresentation: string | null;
@@ -57,6 +58,9 @@ export function buildAssistantWorkflowDecision(
 ): AssistantWorkflowDecision {
   const intent = typeof classification?.intent === "string" && classification.intent.trim().length
     ? classification.intent.trim().toLowerCase()
+    : null;
+  const subintent = typeof classification?.subintent === "string" && classification.subintent.trim().length
+    ? classification.subintent.trim().toLowerCase()
     : null;
   const intentDefinition = intent ? findAssistantWorkflowIntent(workflow, intent) : null;
   const availableSet = new Set(availableToolNames);
@@ -87,6 +91,7 @@ export function buildAssistantWorkflowDecision(
 
   return {
     intent,
+    subintent,
     matchedIntent: intentDefinition !== null,
     defaultPresentation: intentDefinition?.defaultPresentation ?? null,
     effectivePresentation:
@@ -114,6 +119,7 @@ export function buildAssistantWorkflowDecisionTracePayload(
 ): Record<string, unknown> {
   return {
     intent: decision.intent,
+    subintent: decision.subintent,
     matchedIntent: decision.matchedIntent,
     defaultPresentation: decision.defaultPresentation,
     effectivePresentation: decision.effectivePresentation,
