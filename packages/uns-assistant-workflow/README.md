@@ -30,6 +30,24 @@ The package deliberately does not contain provider credentials, database access,
 HTTP transport, UNS-specific tool implementations, or application-specific
 workflow definitions.
 
+## Tool-Selection Evaluation
+
+Tool-selection replay reports distinguish a workflow failure from an expected
+clarification boundary. A `workflow_blocked` decision with
+`workflowStatus: "needs-clarification"` is emitted as the informational
+`workflow_expected_clarification` signal. It remains visible in readiness and
+migration artifacts, but it neither increments warning counts nor asks to
+broaden runtime authority. Other blocked workflow states remain warnings and
+continue to block a migration proposal.
+
+When an application deliberately exposes its full legacy tool catalog
+(`pruningEnabled: false`), replay reports record
+`workflow_selection_not_exercised` rather than interpreting the larger catalog
+as a workflow mismatch. These rows remain visible as
+`selection_not_exercised_only` migration candidates and require a pruned shadow
+selection before authority can be broadened; they never hide a genuine mismatch
+observed while selection was exercised.
+
 ## Exact Tool Handoffs
 
 When a host has rebuilt a workflow plan and wants to delegate exactly one

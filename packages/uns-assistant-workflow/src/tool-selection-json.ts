@@ -368,6 +368,7 @@ function isAuthorityReason(value: unknown): value is AssistantWorkflowToolSelect
     value === "workflow_unavailable" ||
     value === "workflow_authority_not_enabled" ||
     value === "workflow_blocked" ||
+    value === "workflow_selection_not_exercised" ||
     value === "workflow_differs"
   );
 }

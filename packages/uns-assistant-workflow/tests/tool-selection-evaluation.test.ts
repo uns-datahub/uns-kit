@@ -14,6 +14,7 @@ import {
   evaluateAssistantWorkflowToolSelectionDecision,
   serializeAssistantWorkflowToolSelectionDecision,
   type AssistantWorkflowDefinition,
+  type AssistantWorkflowSerializedToolSelectionDecision,
 } from "../src/index.js";
 
 describe("assistant workflow tool selection evaluation", () => {
@@ -151,6 +152,223 @@ describe("assistant workflow tool selection evaluation", () => {
         detail: "list_docs",
       }],
     });
+  });
+
+  it("keeps pruning-disabled selections visible without treating them as workflow differences", () => {
+    const workflowDefinition = defineAssistantWorkflow(workflow());
+    const decision = serializeAssistantWorkflowToolSelectionDecision(buildAssistantWorkflowToolSelectionDecision({
+      workflow: workflowDefinition,
+      classification: {
+        intent: "answer_docs",
+        toolsToExpose: ["query_docs"],
+        entities: {},
+      },
+      availableToolNames: ["query_docs", "list_docs", "search_docs"],
+      selectedToolNames: ["query_docs", "list_docs", "search_docs"],
+      selectedMode: "full",
+      selectedReason: "disabled",
+      pruningEnabled: false,
+      availableContext: ["document-scope"],
+    }));
+    const legacyReplayDecision: AssistantWorkflowSerializedToolSelectionDecision = {
+      ...decision,
+      authority: {
+        ...decision.authority,
+        reason: "workflow_differs",
+      },
+    };
+
+    const evaluation = evaluateAssistantWorkflowToolSelectionDecision(legacyReplayDecision);
+    const batch = buildAssistantWorkflowToolSelectionEvaluationBatch([legacyReplayDecision]);
+    const report = buildAssistantWorkflowToolSelectionMigrationReport(batch);
+    const proposal = buildAssistantWorkflowToolSelectionAuthorityAllowListProposal(report);
+    const artifact = buildAssistantWorkflowToolSelectionMigrationReviewArtifact({ report, proposal });
+
+    expect(evaluation).toMatchObject({
+      authorityReason: "workflow_selection_not_exercised",
+      selectionNotExercised: true,
+      warningCount: 0,
+      signals: [{
+        name: "legacy_authority",
+        severity: "info",
+        detail: "workflow_selection_not_exercised",
+      }, {
+        name: "workflow_selection_not_exercised",
+        severity: "info",
+        detail: "pruning_disabled",
+      }],
+    });
+    expect(batch.intentReadiness).toEqual([expect.objectContaining({
+      intentId: "answer_docs",
+      workflowDiffersCount: 0,
+      selectionNotExercisedCount: 1,
+      warningCount: 0,
+      workflowAuthorityConfirmed: false,
+      readyForWorkflowAuthority: false,
+    })]);
+    expect(report).toMatchObject({
+      selectionNotExercisedCandidates: [expect.objectContaining({
+        kind: "intent",
+        key: "answer_docs",
+        status: "selection_not_exercised_only",
+        recommendedAction: "exercise_pruned_selection",
+      }), expect.objectContaining({
+        kind: "segment",
+        key: "answer_docs|hop:unknown|disabled",
+        status: "selection_not_exercised_only",
+      })],
+      reviewCandidates: [],
+    });
+    expect(buildAssistantWorkflowToolSelectionMigrationReportTracePayload(report)).toMatchObject({
+      selectionNotExercisedCandidates: expect.arrayContaining([expect.objectContaining({
+        key: "answer_docs",
+      })]),
+    });
+    expect(artifact).toMatchObject({
+      evidence: {
+        selectionNotExercisedCandidateKeys: ["answer_docs", "answer_docs|hop:unknown|disabled"],
+      },
+      review: {
+        blockerCount: 0,
+      },
+    });
+  });
+
+  it("keeps expected clarification blocks visible without treating them as migration warnings", () => {
+    const workflowDefinition = defineAssistantWorkflow(workflow());
+    const confirmedDecision = serializeAssistantWorkflowToolSelectionDecision(buildAssistantWorkflowToolSelectionDecision({
+      workflow: workflowDefinition,
+      classification: {
+        intent: "answer_docs",
+        toolsToExpose: ["query_docs"],
+        entities: {},
+      },
+      availableToolNames: ["query_docs", "list_docs"],
+      selectedToolNames: ["query_docs"],
+      selectedReason: "workflow_equivalent",
+      hop: 1,
+      availableContext: ["document-scope"],
+      workflowAuthorityIntentIds: ["answer_docs"],
+    }));
+    const clarificationDecision = withWorkflowBlockedAuthority(
+      serializeAssistantWorkflowToolSelectionDecision(buildAssistantWorkflowToolSelectionDecision({
+        workflow: workflowDefinition,
+        classification: {
+          intent: "answer_docs",
+          toolsToExpose: ["query_docs"],
+          entities: {},
+        },
+        availableToolNames: ["query_docs", "list_docs"],
+        selectedToolNames: ["query_docs"],
+        selectedReason: "disabled",
+        hop: 1,
+        availableContext: ["document-scope"],
+        workflowAuthorityIntentIds: ["answer_docs"],
+      })),
+      "needs-clarification",
+    );
+
+    const evaluation = evaluateAssistantWorkflowToolSelectionDecision(clarificationDecision);
+    const batch = buildAssistantWorkflowToolSelectionEvaluationBatch([confirmedDecision, clarificationDecision]);
+    const report = buildAssistantWorkflowToolSelectionMigrationReport(batch);
+    const proposal = buildAssistantWorkflowToolSelectionAuthorityAllowListProposal(report, {
+      currentAuthorityIntentIds: ["answer_docs"],
+    });
+    const artifact = buildAssistantWorkflowToolSelectionMigrationReviewArtifact({ report, proposal });
+
+    expect(evaluation).toMatchObject({
+      authorityReason: "workflow_blocked",
+      workflowStatus: "needs-clarification",
+      expectedClarificationBlock: true,
+      warningCount: 0,
+      signals: expect.arrayContaining([expect.objectContaining({
+        name: "workflow_expected_clarification",
+        severity: "info",
+      })]),
+    });
+    expect(batch.intentReadiness).toEqual([expect.objectContaining({
+      intentId: "answer_docs",
+      workflowAuthorityCount: 1,
+      workflowBlockedCount: 1,
+      expectedClarificationBlockCount: 1,
+      warningCount: 0,
+      workflowAuthorityConfirmed: true,
+    })]);
+    expect(report).toMatchObject({
+      confirmedIntentCandidates: [expect.objectContaining({
+        intentId: "answer_docs",
+        expectedClarificationBlockCount: 1,
+        status: "workflow_authority_confirmed",
+      })],
+      expectedClarificationCandidates: [expect.objectContaining({
+        kind: "segment",
+        key: "answer_docs|hop:1|disabled",
+        status: "expected_clarification_only",
+        recommendedAction: "keep_controller_clarification",
+      })],
+      reviewCandidates: [],
+    });
+    expect(buildAssistantWorkflowToolSelectionMigrationReportTracePayload(report)).toMatchObject({
+      expectedClarificationCandidates: [{
+        key: "answer_docs|hop:1|disabled",
+      }],
+    });
+    expect(proposal).toMatchObject({
+      currentIntentIdsWithReviewEvidence: [],
+      reviewIntentIds: [],
+      reviewSegmentKeys: [],
+    });
+    expect(artifact).toMatchObject({
+      evidence: {
+        expectedClarificationCandidateKeys: ["answer_docs|hop:1|disabled"],
+      },
+      review: {
+        blockerCount: 0,
+      },
+    });
+    expect(buildAssistantWorkflowToolSelectionMigrationReviewArtifactTracePayload(artifact)).toMatchObject({
+      evidence: {
+        expectedClarificationCandidateKeys: ["answer_docs|hop:1|disabled"],
+      },
+    });
+  });
+
+  it("keeps non-clarification workflow blocks as warnings and migration blockers", () => {
+    const decision = withWorkflowBlockedAuthority(
+      serializeAssistantWorkflowToolSelectionDecision(buildAssistantWorkflowToolSelectionDecision({
+        workflow: defineAssistantWorkflow(workflow()),
+        classification: {
+          intent: "answer_docs",
+          toolsToExpose: ["query_docs"],
+          entities: {},
+        },
+        availableToolNames: ["query_docs", "list_docs"],
+        selectedToolNames: ["query_docs"],
+        selectedReason: "disabled",
+        availableContext: ["document-scope"],
+      })),
+      "blocked",
+    );
+
+    const evaluation = evaluateAssistantWorkflowToolSelectionDecision(decision);
+    const report = buildAssistantWorkflowToolSelectionMigrationReport(
+      buildAssistantWorkflowToolSelectionEvaluationBatch([decision]),
+    );
+
+    expect(evaluation).toMatchObject({
+      expectedClarificationBlock: false,
+      warningCount: 2,
+      signals: expect.arrayContaining([expect.objectContaining({
+        name: "workflow_blocked",
+        severity: "warning",
+      })]),
+    });
+    expect(report.reviewCandidates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        intentId: "answer_docs",
+        blockingReasons: expect.arrayContaining(["warnings_present", "workflow_blocked"]),
+      }),
+    ]));
   });
 
   it("marks shadow-equivalent decisions as intent readiness candidates", () => {
@@ -668,5 +886,26 @@ function workflow(): AssistantWorkflowDefinition {
       id: "text",
       description: "Text response.",
     }],
+  };
+}
+
+function withWorkflowBlockedAuthority(
+  decision: AssistantWorkflowSerializedToolSelectionDecision,
+  workflowStatus: "needs-clarification" | "blocked",
+): AssistantWorkflowSerializedToolSelectionDecision {
+  return {
+    ...decision,
+    comparisonPayload: {
+      ...decision.comparisonPayload,
+      selectedReason: "disabled",
+      workflowAuthoritySegmentKey: "answer_docs|hop:1|disabled",
+      missingWorkflowSelectionCandidateTools: ["query_docs"],
+    },
+    authority: {
+      ...decision.authority,
+      source: "legacy-pruner",
+      reason: "workflow_blocked",
+      workflowStatus,
+    },
   };
 }
