@@ -33,7 +33,7 @@ export type AssistantWorkflowToolSelectionCandidateInput = {
   workflow: AssistantWorkflowDefinition<string, string, string, string>;
   decision: Pick<
     AssistantWorkflowDecision,
-    "intent" | "classifierTools" | "requiredToolHints" | "toolHints" | "workflowSuggestedTools"
+    "intent" | "subintent" | "classifierTools" | "requiredToolHints" | "toolHints" | "workflowSuggestedTools"
   >;
   availableToolNames?: readonly string[] | null;
   hop?: number | null;
@@ -112,6 +112,7 @@ export function buildAssistantWorkflowToolSelectionCandidate(
     .filter((profile) => toolSelectionProfileConditionMatches(profile.condition, {
       hop: input.hop ?? null,
       selectedReason: input.selectedReason ?? null,
+      subintent: input.decision.subintent,
       resolvedScope: input.resolvedScope === true,
       attributeCount: input.attributeCount ?? null,
       classifierToolNames: classifierToolSet,
@@ -295,6 +296,7 @@ function toolSelectionProfileConditionMatches(
   input: {
     hop: number | null;
     selectedReason: string | null;
+    subintent: string | null;
     resolvedScope: boolean;
     attributeCount: number | null;
     classifierToolNames: ReadonlySet<string>;
@@ -306,6 +308,12 @@ function toolSelectionProfileConditionMatches(
   if (condition.selectedReason !== undefined) {
     const expectedReason = normalizeNullableString(condition.selectedReason);
     if (expectedReason === null || normalizeNullableString(input.selectedReason) !== expectedReason) return false;
+  }
+  if (
+    condition.subintent !== undefined &&
+    normalizeNullableString(condition.subintent) !== normalizeNullableString(input.subintent)
+  ) {
+    return false;
   }
   if (condition.resolvedScope !== undefined && condition.resolvedScope !== input.resolvedScope) return false;
   if (

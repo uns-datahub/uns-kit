@@ -166,6 +166,53 @@ describe("buildAssistantWorkflowToolSelectionCandidate", () => {
     });
   });
 
+  it("matches selection profiles by an explicit subintent or an absent subintent", () => {
+    const workflow = defineAssistantWorkflow({
+      id: "selection-subintent-profile-test",
+      version: 1,
+      intents: [{
+        id: "discover",
+        description: "Discover catalog entries.",
+        toolHints: ["search_catalog"],
+        toolSelectionProfiles: [{
+          id: "broad_catalog",
+          description: "Use broad catalog retrieval without a specialized subintent.",
+          condition: { subintent: null },
+          toolHints: ["list_catalog"],
+        }, {
+          id: "location_catalog",
+          description: "Use location retrieval for container-location questions.",
+          condition: { subintent: "container_location" },
+          toolHints: ["locate_container"],
+        }],
+      }],
+      subintents: [{ id: "container_location", description: "Locate a container." }],
+      tools: [
+        capability("search_catalog"),
+        capability("list_catalog"),
+        capability("locate_container"),
+      ],
+    });
+    const candidate = (subintent: string | null) => buildAssistantWorkflowToolSelectionCandidate({
+      workflow,
+      decision: buildAssistantWorkflowDecision(
+        workflow,
+        { intent: "discover", subintent, toolsToExpose: ["search_catalog"], entities: {} },
+        ["search_catalog", "list_catalog", "locate_container"],
+      ),
+      availableToolNames: ["search_catalog", "list_catalog", "locate_container"],
+    });
+
+    expect(candidate(null)).toMatchObject({
+      activeProfileIds: ["broad_catalog"],
+      profileToolNames: ["list_catalog"],
+    });
+    expect(candidate("container_location")).toMatchObject({
+      activeProfileIds: ["location_catalog"],
+      profileToolNames: ["locate_container"],
+    });
+  });
+
   it("uses active selection profile tools for authority equivalence", () => {
     const workflow = defineAssistantWorkflow({
       id: "selection-profile-authority-test",

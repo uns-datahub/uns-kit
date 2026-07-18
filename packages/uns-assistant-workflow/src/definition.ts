@@ -10,6 +10,8 @@ export type AssistantWorkflowToolSelectionProfileCondition = {
   minHop?: number;
   maxHop?: number;
   selectedReason?: string;
+  /** `null` explicitly matches classifications without a subintent. */
+  subintent?: string | null;
   resolvedScope?: boolean;
   minAttributeCount?: number;
   maxAttributeCount?: number;
@@ -493,7 +495,7 @@ function assertIntentReferences(
       }
     }
     for (const [profileIndex, profile] of (intent.toolSelectionProfiles ?? []).entries()) {
-      assertToolSelectionProfileCondition(intent.id, profile, toolNames);
+      assertToolSelectionProfileCondition(intent.id, profile, toolNames, subintentIds);
       for (const toolName of profile.toolHints) {
         if (toolNames.size > 0 && !toolNames.has(toolName)) {
           throw new Error(
@@ -645,11 +647,13 @@ function assertToolSelectionProfileCondition(
   intentId: string,
   profile: AssistantWorkflowToolSelectionProfile,
   knownToolNames: ReadonlySet<string>,
+  knownSubintentIds: ReadonlySet<string>,
 ): void {
   const {
     minHop,
     maxHop,
     selectedReason,
+    subintent,
     minAttributeCount,
     maxAttributeCount,
     requiredClassifierTools,
@@ -692,6 +696,19 @@ function assertToolSelectionProfileCondition(
     throw new Error(
       `Assistant workflow intent ${intentId} tool selection profile ${profile.id} minHop must not exceed maxHop.`,
     );
+  }
+  if (subintent !== undefined && subintent !== null) {
+    const normalizedSubintent = subintent.trim();
+    if (!normalizedSubintent.length) {
+      throw new Error(
+        `Assistant workflow intent ${intentId} tool selection profile ${profile.id} subintent must not be empty.`,
+      );
+    }
+    if (knownSubintentIds.size > 0 && !knownSubintentIds.has(normalizedSubintent)) {
+      throw new Error(
+        `Assistant workflow intent ${intentId} tool selection profile ${profile.id} references unknown subintent: ${normalizedSubintent}.`,
+      );
+    }
   }
   if (minAttributeCount !== undefined && (!Number.isInteger(minAttributeCount) || minAttributeCount < 0)) {
     throw new Error(
