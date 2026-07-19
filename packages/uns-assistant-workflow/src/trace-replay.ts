@@ -874,7 +874,9 @@ function readToolCallSummary(
     synthetic: readBoolean(payload["synthetic"]) ?? false,
     parallel: readBoolean(payload["parallel"]) ?? false,
     resultChars: readNumber(payload["resultChars"]),
-    topic: args ? readString(args["topic"]) : null,
+    // Runtime-authoritative controller traces deliberately omit raw tool args,
+    // but retain the controller-approved topic as a safe top-level field.
+    topic: (args ? readString(args["topic"]) : null) ?? readString(payload["topic"]),
     structuredArtifactKinds: readStringArray(payload["structuredArtifactKinds"]),
   };
 }

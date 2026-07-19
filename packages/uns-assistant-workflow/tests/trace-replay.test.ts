@@ -44,6 +44,23 @@ describe("assistant workflow trace replay", () => {
     })]);
   });
 
+  it("reads a controller-approved runtime topic without requiring raw tool arguments", () => {
+    const summary = buildAssistantWorkflowTraceSummary([{
+      stage: "tool.call",
+      payload: {
+        tool: "get_attribute_data_view",
+        topic: "sij/acroni/vv/hrm-pusher-furnace/material/slab-005/temperature",
+        structuredArtifactKinds: ["chart"],
+      },
+    }]);
+
+    expect(summary.toolCalls).toEqual([expect.objectContaining({
+      tool: "get_attribute_data_view",
+      topic: "sij/acroni/vv/hrm-pusher-furnace/material/slab-005/temperature",
+      structuredArtifactKinds: ["chart"],
+    })]);
+  });
+
   it("retains the workflow revision that produced a tool-selection trace", () => {
     const summary = buildAssistantWorkflowTraceSummary([{
       stage: "tool_selection.workflow_comparison",
