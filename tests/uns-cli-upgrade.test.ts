@@ -27,6 +27,7 @@ describe("uns-kit upgrade", () => {
     expect(firstAgents).toContain("Keep this project-specific rule.");
     expect(firstAgents).toContain("node_modules/@uns-kit/core/MIGRATIONS.md");
     expect(firstAgents).toContain("When crossing `<2.0.71` to `>=2.0.71`");
+    expect(firstAgents).toContain("When crossing `<3.0.0` to `>=3.0.0`");
     expect(countOccurrences(firstAgents, "<!-- uns-kit:migrations:start -->")).toBe(1);
     expect(countOccurrences(firstAgents, "<!-- uns-kit:migrations:end -->")).toBe(1);
 
@@ -47,6 +48,7 @@ describe("uns-kit upgrade", () => {
     expect(agents).toMatch(/^# AGENTS/);
     expect(agents).toContain("node_modules/@uns-kit/core/MIGRATIONS.md");
     expect(agents).toContain("Process-owned and standalone proxies have different shutdown paths.");
+    expect(agents).toContain("migrate MQTT `message.table.columns` publishers");
   });
 });
 

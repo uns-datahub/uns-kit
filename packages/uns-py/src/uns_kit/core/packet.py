@@ -3,8 +3,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime, timezone
 import re
-from typing import Any, Dict, Literal, Optional, TypeAlias
+from typing import Any, Dict, Literal, Optional, TypeAlias, cast
 import json
+
+from .logger import get_logger
+
+log = get_logger(__name__)
 
 DataValue: TypeAlias = str | int | float
 TableValue: TypeAlias = DataValue | bool | None
@@ -52,6 +56,9 @@ QUESTDB_PRIMITIVE_TYPES: set[str] = {
 QUESTDB_GEOHASH_RE = re.compile(r"^geohash\(\d+[bc]\)$")
 QUESTDB_DECIMAL_RE = re.compile(r"^decimal\(\d+,\d+\)$")
 QUESTDB_ARRAY_RE = re.compile(r"^array<[^>]+>$")
+CANONICAL_COLUMN_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,62}$")
+RESERVED_COLUMN_NAMES = {"__proto__", "prototype", "constructor"}
+SUPPORTED_LEGACY_PACKET_VERSION_RE = re.compile(r"^1\.\d+\.\d+(?:[-+].*)?$")
 
 
 def isoformat(dt: datetime) -> str:
@@ -80,16 +87,16 @@ class DataPayload:
 
 @dataclass
 class TableColumnPayload:
-    name: str
-    type: Optional[str]
+    type: str
     value: TableValue
     uom: Optional[str] = None
+    name: Optional[str] = None
 
 
 @dataclass
 class TablePayload:
     time: str
-    columns: list[TableColumnPayload | Dict[str, Any]] | Dict[str, TableColumnPayload | Dict[str, Any]]
+    columns: Dict[str, TableColumnPayload | Dict[str, Any]]
     dataGroup: Optional[str] = None
     intervalStart: Optional[str | int] = None
     intervalEnd: Optional[str | int] = None
@@ -145,63 +152,58 @@ def _validate_data_payload(payload: Dict[str, Any]) -> None:
         raise ValueError("data.value must be string or number")
 
 
-def _validate_table_payload(payload: Dict[str, Any]) -> None:
+def _validate_table_payload(
+    payload: Dict[str, Any],
+    *,
+    require_canonical_names: bool = True,
+) -> None:
     columns = payload.get("columns")
-    if isinstance(columns, list):
-        if len(columns) == 0:
-            raise ValueError("table.columns must be a non-empty array or object")
+    if not isinstance(columns, dict) or len(columns) == 0:
+        raise ValueError("table.columns must be a non-empty object")
 
-        seen_names: set[str] = set()
-        for index, raw_column in enumerate(columns):
-            try:
-                column = _coerce_object(raw_column)
-            except TypeError as exc:
-                raise ValueError(f"table.columns[{index}] must be an object") from exc
-
-            name = column.get("name")
-            if not isinstance(name, str) or not name.strip():
-                raise ValueError(f"table.columns[{index}].name must be a non-empty string")
-            if name in seen_names:
-                raise ValueError(f"table.columns contains duplicate column name '{name}'")
-            seen_names.add(name)
-
-            _validate_named_column_payload(name, column, f"table.columns[{index}]")
-        return
-
-    if isinstance(columns, dict):
-        if len(columns) == 0:
-            raise ValueError("table.columns must be a non-empty array or object")
-
-        for name, raw_column in columns.items():
-            if not isinstance(name, str) or not name.strip():
-                raise ValueError("table.columns keys must be non-empty strings")
-            try:
-                column = _coerce_object(raw_column)
-            except TypeError as exc:
-                raise ValueError(f"table.columns.{name} must be an object") from exc
-
-            _validate_named_column_payload(name, column, f"table.columns.{name}")
-        return
-
-    raise ValueError("table.columns must be a non-empty array or object")
+    for name, raw_column in columns.items():
+        _validate_column_name(name, require_canonical=require_canonical_names)
+        try:
+            column = _coerce_object(raw_column)
+        except TypeError as exc:
+            raise ValueError(f"table.columns.{name} must be an object") from exc
+        if "name" in column:
+            raise ValueError(f"table.columns.{name} must not contain a name property")
+        _validate_named_column_payload(name, column, f"table.columns.{name}")
 
 
-def _validate_named_column_payload(name: str, column: Dict[str, Any], path: str) -> None:
+def _validate_named_column_payload(
+    name: str, column: Dict[str, Any], path: str
+) -> None:
     column_type = column.get("type")
-    if column_type is not None and not is_questdb_type(column_type):
+    if column_type is None:
+        raise ValueError(f"{path}.type is required")
+    if not is_questdb_type(column_type):
         raise ValueError(f"{path}.type must be a valid QuestDB type literal")
 
     if "value" not in column:
         raise ValueError(f"{path}.value is required")
     if not _is_table_value(column["value"]):
+        raise ValueError(f"{path}.value must be string, number, boolean, or null")
+    if "uom" in column and not isinstance(column["uom"], str):
+        raise ValueError(f"{path}.uom must be a string when provided")
+
+
+def _validate_column_name(name: Any, *, require_canonical: bool) -> str:
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("table.columns keys must be non-empty strings")
+    if name in RESERVED_COLUMN_NAMES:
+        raise ValueError(f"table column name '{name}' is reserved")
+    if require_canonical and not CANONICAL_COLUMN_NAME_RE.fullmatch(name):
         raise ValueError(
-            f"{path}.value must be string, number, boolean, or null"
+            f"table column name '{name}' must match {CANONICAL_COLUMN_NAME_RE.pattern}"
         )
+    return name
 
 
 def _coerce_object(value: Any) -> Dict[str, Any]:
     if is_dataclass(value):
-        coerced = asdict(value)
+        coerced = asdict(cast(Any, value))
     elif isinstance(value, dict):
         coerced = dict(value)
     else:
@@ -209,12 +211,16 @@ def _coerce_object(value: Any) -> Dict[str, Any]:
     return coerced
 
 
-def _normalize_table_columns(columns: Any) -> list[Dict[str, Any]] | Dict[str, Dict[str, Any]]:
+def _normalize_table_columns(
+    columns: Any,
+    *,
+    legacy_names_may_be_noncanonical: bool = False,
+) -> Dict[str, Dict[str, Any]]:
     if isinstance(columns, list):
         if len(columns) == 0:
             raise ValueError("table.columns must be a non-empty array or object")
 
-        normalized: list[Dict[str, Any]] = []
+        normalized: Dict[str, Dict[str, Any]] = {}
         seen_names: set[str] = set()
         for index, raw_column in enumerate(columns):
             try:
@@ -224,13 +230,23 @@ def _normalize_table_columns(columns: Any) -> list[Dict[str, Any]] | Dict[str, D
 
             name = column.get("name")
             if not isinstance(name, str) or not name.strip():
-                raise ValueError(f"table.columns[{index}].name must be a non-empty string")
+                raise ValueError(
+                    f"table.columns[{index}].name must be a non-empty string"
+                )
+            _validate_column_name(
+                name,
+                require_canonical=not legacy_names_may_be_noncanonical,
+            )
             if name in seen_names:
-                raise ValueError(f"table.columns contains duplicate column name '{name}'")
+                raise ValueError(
+                    f"table.columns contains duplicate column name '{name}'"
+                )
             seen_names.add(name)
 
+            column.pop("name", None)
             _prune_none(column)
-            normalized.append(column)
+            _validate_named_column_payload(name, column, f"table.columns[{index}]")
+            normalized[name] = column
         return normalized
 
     if isinstance(columns, dict):
@@ -239,13 +255,17 @@ def _normalize_table_columns(columns: Any) -> list[Dict[str, Any]] | Dict[str, D
 
         normalized = {}
         for name, raw_column in columns.items():
-            if not isinstance(name, str) or not name.strip():
-                raise ValueError("table.columns keys must be non-empty strings")
+            _validate_column_name(name, require_canonical=True)
             try:
                 column = _coerce_object(raw_column)
             except TypeError as exc:
                 raise ValueError(f"table.columns.{name} must be an object") from exc
             _prune_none(column)
+            if "name" in column:
+                raise ValueError(
+                    f"table.columns.{name} must not contain a name property"
+                )
+            _validate_named_column_payload(name, column, f"table.columns.{name}")
             normalized[name] = column
         return normalized
 
@@ -276,7 +296,7 @@ def _prune_none(payload: Dict[str, Any]) -> None:
 
 
 class UnsPacket:
-    version: str = "1.3.0"
+    version: str = "2.0.0"
 
     @staticmethod
     def data(
@@ -289,7 +309,9 @@ class UnsPacket:
         **extra: Any,
     ) -> Dict[str, Any]:
         resolved_time = (
-            time if isinstance(time, str) else isoformat(time or datetime.now(timezone.utc))
+            time
+            if isinstance(time, str)
+            else isoformat(time or datetime.now(timezone.utc))
         )
         payload = {
             "value": value,
@@ -300,19 +322,26 @@ class UnsPacket:
         _normalize_payload_fields(payload, extra)
         _prune_none(payload)
         _validate_data_payload(payload)
-        payload["valueType"] = _value_type(payload["value"])
+        payload["valueType"] = _value_type(cast(DataValue, payload["value"]))
         message: Dict[str, Any] = {"data": payload}
         if created_at is not None:
-            message["createdAt"] = created_at if isinstance(created_at, str) else isoformat(created_at)
+            message["createdAt"] = (
+                created_at if isinstance(created_at, str) else isoformat(created_at)
+            )
         if expires_at is not None:
-            message["expiresAt"] = expires_at if isinstance(expires_at, str) else isoformat(expires_at)
+            message["expiresAt"] = (
+                expires_at if isinstance(expires_at, str) else isoformat(expires_at)
+            )
         return {"version": UnsPacket.version, "message": message}
 
     @staticmethod
     def table(
         table: Optional[Dict[str, Any]] = None,
         *,
-        columns: Optional[list[TableColumnPayload | Dict[str, Any]] | Dict[str, TableColumnPayload | Dict[str, Any]]] = None,
+        columns: Optional[
+            list[TableColumnPayload | Dict[str, Any]]
+            | Dict[str, TableColumnPayload | Dict[str, Any]]
+        ] = None,
         time: Optional[datetime | str] = None,
         data_group: Optional[str] = None,
         created_at: Optional[datetime | str] = None,
@@ -321,11 +350,13 @@ class UnsPacket:
     ) -> Dict[str, Any]:
         if table is None:
             if columns is None:
-                raise ValueError("table() requires either table dict or columns list")
+                raise ValueError("table() requires either table dict or columns")
             resolved_time = (
-                time if isinstance(time, str) else isoformat(time or datetime.now(timezone.utc))
+                time
+                if isinstance(time, str)
+                else isoformat(time or datetime.now(timezone.utc))
             )
-            payload = {
+            payload: Dict[str, Any] = {
                 "time": resolved_time,
                 "columns": columns,
                 "dataGroup": data_group,
@@ -334,7 +365,9 @@ class UnsPacket:
             payload = dict(table)
             if "time" not in payload:
                 payload["time"] = (
-                    time if isinstance(time, str) else isoformat(time or datetime.now(timezone.utc))
+                    time
+                    if isinstance(time, str)
+                    else isoformat(time or datetime.now(timezone.utc))
                 )
             if data_group is not None and "dataGroup" not in payload:
                 payload["dataGroup"] = data_group
@@ -346,9 +379,13 @@ class UnsPacket:
         _validate_table_payload(payload)
         message: Dict[str, Any] = {"table": payload}
         if created_at is not None:
-            message["createdAt"] = created_at if isinstance(created_at, str) else isoformat(created_at)
+            message["createdAt"] = (
+                created_at if isinstance(created_at, str) else isoformat(created_at)
+            )
         if expires_at is not None:
-            message["expiresAt"] = expires_at if isinstance(expires_at, str) else isoformat(expires_at)
+            message["expiresAt"] = (
+                expires_at if isinstance(expires_at, str) else isoformat(expires_at)
+            )
         return {"version": UnsPacket.version, "message": message}
 
     @staticmethod
@@ -358,8 +395,49 @@ class UnsPacket:
     @staticmethod
     def parse(packet_str: str) -> Optional[Dict[str, Any]]:
         try:
-            return json.loads(packet_str)
-        except Exception:
+            packet = json.loads(packet_str)
+            if not isinstance(packet, dict):
+                raise ValueError("packet must be an object")
+            version = packet.get("version")
+            if not isinstance(version, str) or not (
+                version == UnsPacket.version
+                or SUPPORTED_LEGACY_PACKET_VERSION_RE.fullmatch(version)
+            ):
+                raise ValueError(f"unsupported or missing packet version '{version}'")
+            message = packet.get("message")
+            if not isinstance(message, dict):
+                raise ValueError("packet.message must be an object")
+
+            normalized_message = dict(message)
+            data = normalized_message.get("data")
+            if isinstance(data, dict):
+                data = dict(data)
+                _validate_data_payload(data)
+                data["valueType"] = _value_type(data["value"])
+                normalized_message["data"] = data
+            elif data is not None:
+                raise ValueError("message.data must be an object when provided")
+
+            table = normalized_message.get("table")
+            if isinstance(table, dict):
+                table = dict(table)
+                legacy_column_array = isinstance(table.get("columns"), list)
+                if "columns" in table:
+                    table["columns"] = _normalize_table_columns(
+                        table["columns"],
+                        legacy_names_may_be_noncanonical=True,
+                    )
+                _validate_table_payload(
+                    table,
+                    require_canonical_names=not legacy_column_array,
+                )
+                normalized_message["table"] = table
+            elif table is not None:
+                raise ValueError("message.table must be an object when provided")
+
+            return {**packet, "message": normalized_message}
+        except Exception as exc:
+            log.error("Could not parse UNS packet: %s", exc)
             return None
 
     @staticmethod

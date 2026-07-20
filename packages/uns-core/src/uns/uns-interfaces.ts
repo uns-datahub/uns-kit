@@ -229,17 +229,19 @@ export interface IUnsData {
 }
 
 export interface IUnsTableColumn {
-  name: string;
   type: QuestDbType;
   value: string | number | boolean | null;
   uom?: MeasurementUnit;
 }
 
+/** MQTT table columns keyed by their stable UNS/QuestDB column name. */
+export type IUnsTableColumns = Record<string, IUnsTableColumn>;
+
 export interface IUnsTable {
   time: ISO8601;
   /** Storage/routing group for consumers such as archivers; not part of the UNS identity path. */
   dataGroup?: string;
-  columns: IUnsTableColumn[];
+  columns: IUnsTableColumns;
   intervalStart?: ISO8601 | number;
   intervalEnd?: ISO8601 | number;
   windowStart?: ISO8601 | number;
