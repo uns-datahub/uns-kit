@@ -4,6 +4,9 @@ variables:
 trigger:
 - master
 
+pr:
+- master
+
 stages:
 # - stage: dev_sec
 #   displayName: Development Security
@@ -26,8 +29,24 @@ stages:
 #         version: 6.0.x
 #     - task: MicrosoftSecurityDevOps@1
 #       displayName: 'Microsoft Security DevOps'
+- stage: validate
+  displayName: Validate TypeScript Packages
+  pool: $(privatePool)
+  jobs:
+  - job: verify_assistant_workflow
+    steps:
+    - checkout: self
+      clean: true
+    - script: pnpm install --frozen-lockfile
+      displayName: Install dependencies
+    - script: pnpm run ts:version:check
+      displayName: Verify package versions
+    - script: pnpm --filter @uns-kit/assistant-workflow run verify
+      displayName: Verify Assistant workflow package
 - stage: version_tag
   displayName: Add Version Tag
+  dependsOn: validate
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   pool: $(privatePool)
   jobs:
   - job: add_tags
@@ -43,4 +62,3 @@ stages:
     
     
   
-

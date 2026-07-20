@@ -80,6 +80,7 @@ describe("assistant workflow package boundary", () => {
     expect(artifact.files.length).toBeGreaterThan(0);
 
     const packedPaths = artifact.files.map((file) => file.path).sort();
+    expect(packedPaths).toContain("API_STABILITY.md");
     expect(packedPaths).toContain("README.md");
     expect(packedPaths).toContain("package.json");
     expect(packedPaths).toContain("dist/index.js");
@@ -89,7 +90,9 @@ describe("assistant workflow package boundary", () => {
     expect(packedPaths).toContain("dist/tool-evidence.js");
     expect(packedPaths).toContain("dist/tool-evidence.d.ts");
     expect(
-      packedPaths.every((path) => path === "README.md" || path === "package.json" || path.startsWith("dist/")),
+      packedPaths.every((path) =>
+        path === "API_STABILITY.md" || path === "README.md" || path === "package.json" || path.startsWith("dist/"),
+      ),
     ).toBe(true);
     expect(packedPaths).not.toContain("src/index.ts");
   }, 20_000);

@@ -328,7 +328,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "API_STABILITY.md"
   ],
   "scripts": {
     "clean": "node ./scripts/clean.mjs",

@@ -1,30 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
-import { basename, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const PACKAGE_ROOT = findPackageRoot();
 const CORE_SOURCE_ROOT = join(PACKAGE_ROOT, "src");
 
 describe("assistant workflow public API", () => {
-  it("exports every source module through the package entrypoint", () => {
-    const sourceModules = readdirSync(CORE_SOURCE_ROOT)
-      .filter((entry) => entry.endsWith(".ts"))
-      .map((entry) => basename(entry, ".ts"))
-      .filter((moduleName) => moduleName !== "index")
-      .sort();
+  it("keeps root exports explicit and free of duplicates", () => {
     const indexSource = readFileSync(join(CORE_SOURCE_ROOT, "index.ts"), "utf8");
     const exportedModules = [...indexSource.matchAll(/export \* from "\.\/(.+)\.js";/g)]
-      .map((match) => match[1])
-      .sort();
+      .map((match) => match[1]);
 
-    expect(exportedModules).toEqual(sourceModules);
+    expect(exportedModules.length).toBeGreaterThan(0);
+    expect(new Set(exportedModules).size).toBe(exportedModules.length);
   });
 
   it("keeps the standalone package as an ESM artifact with explicit subpath exports", () => {
-    const sourceModules = readdirSync(CORE_SOURCE_ROOT)
-      .filter((entry) => entry.endsWith(".ts"))
-      .map((entry) => basename(entry, ".ts"))
-      .filter((moduleName) => moduleName !== "index")
+    const indexSource = readFileSync(join(CORE_SOURCE_ROOT, "index.ts"), "utf8");
+    const publicModules = [...indexSource.matchAll(/export \* from "\.\/(.+)\.js";/g)]
+      .map((match) => match[1])
       .sort();
     const packageJson = JSON.parse(readFileSync(join(PACKAGE_ROOT, "package.json"), "utf8")) as {
       type?: string;
@@ -44,7 +38,7 @@ describe("assistant workflow public API", () => {
       engines: { node: ">=22" },
       main: "./dist/index.js",
       types: "./dist/index.d.ts",
-      files: ["dist", "README.md"],
+      files: ["dist", "README.md", "API_STABILITY.md"],
     });
     expect(packageJson.exports).toEqual({
       ".": {
@@ -52,7 +46,7 @@ describe("assistant workflow public API", () => {
         default: "./dist/index.js",
       },
       ...Object.fromEntries(
-        sourceModules.map((moduleName) => [
+        publicModules.map((moduleName) => [
           `./${moduleName}`,
           {
             types: `./dist/${moduleName}.d.ts`,

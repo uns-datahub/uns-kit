@@ -119,5 +119,9 @@ pnpm --filter @uns-kit/assistant-workflow run verify
 pnpm --filter @uns-kit/assistant-workflow run build
 ```
 
+Public API and compatibility rules are documented in
+[`API_STABILITY.md`](./API_STABILITY.md). New source modules are internal unless
+they are deliberately exported from both the package root and `exports` map.
+
 The package is versioned with the rest of `@uns-kit/*`. Publishing is a manual
 maintainer action and is not performed by package verification commands.
