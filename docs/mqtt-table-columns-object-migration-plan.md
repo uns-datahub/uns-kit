@@ -30,6 +30,11 @@ not create branches or apply source fixes in copied deployment trees such as
 identify deployed versions, then rebuild and redeploy from the owning source
 repository.
 
+Before editing any on-disk repository, fetch and fast-forward its default
+branch (`master` or `main`) with `git pull --ff-only`, then create or rebase the
+shared migration branch onto that updated base. Never assume that an existing
+local checkout is current.
+
 ## Why this change
 
 The current MQTT packet shape requires consumers to search an array before they
@@ -182,8 +187,7 @@ builder; document intentional non-UNS raw messages separately.
 ## Package and packet versions
 
 The TypeScript public API change requires a new semver major. All six
-coordinated `@uns-kit/*` package manifests are set to `3.0.0`; publishing is
-still a separate explicit step.
+coordinated `@uns-kit/*` packages have been published at `3.0.0`.
 
 The MQTT packet wire version must also change because the emitted table shape
 changes. The working target is packet version `2.0.0`. The implementation must
@@ -196,8 +200,8 @@ field exists:
   form;
 - unsupported/malformed versions -> rejected with an observable reason.
 
-Python has its own package version. Its breaking pre-1.0 release boundary is
-set to `uns-kit` `0.2.0`; publishing remains separate from npm.
+Python has its own package version. Its breaking pre-1.0 release boundary,
+`uns-kit` `0.2.0`, has been published to PyPI.
 
 Every affected application must update both its dependency declaration and
 lockfile, then record the actually resolved version. A caret range in
@@ -242,13 +246,12 @@ Define failure behavior as part of the major contract:
 
 ### Remaining work
 
-- [ ] `uns-archiver` canonical object iteration is implemented locally, but its
-  `@uns-kit/core` dependency/lockfile cannot be upgraded and its dual-wire
-  integration cannot be completed until the `3.x` npm package is available.
-- [ ] No release has been published or deployed.
-- [ ] No controller dependency bump or integration smoke has been completed.
-- [ ] npm package version `3.0.0`, Python package version `0.2.0`, and emitted
-  MQTT packet version `2.0.0` are implemented and tested but not published.
+- [ ] Deploy the compatibility-capable `uns-archiver` and verify legacy-array
+  and object-form persistence against QuestDB before clearing the publisher
+  rollout gate.
+- [ ] Complete the deployed legacy-runtime and external MQTT consumer audit.
+- [ ] No application release or production deployment has been performed for
+  this migration.
 
 ## Status tracking
 
@@ -264,16 +267,16 @@ Use these states independently. Code completion is not deployment completion.
 
 | Repository or surface | Role and required work | Code | Released version | Deployed version | Verified | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| `uns-kit/packages/uns-core` | Canonical object types, dual-shape inbound parser, object-only outbound validation, packet-version handling, tests, and exported canonical helpers. | Implemented at `3.0.0` | - | N/A | Yes, local | 16 combined contract/metadata/CLI tests passed; version check confirmed six packages at `3.0.0`; full TypeScript build passed |
-| `uns-kit/packages/uns-py` | Canonical parser/builder behavior, required `type`, object-form output, examples, tests, and separate package release. | Implemented at `0.2.0` | - | N/A | Yes, targeted local | 14 packet tests, focused Ruff and mypy checks, and wheel/sdist build passed; full suite remains blocked by missing optional extras and unrelated baseline failures |
-| `uns-kit/packages/uns-cli` | Table examples, window-load examples, README snippets, generated migration guidance, and CLI upgrade tests. | Implemented | - | N/A | Yes, local | CLI upgrade idempotency tests and full TypeScript workspace build passed |
-| `uns-archiver` | Consume canonical object entries, remove array-only guards/`.length`, preserve QuestDB symbol/field behavior, and expose ingest failures. | Implemented; dependency upgrade pending npm release | - | - | Yes, packed-package integration | 10 tests, typecheck, and build passed with packed core/api `3.0.0`; legacy `1.3.0` array and `2.0.0` object packets produced identical canonical writer entries; writer test preserves symbol-before-field, UoM, null-skip, and flush behavior |
-| `uns-api-global` | Update last-value reader and capture publisher together; preserve UoM projection and latest-value behavior. | Implemented; dependency/lockfile update pending npm release | - | - | Yes, local packed packages | All 83 tests passed with locally packed core/api `3.0.0`; typecheck and build passed; current checked-in dependency remains `2.x` until release |
-| `rtt-demo-app` | Convert table payloads at the publish boundary while retaining convenient internal construction where useful. | Implemented; dependency/lockfile update pending npm release | - | - | Yes, local packed packages | HRM table arrays are converted once at the publish boundary; typecheck and build passed with packed core/api `3.0.0` |
-| `uns-databridge` | Preserve configuration shape, convert resolved descriptors at the publish boundary, and apply every crossed core migration from its current `1.x` dependency. | Implemented; dependency/lockfile update pending npm release | - | - | Yes, local packed package | Ordered configuration arrays remain unchanged; resolved MQTT columns become an object; boolean inference added; process-owned shutdown handles SIGINT/SIGTERM; typecheck and build passed with core `1.x` and packed `3.0.0` |
-| `@uns-kit/bridge-core` | Update its direct `@uns-kit/core` and `@uns-kit/api` dependencies to the `3.x` release so bridge runtimes do not install duplicate incompatible major versions. No table payload implementation was found in the installed package surface. | Blocked; source repository is not present locally | - | N/A | Dependency evidence only | Installed `1.0.1` declares core/api `^2.0.59`; repository metadata points to `uns-datahub/uns-bridge-core` |
-| `uns-datahub-controller` | Upgrade dependency and lockfile; verify produced-topic metadata and controller build without changing `TABLE_JSON`. | Not started | - | - | No | - |
-| `uns-bridge-opcua` / `uns-bridge-mqtt` | Update checked-in table examples and then consume compatible core/api/bridge-core releases; runtime normalizers currently publish scalar requests and do not directly assemble tables. | Examples implemented; dependency graph pending releases | - | - | Yes, local override rehearsal | Runtime/config search found table construction only under `src/examples`; both typecheck/build with packed core/api `3.0.0` when transitive bridge-core dependencies are overridden consistently |
+| `uns-kit/packages/uns-core` | Canonical object types, dual-shape inbound parser, object-only outbound validation, packet-version handling, tests, and exported canonical helpers. | Implemented at `3.0.0` | `3.0.0` | N/A | Yes, registry and local | npm registry verified; 15 focused packet tests, version check, and full six-package TypeScript build passed |
+| `uns-kit/packages/uns-py` | Canonical parser/builder behavior, required `type`, object-form output, examples, tests, and separate package release. | Implemented at `0.2.0` | `0.2.0` | N/A | Yes, registry and targeted local | PyPI registry verified; 14 packet tests, focused Ruff and mypy checks, and wheel/sdist build passed; full suite remains blocked by missing optional extras and unrelated baseline failures |
+| `uns-kit/packages/uns-cli` | Table examples, window-load examples, README snippets, generated migration guidance, and CLI upgrade tests. | Implemented | `3.0.0` | N/A | Yes, registry and local | npm registry verified; CLI upgrade idempotency tests and full TypeScript workspace build passed |
+| `uns-archiver` | Consume canonical object entries, remove array-only guards/`.length`, preserve QuestDB symbol/field behavior, and expose ingest failures. | PR [2287](https://dev.azure.com/sijit/industry40/_git/uns-archiver/pullrequest/2287) open for `5.1.19`; source commit `a9fd8da` | - | - | Yes, local live stack | Resolved core/api `3.0.0` with no `2.x` duplicate; 10 tests, typecheck, build, and diff check passed. A freshly restarted local archiver consumed one MQTT `1.3.0` legacy-array packet and one `2.0.0` object packet on the same active topic; isolated QuestDB persistence returned exactly two rows with the expected symbol, double, UoM, boolean, string, and UNS identity values. The temporary smoke table was then removed. Production deployment is still required to clear the rollout gate. |
+| `uns-api-global` | Update last-value reader and capture publisher together; preserve UoM projection and latest-value behavior. | PR [2292](https://dev.azure.com/sijit/industry40/_git/uns-api-global/pullrequest/2292) open for `4.0.48`; source commit `13db995` | - | - | Yes, local | Resolved core/api `3.0.0` with no `2.x` duplicate; all 83 tests, typecheck, build, and diff check passed |
+| `rtt-demo-app` | Convert table payloads at the publish boundary while retaining convenient internal construction where useful. | PR [2289](https://dev.azure.com/sijit/industry40/_git/rtt-demo-app/pullrequest/2289) open for `6.1.11`; source commit `9f3f85c` | - | - | Yes, local | Resolved core/api `3.0.0` with no `2.x` duplicate; HRM arrays convert once at the publish boundary; typecheck, build, and diff check passed |
+| `uns-databridge` | Preserve configuration shape, convert resolved descriptors at the publish boundary, and apply every crossed core migration from its current `1.x` dependency. | PR [2288](https://dev.azure.com/sijit/industry40/_git/uns-databridge/pullrequest/2288) open for `1.0.7`; source commit `21cef34` | - | - | Yes, npm `3.0.0` | Rebased onto current master `1.0.6`, preserving its timestamp/topic changes; ordered configuration arrays remain unchanged; resolved MQTT columns become an object; boolean inference and process-owned shutdown added; only core `3.0.0` resolves; typecheck and build pass |
+| `@uns-kit/bridge-core` | Update its direct `@uns-kit/core` and `@uns-kit/api` dependencies to the `3.x` release so bridge runtimes do not install duplicate incompatible major versions. No table payload implementation was found in its source. | Draft PR [#2](https://github.com/uns-datahub/uns-bridge-core/pull/2); source commit `909c1db` | `2.0.0` | N/A | Yes, registry and local | npm registry confirms core/api `^3.0.0`; public `IMqttPublishRequest` boundary makes this a major release; typecheck, build, npm dry-run, and diff check pass |
+| `uns-datahub-controller` | Upgrade dependency and lockfile; verify produced-topic metadata and controller build without changing `TABLE_JSON`. | PR [2293](https://dev.azure.com/sijit/industry40/_git/uns-datahub-controller/pullrequest/2293) open for `7.1.657`; source commit `42d3bf2` | - | - | Yes, npm `3.0.0` | No `TABLE_JSON` or Assistant artifact changes; dependency graph contains only core `3.0.0`; typecheck, 57 targeted cluster/UNS monitor tests, build, and diff check pass |
+| `uns-bridge-opcua` / `uns-bridge-mqtt` | Update checked-in table examples and consume compatible core/api/bridge-core releases; runtime normalizers currently publish scalar requests and do not directly assemble tables. | PRs [2291](https://dev.azure.com/sijit/industry40/_git/uns-bridge-opcua/pullrequest/2291) (`1.0.6`) / [2290](https://dev.azure.com/sijit/industry40/_git/uns-bridge-mqtt/pullrequest/2290) (`1.0.5`); source commits `f0a15f9` / `69ff0db` | - | - | Yes, local | Both resolve core/api `3.0.0` and bridge-core `2.0.0` with no `2.x` duplicate; typecheck, build, and diff check pass in both repositories |
 | Other generated examples | Update checked-in examples only where they are built or intentionally maintained. | Inventory complete; only in-scope bridge copies updated now | - | - | Source audit complete | Remaining hits are generated examples in repos without runtime table usage; update them when those repos cross the core `3.x` boundary |
 | Legacy vendored implementations | Determine deployment status; update owning source parser or retire the runtime. | Source audit complete; deployment audit pending | - | - | No production evidence | `uns-api-hv`, `uns-etl-hv`, `uns-rtt-network`, and `uns-rtt-estevci` use older, different `table.values`/DML contracts rather than current `IUnsTable.columns` |
 | External MQTT consumers | Audit Kepware, Node-RED, replay jobs, transparent bridges, and other non-repository subscribers. | Audit not started | N/A | N/A | No | - |
@@ -287,6 +290,7 @@ Confirmed coordinated source repositories:
 - `uns-api-global`
 - `rtt-demo-app`
 - `uns-databridge`
+- `uns-bridge-core`
 - `uns-datahub-controller` as an indirect metadata/integration consumer
 
 Repositories containing table examples or generated scaffold copies include:
@@ -456,17 +460,17 @@ If object-form publishing causes errors:
 Every thread that changes this migration must:
 
 1. read this document before editing code;
-2. use the shared branch name in each modified source repository;
-3. update the status date and the applicable status-table row;
-4. record commit, release, deployment, test, or production evidence in the
+2. fetch and fast-forward the repository's default branch before applying or
+   rebasing migration work;
+3. use the shared branch name in each modified source repository;
+4. update the status date and the applicable status-table row;
+5. record commit, release, deployment, test, or production evidence in the
    `Evidence` column;
-5. preserve the rollout gate until the active archiver deployment is verified;
-6. distinguish source changes from copied deployment artifacts.
+6. preserve the rollout gate until the active archiver deployment is verified;
+7. distinguish source changes from copied deployment artifacts.
 
 ## Remaining open decisions
 
-- Confirm ownership, release version, and timing for the external
-  `@uns-kit/bridge-core` dependency update to core/api `3.x`.
 - Decide the guaranteed duration of legacy inbound array support; the current
   recommendation is a long compatibility window.
 - Confirm which legacy vendored runtimes and external MQTT consumers are still
