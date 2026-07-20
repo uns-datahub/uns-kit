@@ -22,6 +22,18 @@ type BetterSqliteConstructor = new (
   }
 ) => BetterSqliteDatabase;
 
+export function buildSqliteOpenOptions(config: SqliteDatabaseConfig): {
+  readonly?: boolean;
+  fileMustExist?: boolean;
+  timeout?: number;
+} {
+  return {
+    ...(config.readonly !== undefined ? { readonly: config.readonly } : {}),
+    ...(config.fileMustExist !== undefined ? { fileMustExist: config.fileMustExist } : {}),
+    ...(config.timeoutMs !== undefined ? { timeout: config.timeoutMs } : {}),
+  };
+}
+
 export async function createSqliteAdapter(config: SqliteDatabaseConfig): Promise<DatabaseAdapter> {
   let sqliteModule: { default: BetterSqliteConstructor };
 
@@ -35,11 +47,7 @@ export async function createSqliteAdapter(config: SqliteDatabaseConfig): Promise
   }
 
   const Database = sqliteModule.default;
-  const db = new Database(config.filename, {
-    readonly: config.readonly,
-    fileMustExist: config.fileMustExist,
-    timeout: config.timeoutMs,
-  });
+  const db = new Database(config.filename, buildSqliteOpenOptions(config));
 
   db.pragma("journal_mode = WAL");
 

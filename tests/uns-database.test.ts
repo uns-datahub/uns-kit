@@ -9,6 +9,7 @@ import {
   registerDatabase,
   loadSqlFile,
 } from "../packages/uns-database/src/index.js";
+import { buildSqliteOpenOptions } from "../packages/uns-database/src/drivers/sqlite.js";
 
 const tempDirs: string[] = [];
 
@@ -21,6 +22,24 @@ afterEach(async () => {
 });
 
 describe("@uns-kit/database", () => {
+  it("omits undefined options rejected by better-sqlite3", () => {
+    expect(buildSqliteOpenOptions({ dialect: "sqlite", filename: ":memory:" })).toEqual({});
+  });
+
+  it("maps configured SQLite open options", () => {
+    expect(buildSqliteOpenOptions({
+      dialect: "sqlite",
+      filename: "runtime.sqlite",
+      readonly: false,
+      fileMustExist: true,
+      timeoutMs: 1_500,
+    })).toEqual({
+      readonly: false,
+      fileMustExist: true,
+      timeout: 1_500,
+    });
+  });
+
   it("compiles portable named params for postgres", () => {
     const statement = compileNamedParams(
       "pg",
