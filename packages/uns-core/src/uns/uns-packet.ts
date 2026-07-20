@@ -11,12 +11,141 @@ import {
   IUnsExtendedMessage,
   IUnsExtendedData,
   IUnsTable,
+  IUnsTableColumn,
+  IUnsTableColumns,
   isQuestDbType,
   valueTypes
 } from "./uns-interfaces.js";
 
-// Version of the packet library
-const unsPacketVersion = "1.3.0";
+// Version of the MQTT packet wire contract emitted by this library.
+const unsPacketVersion = "2.0.0";
+const supportedLegacyPacketVersion = /^1\.\d+\.\d+(?:[-+].*)?$/;
+const canonicalColumnNamePattern = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/;
+const reservedColumnNames = new Set(["__proto__", "prototype", "constructor"]);
+
+type UnknownRecord = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isSupportedPacketVersion = (value: unknown): value is string =>
+  typeof value === "string" &&
+  (value === unsPacketVersion || supportedLegacyPacketVersion.test(value));
+
+const assertColumnName = (name: string, requireCanonicalName: boolean): void => {
+  if (!name.trim()) {
+    throw new Error("Table column names must be non-empty strings");
+  }
+  if (reservedColumnNames.has(name)) {
+    throw new Error(`Column name '${name}' is reserved`);
+  }
+  if (requireCanonicalName && !canonicalColumnNamePattern.test(name)) {
+    throw new Error(
+      `Column name '${name}' must match ${canonicalColumnNamePattern.source}`,
+    );
+  }
+};
+
+const normalizeColumn = (
+  name: string,
+  rawColumn: unknown,
+  rejectEmbeddedName: boolean,
+): IUnsTableColumn => {
+  if (!isRecord(rawColumn)) {
+    throw new Error(`Column '${name}' must be an object`);
+  }
+  if (rejectEmbeddedName && Object.hasOwn(rawColumn, "name")) {
+    throw new Error(`Column '${name}' must not contain a name property`);
+  }
+  if (!Object.hasOwn(rawColumn, "type") || rawColumn.type === undefined || rawColumn.type === null || rawColumn.type === "") {
+    throw new Error(`Column '${name}' is missing a QuestDB type`);
+  }
+  if (!isQuestDbType(rawColumn.type)) {
+    throw new Error(`Column '${name}' has invalid QuestDB type '${String(rawColumn.type)}'`);
+  }
+  if (!Object.hasOwn(rawColumn, "value") || rawColumn.value === undefined) {
+    throw new Error(`Column '${name}' is missing a value`);
+  }
+  const value = rawColumn.value;
+  if (
+    typeof value !== "number" &&
+    typeof value !== "string" &&
+    typeof value !== "boolean" &&
+    value !== null
+  ) {
+    throw new Error(
+      `Value for column '${name}' must be number, string, boolean, or null`,
+    );
+  }
+  if (rawColumn.uom !== undefined && typeof rawColumn.uom !== "string") {
+    throw new Error(`Column '${name}' uom must be a string when provided`);
+  }
+
+  return {
+    type: rawColumn.type,
+    value: value as IUnsTableColumn["value"],
+    ...(typeof rawColumn.uom === "string"
+      ? { uom: rawColumn.uom as IUnsTableColumn["uom"] }
+      : {}),
+  };
+};
+
+const normalizeCanonicalColumns = (input: unknown): IUnsTableColumns => {
+  if (!isRecord(input) || Object.keys(input).length === 0) {
+    throw new Error("Table.columns must be a non-empty object");
+  }
+
+  return Object.fromEntries(
+    Object.entries(input).map(([name, rawColumn]) => {
+      assertColumnName(name, true);
+      return [name, normalizeColumn(name, rawColumn, true)];
+    }),
+  );
+};
+
+const normalizeInboundColumns = (input: unknown): IUnsTableColumns => {
+  if (Array.isArray(input)) {
+    if (input.length === 0) {
+      throw new Error("Table.columns must be a non-empty array or object");
+    }
+    const names = new Set<string>();
+    const entries = input.map((rawColumn, index): [string, IUnsTableColumn] => {
+      if (!isRecord(rawColumn)) {
+        throw new Error(`Column at index ${index} must be an object`);
+      }
+      const name = rawColumn.name;
+      if (typeof name !== "string") {
+        throw new Error(`Column at index ${index} is missing a name`);
+      }
+      assertColumnName(name, false);
+      if (names.has(name)) {
+        throw new Error(`Table.columns contains duplicate column name '${name}'`);
+      }
+      names.add(name);
+      return [name, normalizeColumn(name, rawColumn, false)];
+    });
+    return Object.fromEntries(entries);
+  }
+
+  return normalizeCanonicalColumns(input);
+};
+
+const normalizeTable = (
+  input: unknown,
+  direction: "inbound" | "outbound",
+): IUnsTable => {
+  if (!isRecord(input)) {
+    throw new Error("Table must be an object");
+  }
+  const columns = direction === "inbound"
+    ? normalizeInboundColumns(input.columns)
+    : normalizeCanonicalColumns(input.columns);
+  return { ...input, columns } as unknown as IUnsTable;
+};
+
+export const tableColumnEntries = (
+  columns: IUnsTableColumns,
+): Array<[string, IUnsTableColumn]> => Object.entries(columns);
 
 export class UnsPacket {
   /**
@@ -31,48 +160,51 @@ export class UnsPacket {
    */
   public static parseMqttPacket(mqttPacket: string, instanceName?: string): IUnsPacket | null {
     try {
-      const parsedMqttPacket: any = JSON.parse(mqttPacket);
-
-      // Check uns packet
-      if (parsedMqttPacket && parsedMqttPacket.version) {
-        const version = parsedMqttPacket.version;
-        const data: IUnsExtendedData | undefined = parsedMqttPacket.message.data;
-        const table: IUnsTable | undefined = parsedMqttPacket.message.table;
-        const expiresAt: ISO8601 | undefined =
-          parsedMqttPacket.message.expiresAt;
-        const createdAt: ISO8601 | undefined =
-          parsedMqttPacket.message.createdAt;
-
-        // Validate data and table objects
-        UnsPacket.validateMessageComponents(data, table);
-
-        const message: IUnsExtendedMessage = {
-          ...(data !== undefined && { data }),
-          ...(table !== undefined && { table }),
-          ...(expiresAt !== undefined && { expiresAt }),
-          ...(createdAt !== undefined && { createdAt }),
-        };
-        const messageSignature = parsedMqttPacket.messageSignature;
-
-        const interval: number | undefined = parsedMqttPacket.interval;
-
-        const unsPacket: IUnsPacket = {
-          message,
-          messageSignature,
-          version,
-          interval
-        };
-
-        return unsPacket;
-      } else {
-        logger.debug("Version number not specified in the mqtt packet");
+      const parsedMqttPacket: unknown = JSON.parse(mqttPacket);
+      if (!isRecord(parsedMqttPacket)) {
+        throw new Error("Packet must be an object");
       }
+      if (!isSupportedPacketVersion(parsedMqttPacket.version)) {
+        throw new Error(`Unsupported or missing packet version '${String(parsedMqttPacket.version)}'`);
+      }
+      if (!isRecord(parsedMqttPacket.message)) {
+        throw new Error("Packet.message must be an object");
+      }
+
+      const rawMessage = parsedMqttPacket.message;
+      const data = rawMessage.data as IUnsExtendedData | undefined;
+      const table = rawMessage.table === undefined
+        ? undefined
+        : normalizeTable(rawMessage.table, "inbound");
+      const expiresAt = rawMessage.expiresAt as ISO8601 | undefined;
+      const createdAt = rawMessage.createdAt as ISO8601 | undefined;
+
+      UnsPacket.validateMessageComponents(data, table);
+
+      const message: IUnsExtendedMessage = {
+        ...(data !== undefined && { data }),
+        ...(table !== undefined && { table }),
+        ...(expiresAt !== undefined && { expiresAt }),
+        ...(createdAt !== undefined && { createdAt }),
+      };
+
+      return {
+        message,
+        version: parsedMqttPacket.version,
+        ...(typeof parsedMqttPacket.messageSignature === "string"
+          ? { messageSignature: parsedMqttPacket.messageSignature }
+          : {}),
+        ...(typeof parsedMqttPacket.interval === "number"
+          ? { interval: parsedMqttPacket.interval }
+          : {}),
+      };
     } catch (error) {
       if (instanceName) {
         logger.error(`${instanceName} - Could not parse packet: ${error}`);
       } else {
         logger.error(`Could not parse packet: ${error}`);
       }
+      return null;
     }
   }
 
@@ -173,32 +305,9 @@ export class UnsPacket {
         throw new Error(`deleted must be a boolean`);
       }
 
-      if (!Array.isArray(table.columns) || table.columns.length === 0) {
-        throw new Error(`Table.columns must be a non-empty array`);
+      if (!isRecord(table.columns) || Object.keys(table.columns).length === 0) {
+        throw new Error("Table.columns must be a non-empty object");
       }
-
-      table.columns.forEach((column, index) => {
-        if (!column.name) {
-          throw new Error(`Column at index ${index} is missing a name`);
-        }
-        if (!column.type) {
-          throw new Error(`Column '${column.name}' is missing a QuestDB type`);
-        }
-        if (!isQuestDbType(column.type)) {
-          throw new Error(`Column '${column.name}' has invalid QuestDB type '${column.type}'`);
-        }
-        const value = column.value;
-        if (
-          typeof value !== "number" &&
-          typeof value !== "string" &&
-          typeof value !== "boolean" &&
-          value !== null
-        ) {
-          throw new Error(
-            `Value for column '${column.name}' must be number, string, boolean, or null`
-          );
-        }
-      });
     }
 
     return true;
@@ -206,11 +315,14 @@ export class UnsPacket {
 
   static async unsPacketFromUnsMessage(
     message: IUnsMessage,
-    unsPackatParameters?: IUnsPackatParameters,
+    _unsPackatParameters?: IUnsPackatParameters,
   ): Promise<IUnsPacket> {
-    try {
-      // Validate the packet in message
-      if (UnsPacket.validateMessageComponents(message.data, message.table)) {
+    const table = message.table === undefined
+      ? undefined
+      : normalizeTable(message.table, "outbound");
+
+    // Validate the packet in message
+    if (UnsPacket.validateMessageComponents(message.data, table)) {
 
         // HMAC
         // const algorithm = "sha256";
@@ -224,7 +336,7 @@ export class UnsPacket {
         //   version: unsPacketVersion
         // };
 
-        let data: IUnsExtendedData = undefined;
+        let data: IUnsExtendedData | undefined;
 
         if (message.data && message.data.value !== undefined) {
           const valueType = typeof message.data.value;
@@ -238,10 +350,10 @@ export class UnsPacket {
         };
 
         const extendedMessage: IUnsExtendedMessage = {
-          data,
-          table: message.table,
-          expiresAt: message.expiresAt,
-          createdAt: message.createdAt,
+          ...(data !== undefined && { data }),
+          ...(table !== undefined && { table }),
+          ...(message.expiresAt !== undefined && { expiresAt: message.expiresAt }),
+          ...(message.createdAt !== undefined && { createdAt: message.createdAt }),
         };
 
         const unsPacket: IUnsPacket = {
@@ -249,12 +361,9 @@ export class UnsPacket {
           version: unsPacketVersion,
         };
         
-        return unsPacket;    
-      }
-    } catch (error) {
-      logger.error(`Could not create packet from message: ${error}`);
+        return unsPacket;
     }
-
+    throw new Error("Could not create packet from message");
   }
 
   private static generateHmac(

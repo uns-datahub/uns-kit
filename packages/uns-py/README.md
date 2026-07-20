@@ -5,6 +5,22 @@ Python UNS SDK for runtime services, API/service exposure, and Datahub access. P
 - Async publish/subscribe via MQTT (using `aiomqtt`).
 - Process + instance status topics (active/heap/uptime/alive + stats).
 - Minimal UNS packet builder/parser (data/table) aligned with TS core.
+
+## 0.2.0 table migration
+
+`UnsPacket.table()` now emits MQTT packet version `2.0.0` and named object
+columns. Each column requires a QuestDB `type` and `value`:
+
+```python
+columns={
+    "power": {"type": "double", "value": 42.1, "uom": "kW"},
+}
+```
+
+For a transition period, builders accept legacy arrays and convert them before
+output, while `UnsPacket.parse()` accepts legacy packet `1.x` arrays and
+normalizes them to objects. New code must construct the object form. Ordered
+schema metadata arrays such as `tableColumns` are unchanged.
 - Service/API proxy support with Swagger and endpoint registry topics.
 - Datahub client support for last-value, single-topic history, and batch range queries.
 
@@ -205,10 +221,10 @@ await proxy.publish_mqtt_message({
         "table": {
             "time": "2026-06-02T12:00:00.000Z",
             "dataGroup": "metering",
-            "columns": [
-                {"name": "active_energy_total", "type": "double", "value": 12345.6, "uom": "kWh"},
-                {"name": "power", "type": "double", "value": 42.1, "uom": "kW"},
-            ],
+            "columns": {
+                "active_energy_total": {"type": "double", "value": 12345.6, "uom": "kWh"},
+                "power": {"type": "double", "value": 42.1, "uom": "kW"},
+            },
         },
     },
 })

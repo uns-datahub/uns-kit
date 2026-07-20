@@ -29,21 +29,29 @@ async def main() -> None:
     infra = cfg.get("infra") or {}
     host = infra.get("host") or "localhost"
     tb = TopicBuilder("py-demo")
-    client = UnsMqttClient(host, topic_builder=tb, instance_name="py-demo-table", reconnect_interval=1)
+    client = UnsMqttClient(
+        host, topic_builder=tb, instance_name="py-demo-table", reconnect_interval=1
+    )
     await client.connect()
     log.info("connected host=%s", host)
 
     for i in range(5):
-        now = datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+        now = (
+            datetime.now(timezone.utc)
+            .isoformat(timespec="milliseconds")
+            .replace("+00:00", "Z")
+        )
         packet = UnsPacket.table(
             time=now,
             data_group="metering",
             columns={
                 "active_energy_total": {
+                    "type": "double",
                     "value": round(12345.6 + i * 1.5, 2),
                     "uom": "kWh",
                 },
                 "power": {
+                    "type": "double",
                     "value": round(42.1 + i * 0.25, 2),
                     "uom": "kW",
                 },

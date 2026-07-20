@@ -234,10 +234,10 @@ await proxy.publishMqttMessage({
     table: {
       time: new Date().toISOString(),
       dataGroup: "metering",
-      columns: [
-        { name: "active_energy_total", type: "double", value: 12345.6, uom: "kWh" },
-        { name: "power", type: "double", value: 42.1, uom: "kW" },
-      ],
+      columns: {
+        active_energy_total: { type: "double", value: 12345.6, uom: "kWh" },
+        power: { type: "double", value: 42.1, uom: "kW" },
+      },
     },
   },
 });
@@ -270,7 +270,8 @@ Use `await proxy.flush()` or `await proxy.drainPublishes()` before assuming all 
 
 When upgrading an existing application, read [`MIGRATIONS.md`](./MIGRATIONS.md)
 and apply only the migrations whose version boundaries are crossed. The
-`2.0.71` migration documents the MQTT publish and shutdown ownership changes.
+`3.0.0` migration documents the MQTT table-column object contract, while the
+`2.0.71` migration documents MQTT publish and shutdown ownership changes.
 
 ## Sync UNS schema from the controller
 

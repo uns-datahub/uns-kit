@@ -9,6 +9,74 @@ Agents must inspect the application's existing ownership and shutdown flow
 before editing it. The examples below describe the intended behavior, not a
 mechanical search-and-replace operation.
 
+## 3.0.0 - MQTT table columns use named objects
+
+Apply this migration when upgrading from `@uns-kit/core` `<3.0.0` to
+`>=3.0.0`.
+
+The MQTT `message.table.columns` wire shape changes from an ordered array with
+embedded `name` properties to an object keyed by column name. This makes a
+column directly addressable as, for example,
+`message.table.columns.power.value`.
+
+Before:
+
+```ts
+columns: [
+  { name: "power", type: "double", value: 42.1, uom: "kW" },
+]
+```
+
+After:
+
+```ts
+columns: {
+  power: { type: "double", value: 42.1, uom: "kW" },
+}
+```
+
+`IUnsTable.columns` is now `IUnsTableColumns`, a
+`Record<string, IUnsTableColumn>`, and `IUnsTableColumn` no longer has a
+`name` property. Structured builders emit MQTT packet version `2.0.0` and
+reject array-form outbound columns. Inbound parsing remains transitional:
+legacy MQTT packet version `1.x` arrays are accepted and normalized to the
+canonical object before being returned to application code.
+
+Column keys emitted by new publishers must match
+`^[A-Za-z_][A-Za-z0-9_]{0,62}$` and must not be `__proto__`, `prototype`, or
+`constructor`. Each descriptor must contain a valid QuestDB `type` and a
+`value`; `uom` remains optional.
+
+For consumers, replace array-only checks, `.length`, `.map()`, and direct
+iteration with object entry iteration. The typed helper keeps that boundary
+explicit:
+
+```ts
+for (const [name, column] of tableColumnEntries(table.columns)) {
+  // use name, column.type, column.value, column.uom
+}
+```
+
+Do not apply this migration to ordered schema metadata such as
+`tableColumns`, capture `outputSchema.columns`, or Assistant `TABLE_JSON`;
+those are separate formats.
+
+### Rollout requirement
+
+Release compatibility-capable readers before enabling object-form publishers
+in production. In particular, deploy and verify the archiver against both
+legacy-array and object-form packets first. Publishing the npm package alone
+does not clear this rollout gate.
+
+### Upgrade check
+
+- Update all structured table publishers to construct named objects.
+- Update all table consumers to iterate canonical object entries.
+- Audit raw MQTT publish escape hatches that may bypass `UnsPacket` validation.
+- Test legacy packet `1.x` array ingestion and packet `2.0.0` object ingestion.
+- Keep schema arrays and UI/API table artifacts unchanged unless separately
+  migrated.
+
 ## 2.0.71 - MQTT publishing and shutdown lifecycle
 
 Apply this migration when upgrading from `@uns-kit/core` `<2.0.71` to

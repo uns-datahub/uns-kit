@@ -33,7 +33,7 @@ import UnsMqttProxy from "@uns-kit/core/uns-mqtt/uns-mqtt-proxy.js";
 import { registerAttributeDescriptions, registerObjectTypeDescriptions } from "@uns-kit/core/uns/uns-dictionary-registry.js";
 import { UnsPacket } from "@uns-kit/core/uns/uns-packet.js";
 import { UnsTopics } from "@uns-kit/core/uns/uns-topics.js";
-import type { ISO8601, IUnsMessage, IUnsTableColumn } from "@uns-kit/core/uns/uns-interfaces.js";
+import type { ISO8601, IUnsMessage, IUnsTableColumns } from "@uns-kit/core/uns/uns-interfaces.js";
 import {
   GeneratedAttributes,
   GeneratedAttributeDescriptions,
@@ -152,11 +152,11 @@ function buildIterations(
   ];
 }
 
-function buildColumns(producedKg: number, scrapKg: number): IUnsTableColumn[] {
-  return [
-    { name: "producedKg", type: "double", value: producedKg, uom: GeneratedPhysicalMeasurements.Kilogram },
-    { name: "scrapKg", type: "double", value: scrapKg, uom: GeneratedPhysicalMeasurements.Kilogram },
-  ];
+function buildColumns(producedKg: number, scrapKg: number): IUnsTableColumns {
+  return {
+    producedKg: { type: "double", value: producedKg, uom: GeneratedPhysicalMeasurements.Kilogram },
+    scrapKg: { type: "double", value: scrapKg, uom: GeneratedPhysicalMeasurements.Kilogram },
+  };
 }
 
 function simulateProducedKg(bucketIndex: number, iteration: number): number {
@@ -319,7 +319,7 @@ async function main() {
           windowStart: ISO8601;
           windowEnd: ISO8601;
           deleted?: boolean;
-          columns: IUnsTableColumn[];
+          columns: IUnsTableColumns;
         };
       }> = [];
 

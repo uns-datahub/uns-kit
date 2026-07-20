@@ -11,7 +11,7 @@ import {
   GeneratedObjectTypeDescriptions,
 } from "../uns/uns-dictionary.generated.js";
 import { GeneratedAssets, resolveGeneratedAsset } from "../uns/uns-assets.js";
-import type { IUnsTableColumn, IUnsTableColumnMetadata } from "@uns-kit/core/uns/uns-interfaces.js";
+import type { IUnsTableColumns, IUnsTableColumnMetadata } from "@uns-kit/core/uns/uns-interfaces.js";
 import type { ISO8601 } from "@uns-kit/core/uns/uns-interfaces.js";
 import { GeneratedPhysicalMeasurements } from "../uns/uns-measurements.generated.js";
 
@@ -60,11 +60,11 @@ mqttInput.event.on("input", async (event) => {
       const intervalStart: ISO8601 = new Date(eventDate.getTime() - 1000).toISOString() as ISO8601;
       const intervalEnd: ISO8601 = eventDate.toISOString() as ISO8601;
       const dataGroup = "sensor_table";
-      const columns: IUnsTableColumn[] = [
-        { name: "current", type: "double", value: currentValue, uom: GeneratedPhysicalMeasurements.Ampere },
-        { name: "voltage", type: "double", value: sensorValue },
-        { name: "active_energy_total", type: "double", value: currentValue, uom: GeneratedPhysicalMeasurements.KiloWattHour },
-      ];
+      const columns: IUnsTableColumns = {
+        current: { type: "double", value: currentValue, uom: GeneratedPhysicalMeasurements.Ampere },
+        voltage: { type: "double", value: sensorValue },
+        active_energy_total: { type: "double", value: currentValue, uom: GeneratedPhysicalMeasurements.KiloWattHour },
+      };
       const tableColumns: IUnsTableColumnMetadata[] = [
         {
           name: "active_energy_total",

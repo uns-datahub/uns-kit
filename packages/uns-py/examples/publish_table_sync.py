@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 from uns_kit.core.config_file import ConfigFile
 from uns_kit.core.logger import configure_logger, get_logger
@@ -46,23 +47,31 @@ def main() -> None:
 
     try:
         for index in range(5):
-            now = datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+            now = (
+                datetime.now(timezone.utc)
+                .isoformat(timespec="milliseconds")
+                .replace("+00:00", "Z")
+            )
             packet = UnsPacket.table(
                 time=now,
                 data_group="metering",
                 columns={
                     "active_energy_total": {
+                        "type": "double",
                         "value": round(12345.6 + index * 1.5, 2),
                         "uom": "kWh",
                     },
                     "power": {
+                        "type": "double",
                         "value": round(42.1 + index * 0.25, 2),
                         "uom": "kW",
                     },
                 },
             )
             proxy.publish_packet("raw/table/", packet)
-            log.info("[publish-table-sync] Published sample packet %s at %s", index, now)
+            log.info(
+                "[publish-table-sync] Published sample packet %s at %s", index, now
+            )
             time.sleep(1)
     finally:
         proxy.flush()

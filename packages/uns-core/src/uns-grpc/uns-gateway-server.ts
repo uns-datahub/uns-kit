@@ -294,20 +294,19 @@ export class UnsGatewayServer {
         const t = req.table;
         const time: string = t.time;
         const dataGroup: string | undefined = t.data_group || undefined;
-        const columns = (t.columns ?? []).map((col: any) => {
+        const columns = Object.fromEntries((t.columns ?? []).map((col: any) => {
           let value: string | number | null = null;
           if (typeof col.value_number === "number" && !Number.isNaN(col.value_number)) {
             value = col.value_number;
           } else if (typeof col.value_string === "string") {
             value = col.value_string;
           }
-          return {
-            name: col.name as string,
+          return [col.name as string, {
             type: col.type as any,
             uom: col.uom || undefined,
             value,
-          };
-        });
+          }];
+        }));
 
         message = { table: { time, columns, dataGroup } } as IUnsMessage;
       } else {
