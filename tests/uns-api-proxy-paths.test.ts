@@ -31,6 +31,29 @@ describe("UnsApiProxy path generation", () => {
     }
   });
 
+  it("uses the configured published API host with the actual listening port", async () => {
+    const proxy: any = new UnsApiProxy("local-service", "localApi", {
+      publishedApiHost: "127.0.0.1",
+    });
+    proxies.push(proxy);
+    await waitForListening(proxy);
+
+    await proxy.get(
+      "sij/acroni/vv/" as any,
+      "tp-1" as any,
+      "service" as any,
+      "runtime" as any,
+      "health" as any,
+    );
+
+    const address = proxy.app.server.address();
+    expect(typeof address).toBe("object");
+    const endpoint = proxy.producedApiEndpoints.get(
+      "sij/acroni/vv/tp-1/service/runtime/health",
+    );
+    expect(endpoint?.apiHost).toBe(`http://127.0.0.1:${address.port}`);
+  });
+
   it("registers distinct Express and Swagger paths for different assets and unregisters by the same identity", async () => {
     const proxy: any = new UnsApiProxy("rtt-demo-app", "rttDemoApi", {});
     proxies.push(proxy);

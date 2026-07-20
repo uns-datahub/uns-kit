@@ -479,6 +479,15 @@ export interface ApiChatDefaults {
 
 export interface IApiProxyOptions {
   jwtSecret?: string;
+  /**
+   * Public origin advertised for generated API endpoint metadata.
+   *
+   * Use a hostname or origin without a port (for example `127.0.0.1` or
+   * `http://service-name`) to keep the API server's actual listening port.
+   * An explicitly supplied port is preserved. Defaults to the machine's
+   * external IPv4 address for backwards compatibility.
+   */
+  publishedApiHost?: string;
   jwks?: {
     wellKnownJwksUrl: string;
     activeKidUrl?: string;

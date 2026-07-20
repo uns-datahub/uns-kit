@@ -131,6 +131,32 @@ export default class UnsApiProxy extends UnsProxy {
     return this.processName;
   }
 
+  private getPublishedApiHost(): string {
+    const addressInfo = this.app.server.address();
+    const port = addressInfo && typeof addressInfo === "object" ? addressInfo.port : undefined;
+    const configuredHost =
+      this.options.publishedApiHost?.trim() || process.env.UNS_PUBLISHED_API_HOST?.trim();
+
+    if (configuredHost) {
+      const origin = new URL(
+        /^[a-z][a-z\d+.-]*:\/\//i.test(configuredHost)
+          ? configuredHost
+          : `http://${configuredHost}`,
+      );
+      if (!origin.port && port !== undefined) {
+        origin.port = String(port);
+      }
+      origin.pathname = "";
+      origin.search = "";
+      origin.hash = "";
+      return origin.origin;
+    }
+
+    return port === undefined
+      ? `http://${App.getExternalIPv4()}`
+      : `http://${App.getExternalIPv4()}:${port}`;
+  }
+
   /**
    * Unregister endpoint
    * @param topic - The API topic
@@ -192,17 +218,6 @@ export default class UnsApiProxy extends UnsProxy {
     const swaggerPath = buildSwaggerPath(this.swaggerBasePrefix, this.processName, this.instanceName);
 
     try {
-      // Get ip and port from environment variables or defaults
-      const addressInfo = this.app.server.address();
-      let ip: string | undefined;
-      let port: number | string | undefined;
-      if (addressInfo && typeof addressInfo === "object") {
-        ip = App.getExternalIPv4();
-        port = addressInfo.port;
-      } else if (typeof addressInfo === "string") {
-        ip = App.getExternalIPv4();
-        port = "";
-      }
       this.registerApiEndpoint({
         timestamp: time,
         topic: topic,
@@ -211,10 +226,10 @@ export default class UnsApiProxy extends UnsProxy {
         registryTopic:
           (options as { registryTopic?: "api-endpoints" | "service-endpoints" | "data-offer-endpoints" } | undefined)?.registryTopic ??
           "api-endpoints",
-        apiHost: `http://${ip}:${port}`,
+        apiHost: this.getPublishedApiHost(),
         apiEndpoint: apiPath,
         apiMethod: "GET",
-        apiQueryParams: options.queryParams,
+        apiQueryParams: options?.queryParams ?? [],
         apiDescription: options?.apiDescription,
         serviceApi:
           (options as { serviceApi?: Record<string, unknown> } | undefined)?.serviceApi ?? null,
@@ -408,21 +423,10 @@ export default class UnsApiProxy extends UnsProxy {
     const finalOptions = options ?? {};
     const topicNormalized = topicPrefix.endsWith("/") ? topicPrefix : `${topicPrefix}`;
 
-    const addressInfo = this.app.server.address();
-    let ip: string | undefined;
-    let port: number | string | undefined;
-    if (addressInfo && typeof addressInfo === "object") {
-      ip = App.getExternalIPv4();
-      port = addressInfo.port;
-    } else if (typeof addressInfo === "string") {
-      ip = App.getExternalIPv4();
-      port = "";
-    }
-
     const apiBase =
       typeof finalOptions?.apiBase === "string" && finalOptions.apiBase.length
         ? finalOptions.apiBase
-        : `http://${ip}:${port}`;
+        : this.getPublishedApiHost();
     const apiBasePath =
       typeof finalOptions?.apiBasePath === "string" && finalOptions.apiBasePath.length
         ? finalOptions.apiBasePath
@@ -532,17 +536,6 @@ export default class UnsApiProxy extends UnsProxy {
     const methodKey = method.toLowerCase() as "post" | "put" | "patch" | "delete";
 
     try {
-      const addressInfo = this.app.server.address();
-      let ip: string | undefined;
-      let port: number | string | undefined;
-      if (addressInfo && typeof addressInfo === "object") {
-        ip = App.getExternalIPv4();
-        port = addressInfo.port;
-      } else if (typeof addressInfo === "string") {
-        ip = App.getExternalIPv4();
-        port = "";
-      }
-
       this.registerApiEndpoint({
         timestamp: time,
         topic,
@@ -551,7 +544,7 @@ export default class UnsApiProxy extends UnsProxy {
         registryTopic:
           (options as { registryTopic?: "api-endpoints" | "service-endpoints" | "data-offer-endpoints" } | undefined)?.registryTopic ??
           "api-endpoints",
-        apiHost: `http://${ip}:${port}`,
+        apiHost: this.getPublishedApiHost(),
         apiEndpoint: apiPath,
         apiMethod: method as any,
         apiQueryParams: [],
