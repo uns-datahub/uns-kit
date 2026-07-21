@@ -8,6 +8,17 @@ import {
   resolveAssistantWorkflowTools,
   type AssistantWorkflowToolResolution,
 } from "./tool-bindings.js";
+import {
+  buildAssistantWorkflowExecutionBudgetAssessment,
+  buildAssistantWorkflowExecutionBudgetTracePayload,
+  formatAssistantWorkflowExecutionBudgetViolation,
+  type AssistantWorkflowExecutionBudget,
+  type AssistantWorkflowExecutionBudgetAssessment,
+} from "./execution-budget.js";
+import {
+  resolveAssistantWorkflowExecutionPolicy,
+  type AssistantWorkflowExecutionPolicy,
+} from "./execution-policy.js";
 
 export type AssistantWorkflowExecutionPlanStatus =
   | "ready"
@@ -25,6 +36,9 @@ export type AssistantWorkflowExecutionStep = {
   id: string;
   kind: AssistantWorkflowPlanningStepKind;
   optional: boolean;
+  dependsOnStepIds: string[];
+  missingDependencyStepIds: string[];
+  outOfOrderDependencyStepIds: string[];
   status: AssistantWorkflowExecutionStepStatus;
   toolNames: string[];
   requiredToolNames: string[];
@@ -54,6 +68,9 @@ export type AssistantWorkflowExecutionPlan = {
   blockingReasons: string[];
   warnings: string[];
   executionHints: AssistantWorkflowDecision["plan"]["executionHints"];
+  executionBudget?: AssistantWorkflowExecutionBudget | null;
+  budgetAssessment?: AssistantWorkflowExecutionBudgetAssessment | null;
+  executionPolicy?: AssistantWorkflowExecutionPolicy;
 };
 
 export type AssistantWorkflowExecutionPlanOptions = {
@@ -66,7 +83,13 @@ export function buildAssistantWorkflowExecutionPlan(
   options: AssistantWorkflowExecutionPlanOptions = {},
 ): AssistantWorkflowExecutionPlan {
   const availableContext = options.availableContext ? new Set(options.availableContext) : null;
+  const selectedStepIds = new Set(decision.plan.steps.map((step) => step.id));
+  const seenStepIds = new Set<string>();
   const steps = decision.plan.steps.map((step) => {
+    const missingDependencyStepIds = step.dependsOnStepIds.filter((stepId) => !selectedStepIds.has(stepId));
+    const outOfOrderDependencyStepIds = step.dependsOnStepIds.filter(
+      (stepId) => selectedStepIds.has(stepId) && !seenStepIds.has(stepId),
+    );
     const requiredToolNames = uniqueStrings(step.requiredToolHints);
     const optionalToolNames = uniqueStrings(step.toolHints).filter((tool) => !requiredToolNames.includes(tool));
     const toolNames = uniqueStrings([...requiredToolNames, ...optionalToolNames]);
@@ -80,17 +103,24 @@ export function buildAssistantWorkflowExecutionPlan(
     const contextBlockingReasons = step.optional
       ? []
       : buildContextBlockingReasons(step.id, requiredContextGaps);
+    const dependencyReasons = buildDependencyReasons(
+      step.id,
+      missingDependencyStepIds,
+      outOfOrderDependencyStepIds,
+    );
     const blockingReasons = step.optional
       ? []
       : [
           ...buildToolBlockingReasons(step.id, requiredNonReady),
           ...contextBlockingReasons,
+          ...dependencyReasons,
         ];
     const warnings = [
       ...buildToolWarnings(step.id, step.optional ? requiredNonReady : []),
       ...buildToolWarnings(step.id, optionalNonReady),
       ...buildContextWarnings(step.id, step.optional ? requiredContextGaps : []),
       ...buildContextWarnings(step.id, optionalContextGaps),
+      ...(step.optional ? dependencyReasons : []),
     ];
     const status: AssistantWorkflowExecutionStepStatus =
       step.optional && (requiredNonReady.length > 0 || requiredContextGaps.length > 0)
@@ -102,10 +132,13 @@ export function buildAssistantWorkflowExecutionPlan(
         : "ready";
     const allContextGaps = [...requiredContextGaps, ...optionalContextGaps];
 
-    return {
+    const result: AssistantWorkflowExecutionStep = {
       id: step.id,
       kind: step.kind,
       optional: step.optional,
+      dependsOnStepIds: [...step.dependsOnStepIds],
+      missingDependencyStepIds,
+      outOfOrderDependencyStepIds,
       status,
       toolNames,
       requiredToolNames,
@@ -120,10 +153,19 @@ export function buildAssistantWorkflowExecutionPlan(
       blockingReasons,
       warnings,
     };
+    seenStepIds.add(step.id);
+    return result;
   });
 
   const requiredResolution = resolveAssistantWorkflowTools(workflow, decision.requiredToolHints);
   const requiredContextGaps = getContextGaps(requiredResolution.resolutions, availableContext);
+  const executionPolicy = resolveAssistantWorkflowExecutionPolicy(workflow.executionPolicy);
+  const budgetAssessment = workflow.executionBudget
+    ? buildAssistantWorkflowExecutionBudgetAssessment(workflow.executionBudget, {
+        planningStepCount: steps.length,
+        toolCallCount: getMaximumPlannedToolCalls(workflow, steps, executionPolicy),
+      })
+    : null;
   const blockingReasons = [
     ...decision.clarificationPolicy.blockingRuleIds.map((ruleId) => `clarification required: ${ruleId}`),
     ...decision.plan.missingPlanningSteps.map((stepId) => `missing planning step: ${stepId}`),
@@ -131,6 +173,7 @@ export function buildAssistantWorkflowExecutionPlan(
     ...buildToolBlockingReasons("workflow", requiredResolution.resolutions.filter((resolution) => resolution.status !== "ready")),
     ...buildContextBlockingReasons("workflow", requiredContextGaps),
     ...steps.flatMap((step) => step.blockingReasons),
+    ...(budgetAssessment?.violations.map(formatAssistantWorkflowExecutionBudgetViolation) ?? []),
   ];
   const warnings = uniqueStrings([
     ...decision.missingToolHints.map((toolName) => `optional tool is unavailable: ${toolName}`),
@@ -180,7 +223,21 @@ export function buildAssistantWorkflowExecutionPlan(
     blockingReasons: uniqueStrings(blockingReasons),
     warnings,
     executionHints: decision.plan.executionHints,
+    executionBudget: workflow.executionBudget ? { ...workflow.executionBudget } : null,
+    budgetAssessment,
+    executionPolicy,
   };
+}
+
+function buildDependencyReasons(
+  stepId: string,
+  missingDependencyStepIds: readonly string[],
+  outOfOrderDependencyStepIds: readonly string[],
+): string[] {
+  return [
+    ...missingDependencyStepIds.map((dependencyId) => `${stepId} missing dependency step: ${dependencyId}`),
+    ...outOfOrderDependencyStepIds.map((dependencyId) => `${stepId} dependency must run first: ${dependencyId}`),
+  ];
 }
 
 export function buildAssistantWorkflowExecutionPlanTracePayload(
@@ -202,7 +259,27 @@ export function buildAssistantWorkflowExecutionPlanTracePayload(
     blockingReasons: plan.blockingReasons,
     warnings: plan.warnings,
     executionHints: plan.executionHints,
+    executionBudget: plan.executionBudget ?? null,
+    budgetAssessment: plan.budgetAssessment
+      ? buildAssistantWorkflowExecutionBudgetTracePayload(plan.budgetAssessment)
+      : null,
+    executionPolicy: plan.executionPolicy ?? resolveAssistantWorkflowExecutionPolicy(),
   };
+}
+
+function getMaximumPlannedToolCalls(
+  workflow: AssistantWorkflowDefinition<string, string, string, string>,
+  steps: readonly AssistantWorkflowExecutionStep[],
+  policy: AssistantWorkflowExecutionPolicy,
+): number {
+  const capabilities = new Map((workflow.tools ?? []).map((tool) => [tool.name, tool] as const));
+  return steps
+    .filter((step) => step.status !== "blocked" && step.status !== "optional-skipped")
+    .flatMap((step) => step.readyToolNames)
+    .reduce((count, toolName) => {
+      const retryClass = capabilities.get(toolName)?.retryClass;
+      return count + (retryClass === "never" ? 1 : policy.maxAttemptsPerTool);
+    }, 0);
 }
 
 function buildToolBlockingReasons(stepId: string, resolutions: readonly AssistantWorkflowToolResolution[]): string[] {

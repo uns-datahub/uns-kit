@@ -1,3 +1,12 @@
+import {
+  assertAssistantWorkflowExecutionBudget,
+  type AssistantWorkflowExecutionBudget,
+} from "./execution-budget.js";
+import {
+  assertAssistantWorkflowExecutionPolicy,
+  type AssistantWorkflowExecutionPolicy,
+} from "./execution-policy.js";
+
 export type AssistantWorkflowExecutionBias = "allow-shortcuts" | "llm-first";
 
 export type AssistantWorkflowFirstHopToolPolicy = "auto" | "require-tool";
@@ -64,6 +73,7 @@ export type AssistantWorkflowPlanningStepKind =
 
 export type AssistantWorkflowPlanningStepDefinition = AssistantWorkflowVocabularyItem & {
   kind: AssistantWorkflowPlanningStepKind;
+  dependsOn?: readonly string[];
   toolHints?: readonly string[];
   requiredToolHints?: readonly string[];
   readsMemory?: readonly string[];
@@ -264,6 +274,8 @@ export type AssistantWorkflowDefinition<
   id: string;
   version: number;
   description?: string;
+  executionBudget?: AssistantWorkflowExecutionBudget;
+  executionPolicy?: AssistantWorkflowExecutionPolicy;
   intents: readonly AssistantWorkflowIntentDefinition<TIntent, TPresentation>[];
   tools?: readonly AssistantWorkflowToolCapabilityDefinition[];
   toolBindings?: readonly AssistantWorkflowToolBindingDefinition[];
@@ -292,6 +304,12 @@ export function defineAssistantWorkflow<
   definition: AssistantWorkflowDefinition<TIntent, TSubintent, TPresentation, TDerivedTransform>,
 ): AssistantWorkflowDefinition<TIntent, TSubintent, TPresentation, TDerivedTransform> {
   assertWorkflowHeader(definition);
+  if (definition.executionBudget) {
+    assertAssistantWorkflowExecutionBudget(definition.executionBudget);
+  }
+  if (definition.executionPolicy) {
+    assertAssistantWorkflowExecutionPolicy(definition.executionPolicy);
+  }
   assertUniqueVocabulary("intent", definition.intents);
   assertUniqueVocabulary("subintent", definition.subintents ?? []);
   assertUniqueVocabulary("presentation", definition.presentations ?? []);
@@ -301,9 +319,42 @@ export function defineAssistantWorkflow<
   assertUniqueDirectRoutes(definition.directRoutes ?? []);
   assertUniqueMemorySlots(definition.memorySlots ?? []);
   assertUniquePlanningSteps(definition.planningSteps ?? []);
+  assertPlanningStepDependencies(definition.planningSteps ?? []);
   assertUniqueClarificationRules(definition.clarificationRules ?? []);
   assertIntentReferences(definition);
   return definition;
+}
+
+function assertPlanningStepDependencies(
+  steps: readonly AssistantWorkflowPlanningStepDefinition[],
+): void {
+  const stepsById = new Map(steps.map((step) => [step.id, step] as const));
+  for (const step of steps) {
+    for (const dependencyId of step.dependsOn ?? []) {
+      if (dependencyId === step.id) {
+        throw new Error(`Assistant workflow planning step ${step.id} must not depend on itself.`);
+      }
+      if (!stepsById.has(dependencyId)) {
+        throw new Error(
+          `Assistant workflow planning step ${step.id} references unknown dependency: ${dependencyId}.`,
+        );
+      }
+    }
+  }
+
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const visit = (stepId: string): void => {
+    if (visited.has(stepId)) return;
+    if (visiting.has(stepId)) {
+      throw new Error(`Assistant workflow planning step dependencies contain a cycle at: ${stepId}.`);
+    }
+    visiting.add(stepId);
+    for (const dependencyId of stepsById.get(stepId)?.dependsOn ?? []) visit(dependencyId);
+    visiting.delete(stepId);
+    visited.add(stepId);
+  };
+  for (const step of steps) visit(step.id);
 }
 
 export function normalizeAssistantWorkflowId(value: unknown): string | null {

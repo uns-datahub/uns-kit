@@ -159,6 +159,80 @@ describe("assistant workflow execution plan", () => {
       missingContextRequirements: ["document-scope"],
     });
   });
+
+  it("requires declared dependencies to be selected before dependent steps", () => {
+    const workflow = defineAssistantWorkflow({
+      ...baseWorkflow(),
+      intents: [{
+        ...baseWorkflow().intents[0]!,
+        planningSteps: ["synthesize_answer", "retrieve_docs"],
+      }],
+      planningSteps: [{
+        ...baseWorkflow().planningSteps![0]!,
+      }, {
+        ...baseWorkflow().planningSteps![1]!,
+        dependsOn: ["retrieve_docs"],
+      }],
+    });
+    const decision = buildAssistantWorkflowDecision(
+      workflow,
+      {
+        intent: "answer_docs",
+        confidence: 0.9,
+        entities: { containers: ["manual"] },
+      },
+      ["query_docs", "list_docs"],
+    );
+
+    const plan = buildAssistantWorkflowExecutionPlan(workflow, decision);
+
+    expect(plan.status).toBe("blocked");
+    expect(plan.steps[0]).toMatchObject({
+      id: "synthesize_answer",
+      dependsOnStepIds: ["retrieve_docs"],
+      outOfOrderDependencyStepIds: ["retrieve_docs"],
+      status: "blocked",
+    });
+    expect(plan.blockingReasons).toContain(
+      "synthesize_answer dependency must run first: retrieve_docs",
+    );
+  });
+
+  it("blocks a dependent step when its dependency is not selected", () => {
+    const workflow = defineAssistantWorkflow({
+      ...baseWorkflow(),
+      intents: [{
+        ...baseWorkflow().intents[0]!,
+        planningSteps: ["synthesize_answer"],
+      }],
+      planningSteps: [{
+        ...baseWorkflow().planningSteps![0]!,
+      }, {
+        ...baseWorkflow().planningSteps![1]!,
+        dependsOn: ["retrieve_docs"],
+      }],
+    });
+    const decision = buildAssistantWorkflowDecision(
+      workflow,
+      {
+        intent: "answer_docs",
+        confidence: 0.9,
+        entities: { containers: ["manual"] },
+      },
+      ["query_docs", "list_docs"],
+    );
+
+    const plan = buildAssistantWorkflowExecutionPlan(workflow, decision);
+
+    expect(plan.status).toBe("blocked");
+    expect(plan.steps[0]).toMatchObject({
+      missingDependencyStepIds: ["retrieve_docs"],
+      status: "blocked",
+    });
+    expect(plan.blockingReasons).toContain(
+      "synthesize_answer missing dependency step: retrieve_docs",
+    );
+  });
 });
 
 function baseWorkflow(): AssistantWorkflowDefinition {

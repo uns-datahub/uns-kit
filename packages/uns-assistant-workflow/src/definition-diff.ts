@@ -29,6 +29,13 @@ export type AssistantWorkflowDefinitionDirectRouteDiff = {
   changed: boolean;
 };
 
+export type AssistantWorkflowDefinitionPlanningStepDiff = {
+  stepId: string;
+  addedDependencyStepIds: string[];
+  removedDependencyStepIds: string[];
+  changed: boolean;
+};
+
 export type AssistantWorkflowDefinitionDiff = {
   fromWorkflowId: string;
   toWorkflowId: string;
@@ -36,6 +43,8 @@ export type AssistantWorkflowDefinitionDiff = {
   toVersion: number;
   changed: boolean;
   versionChanged: boolean;
+  executionBudgetChanged: boolean;
+  executionPolicyChanged: boolean;
   addedIntentIds: string[];
   removedIntentIds: string[];
   addedToolNames: string[];
@@ -52,6 +61,7 @@ export type AssistantWorkflowDefinitionDiff = {
   removedClarificationRuleIds: string[];
   intentDiffs: AssistantWorkflowDefinitionIntentDiff[];
   directRouteDiffs: AssistantWorkflowDefinitionDirectRouteDiff[];
+  planningStepDiffs: AssistantWorkflowDefinitionPlanningStepDiff[];
 };
 
 export function buildAssistantWorkflowDefinitionDiff(
@@ -60,6 +70,7 @@ export function buildAssistantWorkflowDefinitionDiff(
 ): AssistantWorkflowDefinitionDiff {
   const intentDiffs = buildIntentDiffs(before.intents, after.intents);
   const directRouteDiffs = buildDirectRouteDiffs(before.directRoutes ?? [], after.directRoutes ?? []);
+  const planningStepDiffs = buildPlanningStepDiffs(before.planningSteps ?? [], after.planningSteps ?? []);
   const diff: AssistantWorkflowDefinitionDiff = {
     fromWorkflowId: before.id,
     toWorkflowId: after.id,
@@ -67,6 +78,8 @@ export function buildAssistantWorkflowDefinitionDiff(
     toVersion: after.version,
     changed: false,
     versionChanged: before.version !== after.version,
+    executionBudgetChanged: !sameJson(before.executionBudget ?? null, after.executionBudget ?? null),
+    executionPolicyChanged: !sameJson(before.executionPolicy ?? null, after.executionPolicy ?? null),
     addedIntentIds: diffStrings(before.intents.map((intent) => intent.id), after.intents.map((intent) => intent.id)),
     removedIntentIds: diffStrings(after.intents.map((intent) => intent.id), before.intents.map((intent) => intent.id)),
     addedToolNames: diffStrings(before.tools?.map((tool) => tool.name) ?? [], after.tools?.map((tool) => tool.name) ?? []),
@@ -113,10 +126,13 @@ export function buildAssistantWorkflowDefinitionDiff(
     ),
     intentDiffs,
     directRouteDiffs,
+    planningStepDiffs,
   };
   return {
     ...diff,
     changed: diff.versionChanged ||
+      diff.executionBudgetChanged ||
+      diff.executionPolicyChanged ||
       diff.addedIntentIds.length > 0 ||
       diff.removedIntentIds.length > 0 ||
       diff.addedToolNames.length > 0 ||
@@ -132,7 +148,8 @@ export function buildAssistantWorkflowDefinitionDiff(
       diff.addedClarificationRuleIds.length > 0 ||
       diff.removedClarificationRuleIds.length > 0 ||
       diff.intentDiffs.some((intentDiff) => intentDiff.changed) ||
-      diff.directRouteDiffs.some((routeDiff) => routeDiff.changed),
+      diff.directRouteDiffs.some((routeDiff) => routeDiff.changed) ||
+      diff.planningStepDiffs.some((stepDiff) => stepDiff.changed),
   };
 }
 
@@ -146,6 +163,8 @@ export function buildAssistantWorkflowDefinitionDiffTracePayload(
     toVersion: diff.toVersion,
     changed: diff.changed,
     versionChanged: diff.versionChanged,
+    executionBudgetChanged: diff.executionBudgetChanged,
+    executionPolicyChanged: diff.executionPolicyChanged,
     addedIntentIds: diff.addedIntentIds,
     removedIntentIds: diff.removedIntentIds,
     addedToolNames: diff.addedToolNames,
@@ -182,7 +201,36 @@ export function buildAssistantWorkflowDefinitionDiffTracePayload(
       removedStrategyIds: routeDiff.removedStrategyIds,
       changed: routeDiff.changed,
     })),
+    planningStepDiffs: diff.planningStepDiffs.map((stepDiff) => ({
+      stepId: stepDiff.stepId,
+      addedDependencyStepIds: stepDiff.addedDependencyStepIds,
+      removedDependencyStepIds: stepDiff.removedDependencyStepIds,
+      changed: stepDiff.changed,
+    })),
   };
+}
+
+function buildPlanningStepDiffs(
+  beforeSteps: readonly NonNullable<AssistantWorkflowDefinition["planningSteps"]>[number][],
+  afterSteps: readonly NonNullable<AssistantWorkflowDefinition["planningSteps"]>[number][],
+): AssistantWorkflowDefinitionPlanningStepDiff[] {
+  const beforeById = new Map(beforeSteps.map((step) => [step.id, step] as const));
+  const diffs: AssistantWorkflowDefinitionPlanningStepDiff[] = [];
+  for (const afterStep of afterSteps) {
+    const beforeStep = beforeById.get(afterStep.id);
+    if (!beforeStep) continue;
+    const addedDependencyStepIds = diffStrings(beforeStep.dependsOn ?? [], afterStep.dependsOn ?? []);
+    const removedDependencyStepIds = diffStrings(afterStep.dependsOn ?? [], beforeStep.dependsOn ?? []);
+    if (addedDependencyStepIds.length || removedDependencyStepIds.length) {
+      diffs.push({
+        stepId: afterStep.id,
+        addedDependencyStepIds,
+        removedDependencyStepIds,
+        changed: true,
+      });
+    }
+  }
+  return diffs.sort((left, right) => left.stepId.localeCompare(right.stepId));
 }
 
 function buildDirectRouteDiffs(
@@ -293,4 +341,8 @@ function diffStrings(before: readonly string[], after: readonly string[]): strin
   return [...new Set(after)]
     .filter((value) => value.length > 0 && !beforeSet.has(value))
     .sort();
+}
+
+function sameJson(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }

@@ -44,6 +44,17 @@ describe("assistant workflow definition diff", () => {
     const after = defineAssistantWorkflow({
       ...before,
       version: 2,
+      executionBudget: {
+        maxPlanningSteps: 4,
+        maxToolCalls: 3,
+        maxProviderCalls: 2,
+        maxDurationMs: 30_000,
+        maxEvidenceBytes: 100_000,
+      },
+      executionPolicy: {
+        failureMode: "continue-independent",
+        maxAttemptsPerTool: 2,
+      },
       intents: [{
         id: "answer_docs",
         description: "Answer from docs.",
@@ -81,6 +92,7 @@ describe("assistant workflow definition diff", () => {
           id: "list_sources_step",
           description: "List sources.",
           kind: "retrieve",
+          dependsOn: ["retrieve_docs"],
         },
       ],
       directRoutes: [{
@@ -104,6 +116,8 @@ describe("assistant workflow definition diff", () => {
       toVersion: 2,
       changed: true,
       versionChanged: true,
+      executionBudgetChanged: true,
+      executionPolicyChanged: true,
       addedToolNames: ["list_sources"],
       directRouteDiffs: [{
         routeId: "structured_view",
@@ -120,6 +134,7 @@ describe("assistant workflow definition diff", () => {
         addedPlanningStepProfileIds: ["source_listing_plan"],
         changed: true,
       }],
+      planningStepDiffs: [],
     });
     expect(buildAssistantWorkflowDefinitionDiffTracePayload(diff)).toMatchObject({
       changed: true,
@@ -132,6 +147,38 @@ describe("assistant workflow definition diff", () => {
       directRouteDiffs: [{
         routeId: "structured_view",
         addedStrategyIds: ["last_event_interval"],
+      }],
+    });
+  });
+
+  it("surfaces dependency changes on existing planning steps", () => {
+    const before = defineAssistantWorkflow({
+      id: "support-agent",
+      version: 1,
+      intents: [{ id: "answer_docs", description: "Answer from docs.", planningSteps: ["retrieve", "respond"] }],
+      planningSteps: [
+        { id: "retrieve", description: "Retrieve.", kind: "retrieve" },
+        { id: "respond", description: "Respond.", kind: "synthesize" },
+      ],
+    });
+    const after = defineAssistantWorkflow({
+      ...before,
+      planningSteps: [
+        before.planningSteps![0]!,
+        { ...before.planningSteps![1]!, dependsOn: ["retrieve"] },
+      ],
+    });
+
+    expect(buildAssistantWorkflowDefinitionDiff(before, after)).toMatchObject({
+      changed: true,
+      versionChanged: false,
+      executionBudgetChanged: false,
+      executionPolicyChanged: false,
+      planningStepDiffs: [{
+        stepId: "respond",
+        addedDependencyStepIds: ["retrieve"],
+        removedDependencyStepIds: [],
+        changed: true,
       }],
     });
   });

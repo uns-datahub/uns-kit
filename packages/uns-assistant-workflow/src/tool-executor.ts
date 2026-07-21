@@ -7,6 +7,14 @@ import type {
   AssistantWorkflowToolInvocation,
   AssistantWorkflowToolInvocationQueue,
 } from "./tool-invocations.js";
+import {
+  buildAssistantWorkflowExecutionBudgetAssessment,
+  buildAssistantWorkflowExecutionBudgetTracePayload,
+  formatAssistantWorkflowExecutionBudgetViolation,
+  type AssistantWorkflowExecutionBudget,
+  type AssistantWorkflowExecutionBudgetAssessment,
+} from "./execution-budget.js";
+import { resolveAssistantWorkflowExecutionPolicy } from "./execution-policy.js";
 
 export type {
   AssistantWorkflowToolInvocation,
@@ -26,6 +34,8 @@ export type AssistantWorkflowToolExecutorContext = {
   invocationIndex: number;
   queueStatus: AssistantWorkflowToolInvocationQueue["status"];
   args: AssistantWorkflowToolInvocationArgs;
+  attempt?: number;
+  maxAttempts?: number;
 };
 
 export type AssistantWorkflowToolInvocationArgs = Readonly<Record<string, unknown>>;
@@ -79,6 +89,8 @@ export type AssistantWorkflowToolExecutionEvent = {
   durationMs: number | null;
   errorMessage: string | null;
   retryable: boolean | null;
+  attempt?: number;
+  maxAttempts?: number;
 };
 
 export type AssistantWorkflowToolExecutionOptions = {
@@ -87,12 +99,14 @@ export type AssistantWorkflowToolExecutionOptions = {
   now?: () => number;
   argsByInvocationId?: AssistantWorkflowToolInvocationArgsById;
   onEvent?: (event: AssistantWorkflowToolExecutionEvent) => void;
+  executionBudget?: AssistantWorkflowExecutionBudget;
 };
 
 export type AssistantWorkflowToolExecutionReport = {
   queue: AssistantWorkflowToolInvocationQueue;
   results: AssistantWorkflowToolResult[];
   summary: AssistantWorkflowToolResultSummary;
+  budgetAssessment?: AssistantWorkflowExecutionBudgetAssessment | null;
 };
 
 /**
@@ -128,90 +142,168 @@ export async function executeAssistantWorkflowToolInvocationQueue(
   options: AssistantWorkflowToolExecutionOptions = {},
 ): Promise<AssistantWorkflowToolExecutionReport> {
   const results: AssistantWorkflowToolResult[] = [];
-  const continueOnError = options.continueOnError === true;
   const now = options.now ?? (() => Date.now());
+  const executionPolicy = queue.executionPolicy ?? resolveAssistantWorkflowExecutionPolicy();
+  const continueIndependent = options.continueOnError !== undefined
+    ? options.continueOnError
+    : executionPolicy.failureMode === "continue-independent";
+  const executionBudget = options.executionBudget ?? queue.executionBudget ?? null;
+  const preflightBudgetAssessment = executionBudget
+    ? buildAssistantWorkflowExecutionBudgetAssessment(executionBudget, {
+        toolCallCount: queue.invocations.reduce(
+          (count, invocation) => count + normalizeMaxAttempts(invocation.maxAttempts),
+          0,
+        ),
+      })
+    : null;
+  if (preflightBudgetAssessment?.status === "blocked") {
+    appendBudgetBlockedResults(
+      results,
+      queue.invocations,
+      preflightBudgetAssessment,
+      0,
+      queue.status,
+      options.onEvent,
+    );
+    return buildExecutionReport(queue, results, preflightBudgetAssessment);
+  }
+
+  const executionStartedAt = executionBudget ? now() : null;
+  let startedToolCallCount = 0;
+  let elapsedMs = 0;
+  const failedStepIds = new Set<string>();
 
   for (const [invocationIndex, invocation] of queue.invocations.entries()) {
-    const startedAt = now();
-    emitToolExecutionEvent(options.onEvent, createToolExecutionEvent({
-      phase: "started",
-      invocation,
-      invocationIndex,
-      queueStatus: queue.status,
-    }));
-    try {
-      const output = await executor(invocation, {
+    const failedDependencyId = (invocation.dependsOnStepIds ?? []).find((stepId) => failedStepIds.has(stepId));
+    if (failedDependencyId) {
+      const errorMessage = `dependency step failed: ${failedDependencyId}`;
+      appendSkippedInvocation(results, invocation, errorMessage, invocationIndex, queue.status, options.onEvent);
+      failedStepIds.add(invocation.stepId);
+      continue;
+    }
+
+    const maxAttempts = normalizeMaxAttempts(invocation.maxAttempts);
+    const invocationStartedAt = now();
+    let invocationFailed = false;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const attemptStartedAt = attempt === 1 ? invocationStartedAt : now();
+      if (executionBudget && executionStartedAt !== null) {
+        elapsedMs = Math.max(0, attemptStartedAt - executionStartedAt);
+        const assessment = buildAssistantWorkflowExecutionBudgetAssessment(executionBudget, {
+          toolCallCount: startedToolCallCount,
+          elapsedMs,
+        });
+        if (assessment.status === "blocked") {
+          appendBudgetBlockedResults(
+            results,
+            queue.invocations.slice(invocationIndex),
+            assessment,
+            invocationIndex,
+            queue.status,
+            options.onEvent,
+          );
+          return buildExecutionReport(queue, results, assessment);
+        }
+      }
+      startedToolCallCount += 1;
+      emitToolExecutionEvent(options.onEvent, createToolExecutionEvent({
+        phase: "started",
+        invocation,
         invocationIndex,
         queueStatus: queue.status,
-        args: readInvocationArgs(options.argsByInvocationId, invocation.id),
-      });
-      const durationMs = now() - startedAt;
-      results.push(
-        assistantWorkflowToolSuccess({
+        attempt,
+        maxAttempts,
+      }));
+      try {
+        const output = await executor(invocation, {
+          invocationIndex,
+          queueStatus: queue.status,
+          args: readInvocationArgs(options.argsByInvocationId, invocation.id),
+          attempt,
+          maxAttempts,
+        });
+        const completedAt = now();
+        const durationMs = completedAt - invocationStartedAt;
+        if (executionStartedAt !== null) elapsedMs = Math.max(0, completedAt - executionStartedAt);
+        results.push(assistantWorkflowToolSuccess({
           invocationId: invocation.id,
           toolName: invocation.toolName,
           stepId: invocation.stepId,
           provider: invocation.provider,
           output,
           durationMs,
-        }),
-      );
-      emitToolExecutionEvent(options.onEvent, createToolExecutionEvent({
-        phase: "succeeded",
-        invocation,
-        invocationIndex,
-        queueStatus: queue.status,
-        durationMs,
-      }));
-    } catch (error) {
-      const durationMs = now() - startedAt;
-      const errorMessage = getErrorMessage(error);
-      const retryable = options.retryableOnError === true;
-      results.push(
-        assistantWorkflowToolError({
+        }));
+        emitToolExecutionEvent(options.onEvent, createToolExecutionEvent({
+          phase: "succeeded",
+          invocation,
+          invocationIndex,
+          queueStatus: queue.status,
+          durationMs: completedAt - attemptStartedAt,
+          attempt,
+          maxAttempts,
+        }));
+        break;
+      } catch (error) {
+        const completedAt = now();
+        const errorMessage = getErrorMessage(error);
+        const retryable = attempt < maxAttempts || options.retryableOnError === true;
+        if (executionStartedAt !== null) elapsedMs = Math.max(0, completedAt - executionStartedAt);
+        emitToolExecutionEvent(options.onEvent, createToolExecutionEvent({
+          phase: "failed",
+          invocation,
+          invocationIndex,
+          queueStatus: queue.status,
+          durationMs: completedAt - attemptStartedAt,
+          errorMessage,
+          retryable,
+          attempt,
+          maxAttempts,
+        }));
+        if (attempt < maxAttempts) continue;
+        results.push(assistantWorkflowToolError({
           invocationId: invocation.id,
           toolName: invocation.toolName,
           stepId: invocation.stepId,
           provider: invocation.provider,
           errorMessage,
-          retryable,
-          durationMs,
-        }),
-      );
-      emitToolExecutionEvent(options.onEvent, createToolExecutionEvent({
-        phase: "failed",
-        invocation,
-        invocationIndex,
-        queueStatus: queue.status,
-        durationMs,
-        errorMessage,
-        retryable,
-      }));
-      if (!continueOnError) {
-        appendSkippedAfterFailure(
-          results,
-          queue.invocations.slice(invocationIndex + 1),
-          invocation.id,
-          invocationIndex + 1,
-          queue.status,
-          options.onEvent,
-        );
-        break;
+          retryable: options.retryableOnError === true,
+          durationMs: completedAt - invocationStartedAt,
+        }));
+        invocationFailed = true;
+        failedStepIds.add(invocation.stepId);
       }
+    }
+    if (invocationFailed && !continueIndependent) {
+      appendSkippedAfterFailure(
+        results,
+        queue.invocations.slice(invocationIndex + 1),
+        invocation.id,
+        invocationIndex + 1,
+        queue.status,
+        options.onEvent,
+      );
+      break;
     }
   }
 
-  return {
-    queue,
-    results,
-    summary: summarizeAssistantWorkflowToolResults(queue, results),
-  };
+  const budgetAssessment = executionBudget
+    ? buildAssistantWorkflowExecutionBudgetAssessment(executionBudget, {
+        toolCallCount: startedToolCallCount,
+        elapsedMs,
+      })
+    : null;
+  return buildExecutionReport(queue, results, budgetAssessment);
 }
 
 export function buildAssistantWorkflowToolExecutionTracePayload(
   report: AssistantWorkflowToolExecutionReport,
 ): Record<string, unknown> {
-  return buildAssistantWorkflowToolResultsTracePayload(report.queue, report.results);
+  return {
+    ...buildAssistantWorkflowToolResultsTracePayload(report.queue, report.results),
+    budgetAssessment: report.budgetAssessment
+      ? buildAssistantWorkflowExecutionBudgetTracePayload(report.budgetAssessment)
+      : null,
+  };
 }
 
 export function buildAssistantWorkflowToolExecutionEventTracePayload(
@@ -228,6 +320,8 @@ export function buildAssistantWorkflowToolExecutionEventTracePayload(
     durationMs: event.durationMs,
     errorMessage: event.errorMessage,
     retryable: event.retryable,
+    ...(event.attempt !== undefined ? { attempt: event.attempt } : {}),
+    ...(event.maxAttempts !== undefined ? { maxAttempts: event.maxAttempts } : {}),
   };
 }
 
@@ -260,6 +354,58 @@ function appendSkippedAfterFailure(
   }
 }
 
+function appendBudgetBlockedResults(
+  results: AssistantWorkflowToolResult[],
+  invocations: readonly AssistantWorkflowToolInvocation[],
+  assessment: AssistantWorkflowExecutionBudgetAssessment,
+  invocationIndex: number,
+  queueStatus: AssistantWorkflowToolInvocationQueue["status"],
+  onEvent: AssistantWorkflowToolExecutionOptions["onEvent"],
+): void {
+  const [blockedInvocation, ...remainingInvocations] = invocations;
+  if (!blockedInvocation) return;
+  const errorMessage = formatAssistantWorkflowExecutionBudgetViolation(assessment.violations[0]!);
+  results.push(assistantWorkflowToolError({
+    invocationId: blockedInvocation.id,
+    toolName: blockedInvocation.toolName,
+    stepId: blockedInvocation.stepId,
+    provider: blockedInvocation.provider,
+    errorMessage,
+    retryable: false,
+    durationMs: 0,
+  }));
+  emitToolExecutionEvent(onEvent, createToolExecutionEvent({
+    phase: "failed",
+    invocation: blockedInvocation,
+    invocationIndex,
+    queueStatus,
+    durationMs: 0,
+    errorMessage,
+    retryable: false,
+  }));
+  appendSkippedAfterFailure(
+    results,
+    remainingInvocations,
+    blockedInvocation.id,
+    invocationIndex + 1,
+    queueStatus,
+    onEvent,
+  );
+}
+
+function buildExecutionReport(
+  queue: AssistantWorkflowToolInvocationQueue,
+  results: AssistantWorkflowToolResult[],
+  budgetAssessment: AssistantWorkflowExecutionBudgetAssessment | null,
+): AssistantWorkflowToolExecutionReport {
+  return {
+    queue,
+    results,
+    summary: summarizeAssistantWorkflowToolResults(queue, results),
+    budgetAssessment,
+  };
+}
+
 function createToolExecutionEvent(input: {
   phase: AssistantWorkflowToolExecutionEventPhase;
   invocation: AssistantWorkflowToolInvocation;
@@ -268,6 +414,8 @@ function createToolExecutionEvent(input: {
   durationMs?: number;
   errorMessage?: string;
   retryable?: boolean;
+  attempt?: number;
+  maxAttempts?: number;
 }): AssistantWorkflowToolExecutionEvent {
   return {
     phase: input.phase,
@@ -280,7 +428,38 @@ function createToolExecutionEvent(input: {
     durationMs: input.durationMs ?? null,
     errorMessage: input.errorMessage ?? null,
     retryable: input.retryable ?? null,
+    ...(input.maxAttempts !== undefined && input.maxAttempts > 1
+      ? { attempt: input.attempt ?? 1, maxAttempts: input.maxAttempts }
+      : {}),
   };
+}
+
+function appendSkippedInvocation(
+  results: AssistantWorkflowToolResult[],
+  invocation: AssistantWorkflowToolInvocation,
+  errorMessage: string,
+  invocationIndex: number,
+  queueStatus: AssistantWorkflowToolInvocationQueue["status"],
+  onEvent: AssistantWorkflowToolExecutionOptions["onEvent"],
+): void {
+  results.push(assistantWorkflowToolSkipped({
+    invocationId: invocation.id,
+    toolName: invocation.toolName,
+    stepId: invocation.stepId,
+    provider: invocation.provider,
+    errorMessage,
+  }));
+  emitToolExecutionEvent(onEvent, createToolExecutionEvent({
+    phase: "skipped",
+    invocation,
+    invocationIndex,
+    queueStatus,
+    errorMessage,
+  }));
+}
+
+function normalizeMaxAttempts(value: number | undefined): number {
+  return value === 2 || value === 3 ? value : 1;
 }
 
 function emitToolExecutionEvent(

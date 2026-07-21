@@ -177,6 +177,14 @@
       "types": "./dist/execution-plan.d.ts",
       "default": "./dist/execution-plan.js"
     },
+    "./execution-budget": {
+      "types": "./dist/execution-budget.d.ts",
+      "default": "./dist/execution-budget.js"
+    },
+    "./execution-policy": {
+      "types": "./dist/execution-policy.d.ts",
+      "default": "./dist/execution-policy.js"
+    },
     "./hosted-tool-policy": {
       "types": "./dist/hosted-tool-policy.d.ts",
       "default": "./dist/hosted-tool-policy.js"

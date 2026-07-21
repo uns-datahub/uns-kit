@@ -240,6 +240,34 @@ describe("assistant workflow definition diagnostics", () => {
       }],
     });
   });
+
+  it("rejects unknown, self-referencing, and cyclic planning step dependencies", () => {
+    const workflow = validWorkflow({
+      intents: [{
+        ...validWorkflow().intents[0]!,
+        planningSteps: ["retrieve_docs", "synthesize_docs"],
+      }],
+      planningSteps: [{
+        ...validWorkflow().planningSteps![0]!,
+        dependsOn: ["synthesize_docs", "retrieve_docs", "missing_step"],
+      }, {
+        id: "synthesize_docs",
+        description: "Synthesize docs.",
+        kind: "synthesize",
+        dependsOn: ["retrieve_docs"],
+      }],
+    });
+
+    const result = validateAssistantWorkflowDefinition(workflow);
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics.filter((diagnostic) =>
+      diagnostic.code === "invalid_planning_step_dependency"
+    ).length).toBeGreaterThanOrEqual(3);
+    expect(() => defineAssistantWorkflow(workflow)).toThrow(
+      /planning step retrieve_docs must not depend on itself|references unknown dependency|contain a cycle/,
+    );
+  });
 });
 
 function validWorkflow(

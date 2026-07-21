@@ -9,6 +9,8 @@ import {
   type AssistantWorkflowToolCapabilityDefinition,
   type AssistantWorkflowVocabularyItem,
 } from "./definition.js";
+import { assertAssistantWorkflowExecutionBudget } from "./execution-budget.js";
+import { assertAssistantWorkflowExecutionPolicy } from "./execution-policy.js";
 
 export type AssistantWorkflowDefinitionDiagnosticSeverity = "error" | "warning";
 
@@ -32,8 +34,11 @@ export type AssistantWorkflowDefinitionDiagnosticCode =
   | "unknown_presentation"
   | "unknown_memory_slot"
   | "unknown_planning_step"
+  | "invalid_planning_step_dependency"
   | "unknown_clarification_rule"
   | "invalid_confidence_threshold"
+  | "invalid_execution_budget"
+  | "invalid_execution_policy"
   | "unbound_tool_capability"
   | "binding_without_capability";
 
@@ -57,6 +62,8 @@ export function validateAssistantWorkflowDefinition(
   const diagnostics: AssistantWorkflowDefinitionDiagnostic[] = [];
 
   validateHeader(workflow, diagnostics);
+  validateExecutionBudget(workflow, diagnostics);
+  validateExecutionPolicy(workflow, diagnostics);
   validateVocabulary("intent", "intents", workflow.intents, diagnostics);
   validateVocabulary("subintent", "subintents", workflow.subintents ?? [], diagnostics);
   validateVocabulary("presentation", "presentations", workflow.presentations ?? [], diagnostics);
@@ -77,6 +84,42 @@ export function validateAssistantWorkflowDefinition(
     warningCount,
     diagnostics,
   };
+}
+
+function validateExecutionPolicy(
+  workflow: AssistantWorkflowDefinition<string, string, string, string>,
+  diagnostics: AssistantWorkflowDefinitionDiagnostic[],
+): void {
+  if (!workflow.executionPolicy) return;
+  try {
+    assertAssistantWorkflowExecutionPolicy(workflow.executionPolicy);
+  } catch (error) {
+    addDiagnostic(
+      diagnostics,
+      "error",
+      "invalid_execution_policy",
+      "executionPolicy",
+      error instanceof Error ? error.message : "Assistant workflow execution policy is invalid.",
+    );
+  }
+}
+
+function validateExecutionBudget(
+  workflow: AssistantWorkflowDefinition<string, string, string, string>,
+  diagnostics: AssistantWorkflowDefinitionDiagnostic[],
+): void {
+  if (!workflow.executionBudget) return;
+  try {
+    assertAssistantWorkflowExecutionBudget(workflow.executionBudget);
+  } catch (error) {
+    addDiagnostic(
+      diagnostics,
+      "error",
+      "invalid_execution_budget",
+      "executionBudget",
+      error instanceof Error ? error.message : "Assistant workflow execution budget is invalid.",
+    );
+  }
 }
 
 function validateHeader(
@@ -230,6 +273,43 @@ function validatePlanningSteps(
   diagnostics: AssistantWorkflowDefinitionDiagnostic[],
 ): void {
   validateVocabulary("planning step", "planningSteps", steps, diagnostics);
+  const stepsById = new Map(steps.map((step) => [step.id, step] as const));
+  for (const [index, step] of steps.entries()) {
+    for (const dependencyId of step.dependsOn ?? []) {
+      if (dependencyId === step.id) {
+        addDiagnostic(diagnostics, "error", "invalid_planning_step_dependency", `planningSteps[${index}].dependsOn`, `Assistant workflow planning step ${step.id} must not depend on itself.`);
+      } else if (!stepsById.has(dependencyId)) {
+        addDiagnostic(diagnostics, "error", "invalid_planning_step_dependency", `planningSteps[${index}].dependsOn`, `Assistant workflow planning step ${step.id} references unknown dependency: ${dependencyId}.`);
+      }
+    }
+  }
+  for (const cycleStepId of findPlanningStepDependencyCycles(stepsById)) {
+    const index = steps.findIndex((step) => step.id === cycleStepId);
+    addDiagnostic(diagnostics, "error", "invalid_planning_step_dependency", `planningSteps[${index}].dependsOn`, `Assistant workflow planning step dependencies contain a cycle at: ${cycleStepId}.`);
+  }
+}
+
+function findPlanningStepDependencyCycles(
+  stepsById: ReadonlyMap<string, AssistantWorkflowPlanningStepDefinition>,
+): string[] {
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const cycles = new Set<string>();
+  const visit = (stepId: string): void => {
+    if (visited.has(stepId)) return;
+    if (visiting.has(stepId)) {
+      cycles.add(stepId);
+      return;
+    }
+    visiting.add(stepId);
+    for (const dependencyId of stepsById.get(stepId)?.dependsOn ?? []) {
+      if (stepsById.has(dependencyId)) visit(dependencyId);
+    }
+    visiting.delete(stepId);
+    visited.add(stepId);
+  };
+  for (const stepId of stepsById.keys()) visit(stepId);
+  return [...cycles];
 }
 
 function validateClarificationRules(

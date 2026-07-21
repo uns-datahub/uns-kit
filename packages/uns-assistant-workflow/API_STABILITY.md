@@ -20,3 +20,19 @@ with consumer-oriented tests and documentation.
 Before publishing, run `pnpm --filter @uns-kit/assistant-workflow run verify`.
 Consumer repositories must also typecheck and test against the packed package
 before a major-version rollout is considered complete.
+
+## Execution Budgets
+
+Workflow definitions may declare an optional `executionBudget`. The compiler
+uses it to reject oversized plans before producing executable invocations, and
+the tool executor checks it again before and between calls. Definitions without
+the field preserve the existing unbounded behavior for backward compatibility.
+
+`maxProviderCalls` and `maxEvidenceBytes` are host-level limits: generic budget
+assessments represent them, while the integrating runtime supplies their live
+usage. The generic tool executor directly enforces tool-call and duration
+limits; it does not interrupt an already-started external call.
+
+Definitions may also declare an `executionPolicy` and planning-step `dependsOn`
+edges. Dependency cycles are invalid. The default remains one attempt with
+fail-fast execution, preserving prior behavior when no policy is declared.

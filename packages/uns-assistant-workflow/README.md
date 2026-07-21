@@ -30,6 +30,42 @@ The package deliberately does not contain provider credentials, database access,
 HTTP transport, UNS-specific tool implementations, or application-specific
 workflow definitions.
 
+## Bounded Execution
+
+An application can make execution limits part of the versioned workflow
+definition. Oversized plans are blocked before invocation queue construction,
+and the generic executor checks tool-call and elapsed-time limits again.
+
+```ts
+const workflow = defineAssistantWorkflow({
+  id: "documentation-agent",
+  version: 1,
+  executionBudget: {
+    maxPlanningSteps: 6,
+    maxToolCalls: 4,
+    maxProviderCalls: 3,
+    maxDurationMs: 30_000,
+    maxEvidenceBytes: 250_000,
+  },
+  executionPolicy: {
+    failureMode: "continue-independent",
+    maxAttemptsPerTool: 2,
+  },
+  intents: [/* ... */],
+});
+```
+
+The host reports live LLM/provider-call and evidence-byte usage through
+`buildAssistantWorkflowExecutionBudgetAssessment`. Tool execution does not
+interrupt an external call already in progress; a consumed duration budget
+prevents the next call from starting.
+
+Planning steps may declare `dependsOn`. Definition validation rejects unknown,
+self-referencing, and cyclic dependencies. `continue-independent` skips a
+dependent step after its prerequisite fails while allowing unrelated steps to
+finish. Retries are limited to capabilities whose `retryClass` is not `never`,
+and their maximum attempts count against `maxToolCalls` before execution.
+
 ## Tool-Selection Evaluation
 
 Tool-selection replay reports distinguish a workflow failure from an expected

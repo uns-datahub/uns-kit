@@ -35,6 +35,8 @@ export * from "./eval-result.js";
 export * from "./eval-runner.js";
 export * from "./eval-suite.js";
 export * from "./execution-plan.js";
+export * from "./execution-budget.js";
+export * from "./execution-policy.js";
 export * from "./hosted-tool-policy.js";
 export * from "./memory-policy.js";
 export * from "./memory-updates.js";

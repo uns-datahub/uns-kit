@@ -11,6 +11,7 @@ export type AssistantWorkflowPlanStepTrace = {
   id: string;
   kind: AssistantWorkflowPlanningStepKind;
   optional: boolean;
+  dependsOnStepIds: string[];
   toolHints: string[];
   requiredToolHints: string[];
 };
@@ -105,6 +106,7 @@ export function buildAssistantWorkflowPlan(
       id: step.id,
       kind: step.kind,
       optional: step.optional === true,
+      dependsOnStepIds: uniqueStrings(step.dependsOn ?? []),
       toolHints: filterToolNames(step.toolHints ?? [], availableSet),
       requiredToolHints: filterToolNames(step.requiredToolHints ?? [], availableSet),
     })),
