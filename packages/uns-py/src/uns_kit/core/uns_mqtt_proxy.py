@@ -159,6 +159,8 @@ class UnsMqttProxy(UnsProxy):
             description = attr.get("description")
             tags = attr.get("tags")
             attribute_needs_persistence = attr.get("attributeNeedsPersistence")
+            if attribute_needs_persistence is None:
+                attribute_needs_persistence = True
             value_type = attr.get("valueType")
             presentation_kind = attr.get("presentationKind")
             default_aggregation = attr.get("defaultAggregation")

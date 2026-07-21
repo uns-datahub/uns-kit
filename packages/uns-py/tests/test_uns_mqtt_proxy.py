@@ -7,6 +7,47 @@ from uns_kit.core.uns_mqtt_proxy import UnsMqttProxy
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("persistence_metadata", "expected"),
+    [
+        ({}, True),
+        ({"attributeNeedsPersistence": None}, True),
+        ({"attributeNeedsPersistence": True}, True),
+        ({"attributeNeedsPersistence": False}, False),
+    ],
+)
+async def test_publish_mqtt_message_defaults_persistence_to_true(
+    persistence_metadata: dict[str, bool | None],
+    expected: bool,
+) -> None:
+    proxy = UnsMqttProxy(
+        "localhost",
+        process_name="test-process",
+        instance_name="test-instance",
+    )
+
+    async def fake_publish_raw(topic: str, payload: str | bytes, *, qos: int = 0, retain: bool = False) -> None:
+        return None
+
+    proxy.client.publish_raw = fake_publish_raw  # type: ignore[method-assign]
+
+    await proxy.publish_mqtt_message(
+        {
+            "topic": "test/site",
+            "attributes": {
+                "attribute": "temperature",
+                "data": {"value": 21.5},
+                **persistence_metadata,
+            },
+        }
+    )
+
+    produced_topic = next(iter(proxy._produced_topics.values()))
+    assert produced_topic["attributeNeedsPersistence"] is expected
+    await proxy._stop_publish_workers()
+
+
+@pytest.mark.asyncio
 async def test_publish_message_uses_bounded_concurrency() -> None:
     proxy = UnsMqttProxy(
         "localhost",
