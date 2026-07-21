@@ -1,12 +1,16 @@
 import type {
   AssistantWorkflowDirectRouteDefinition,
   AssistantWorkflowDefinition,
+  AssistantWorkflowFirstHopToolPolicy,
   AssistantWorkflowIntentDefinition,
 } from "./definition.js";
 import type { AssistantWorkflowJsonValue } from "./run-report-json.js";
 
 export type AssistantWorkflowDefinitionIntentDiff = {
   intentId: string;
+  fromFirstHopToolPolicy: AssistantWorkflowFirstHopToolPolicy;
+  toFirstHopToolPolicy: AssistantWorkflowFirstHopToolPolicy;
+  firstHopToolPolicyChanged: boolean;
   addedToolHints: string[];
   removedToolHints: string[];
   addedRequiredToolHints: string[];
@@ -181,6 +185,9 @@ export function buildAssistantWorkflowDefinitionDiffTracePayload(
     removedClarificationRuleIds: diff.removedClarificationRuleIds,
     intentDiffs: diff.intentDiffs.map((intentDiff) => ({
       intentId: intentDiff.intentId,
+      fromFirstHopToolPolicy: intentDiff.fromFirstHopToolPolicy,
+      toFirstHopToolPolicy: intentDiff.toFirstHopToolPolicy,
+      firstHopToolPolicyChanged: intentDiff.firstHopToolPolicyChanged,
       addedToolHints: intentDiff.addedToolHints,
       removedToolHints: intentDiff.removedToolHints,
       addedRequiredToolHints: intentDiff.addedRequiredToolHints,
@@ -291,8 +298,13 @@ function buildIntentDiff(
   before: AssistantWorkflowIntentDefinition,
   after: AssistantWorkflowIntentDefinition,
 ): AssistantWorkflowDefinitionIntentDiff {
+  const fromFirstHopToolPolicy = before.firstHopToolPolicy ?? "auto";
+  const toFirstHopToolPolicy = after.firstHopToolPolicy ?? "auto";
   const diff: AssistantWorkflowDefinitionIntentDiff = {
     intentId: after.id,
+    fromFirstHopToolPolicy,
+    toFirstHopToolPolicy,
+    firstHopToolPolicyChanged: fromFirstHopToolPolicy !== toFirstHopToolPolicy,
     addedToolHints: diffStrings(before.toolHints ?? [], after.toolHints ?? []),
     removedToolHints: diffStrings(after.toolHints ?? [], before.toolHints ?? []),
     addedRequiredToolHints: diffStrings(before.requiredToolHints ?? [], after.requiredToolHints ?? []),
@@ -321,7 +333,8 @@ function buildIntentDiff(
   };
   return {
     ...diff,
-    changed: diff.addedToolHints.length > 0 ||
+    changed: diff.firstHopToolPolicyChanged ||
+      diff.addedToolHints.length > 0 ||
       diff.removedToolHints.length > 0 ||
       diff.addedRequiredToolHints.length > 0 ||
       diff.removedRequiredToolHints.length > 0 ||

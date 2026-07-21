@@ -58,6 +58,7 @@ describe("assistant workflow definition diff", () => {
       intents: [{
         id: "answer_docs",
         description: "Answer from docs.",
+        firstHopToolPolicy: "require-tool",
         toolHints: ["query_docs", "list_sources"],
         requiredToolHints: ["query_docs"],
         planningSteps: ["retrieve_docs", "list_sources_step"],
@@ -127,6 +128,9 @@ describe("assistant workflow definition diff", () => {
       addedPlanningStepIds: ["list_sources_step"],
       intentDiffs: [{
         intentId: "answer_docs",
+        fromFirstHopToolPolicy: "auto",
+        toFirstHopToolPolicy: "require-tool",
+        firstHopToolPolicyChanged: true,
         addedToolHints: ["list_sources"],
         addedRequiredToolHints: ["query_docs"],
         addedPlanningSteps: ["list_sources_step"],
@@ -140,6 +144,9 @@ describe("assistant workflow definition diff", () => {
       changed: true,
       intentDiffs: [{
         intentId: "answer_docs",
+        fromFirstHopToolPolicy: "auto",
+        toFirstHopToolPolicy: "require-tool",
+        firstHopToolPolicyChanged: true,
         addedToolHints: ["list_sources"],
         addedToolSelectionProfileIds: ["follow_up_retrieval"],
         addedPlanningStepProfileIds: ["source_listing_plan"],
@@ -180,6 +187,26 @@ describe("assistant workflow definition diff", () => {
         removedDependencyStepIds: [],
         changed: true,
       }],
+    });
+  });
+
+  it("treats omitted and explicit auto first-hop policies as equivalent", () => {
+    const before = defineAssistantWorkflow({
+      id: "support-agent",
+      version: 1,
+      intents: [{ id: "answer_docs", description: "Answer from docs." }],
+    });
+    const after = defineAssistantWorkflow({
+      ...before,
+      intents: [{
+        ...before.intents[0]!,
+        firstHopToolPolicy: "auto",
+      }],
+    });
+
+    expect(buildAssistantWorkflowDefinitionDiff(before, after)).toMatchObject({
+      changed: false,
+      intentDiffs: [],
     });
   });
 
