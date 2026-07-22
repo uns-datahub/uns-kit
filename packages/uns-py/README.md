@@ -384,12 +384,22 @@ poetry install
 poetry run python src/main.py
 ```
 
+The generated `package.json` declares `unsDatahub.kind: "addon"` and controller compatibility so tagged releases can be discovered by UNS Datahub controllers.
+
 To add optional feature scaffolding later:
 ```bash
 poetry run uns-kit-py configure-api .
 poetry run uns-kit-py configure-cron .
 poetry run uns-kit-py configure-data-offer .
 ```
+
+For an existing Python project, add the current non-destructive package metadata defaults with:
+
+```bash
+poetry run uns-kit-py upgrade .
+```
+
+The command adds the UNS Datahub add-on marker only when `unsDatahub` is absent and preserves existing metadata.
 
 `configure-api` adds a service-API scaffold:
 - `src/main.py`

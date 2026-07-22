@@ -30,12 +30,20 @@ describe("uns-kit upgrade", () => {
     expect(firstAgents).toContain("When crossing `<3.0.0` to `>=3.0.0`");
     expect(countOccurrences(firstAgents, "<!-- uns-kit:migrations:start -->")).toBe(1);
     expect(countOccurrences(firstAgents, "<!-- uns-kit:migrations:end -->")).toBe(1);
+    const firstPackage = JSON.parse(await readFile(path.join(targetDir, "package.json"), "utf8"));
+    expect(firstPackage.unsDatahub).toEqual({
+      schemaVersion: 1,
+      kind: "addon",
+      controllerCompatibility: ">=7.1 <8",
+    });
 
     const secondResult = runTsCli(targetDir, ["upgrade"]);
     expect(secondResult.status).toBe(0);
 
     const secondAgents = await readFile(path.join(targetDir, "AGENTS.md"), "utf8");
     expect(secondAgents).toBe(firstAgents);
+    const secondPackage = JSON.parse(await readFile(path.join(targetDir, "package.json"), "utf8"));
+    expect(secondPackage).toEqual(firstPackage);
   });
 
   it("creates AGENTS.md when an existing project does not have one", async () => {
@@ -50,6 +58,17 @@ describe("uns-kit upgrade", () => {
     expect(agents).toContain("Process-owned and standalone proxies have different shutdown paths.");
     expect(agents).toContain("migrate MQTT `message.table.columns` publishers");
   });
+
+  it("preserves existing unsDatahub metadata", async () => {
+    const existingMetadata = { schemaVersion: 2, kind: "custom", owner: "platform-team" };
+    const targetDir = await makeProject({ unsDatahub: existingMetadata });
+
+    const result = runTsCli(targetDir, ["upgrade"]);
+    expect(result.status).toBe(0);
+
+    const pkg = JSON.parse(await readFile(path.join(targetDir, "package.json"), "utf8"));
+    expect(pkg.unsDatahub).toEqual(existingMetadata);
+  });
 });
 
 function runTsCli(cwd: string, args: string[]) {
@@ -60,7 +79,7 @@ function runTsCli(cwd: string, args: string[]) {
   });
 }
 
-async function makeProject(options: { agents?: string }): Promise<string> {
+async function makeProject(options: { agents?: string; unsDatahub?: Record<string, unknown> }): Promise<string> {
   const targetDir = await mkdtemp(path.join(tmpdir(), "uns-cli-upgrade-"));
   tempDirs.push(targetDir);
   await mkdir(targetDir, { recursive: true });
@@ -71,6 +90,7 @@ async function makeProject(options: { agents?: string }): Promise<string> {
         name: "upgrade-test-project",
         dependencies: { "@uns-kit/core": "2.0.70" },
         scripts: {},
+        ...(options.unsDatahub ? { unsDatahub: options.unsDatahub } : {}),
       },
       null,
       2,

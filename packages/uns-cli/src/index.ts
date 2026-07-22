@@ -565,6 +565,20 @@ type PackageJson = {
   [key: string]: unknown;
 };
 
+const DEFAULT_UNS_DATAHUB_ADDON_METADATA = {
+  schemaVersion: 1,
+  kind: "addon",
+  controllerCompatibility: ">=7.1 <8",
+} as const;
+
+function ensureUnsDatahubAddonMetadata(pkg: PackageJson): boolean {
+  if (pkg.unsDatahub !== undefined) {
+    return false;
+  }
+  pkg.unsDatahub = { ...DEFAULT_UNS_DATAHUB_ADDON_METADATA };
+  return true;
+}
+
 type DevopsConfig = {
   provider?: string;
   organization?: string;
@@ -1188,6 +1202,8 @@ async function upgradeProject(targetPath?: string): Promise<void> {
   const pkg = JSON.parse(pkgRaw) as PackageJson;
   const scripts = (pkg.scripts ??= {});
   let changed = false;
+  const addonMetadataChanged = ensureUnsDatahubAddonMetadata(pkg);
+  changed = addonMetadataChanged || changed;
 
   const removed: string[] = [];
   for (const name of OBSOLETE_SCRIPTS) {
@@ -1204,7 +1220,7 @@ async function upgradeProject(targetPath?: string): Promise<void> {
   const agentGuidanceResult = await ensureAgentMigrationGuidance(targetDir);
   changed = agentGuidanceResult !== "unchanged" || changed;
 
-  if (removed.length > 0 || syncScriptsChanged) {
+  if (removed.length > 0 || syncScriptsChanged || addonMetadataChanged) {
     await writeFile(packagePath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
   }
 
@@ -1219,6 +1235,11 @@ async function upgradeProject(targetPath?: string): Promise<void> {
     console.log("  Added/updated: sync-uns-schema, sync-uns-metadata");
   } else {
     console.log("  Ensured: sync-uns-schema, sync-uns-metadata");
+  }
+  if (addonMetadataChanged) {
+    console.log("  Added: package.json unsDatahub add-on metadata");
+  } else {
+    console.log("  Preserved: existing package.json unsDatahub metadata");
   }
   if (agentGuidanceResult === "created") {
     console.log("  Created AGENTS.md with version-bounded migration guidance.");

@@ -29,6 +29,11 @@ from .version import __package_name__, __version__
 
 
 CLI_PROG_NAME = "uns-kit-py"
+DEFAULT_UNS_DATAHUB_ADDON_METADATA = {
+    "schemaVersion": 1,
+    "kind": "addon",
+    "controllerCompatibility": ">=7.1 <8",
+}
 
 
 def common_options(func):
@@ -226,6 +231,7 @@ def _scaffold_python_project(target_path: Path, project_name: str, *, allow_exis
             pkg_data = json.loads(pkg_path.read_text())
             pkg_data["name"] = project_name
             pkg_data["version"] = initial_app_version
+            _ensure_uns_datahub_addon_metadata(pkg_data)
             pkg_path.write_text(json.dumps(pkg_data, indent=2) + "\n")
         except Exception:
             pass
@@ -561,6 +567,36 @@ def configure_vscode(dest: str, overwrite: bool):
 def configure_workspace(dest: str, overwrite: bool):
     dest_path = Path(dest).resolve()
     _write_workspace_file(dest_path, overwrite)
+
+
+@cli.command("upgrade", help="Update an existing UNS Python project to current conventions.")
+@click.argument("dest", required=False, default=".")
+def upgrade_project(dest: str) -> None:
+    dest_path = Path(dest).resolve()
+    pkg_path = dest_path / "package.json"
+    if not pkg_path.exists():
+        raise click.ClickException(f"package.json not found at {pkg_path}")
+
+    try:
+        pkg_data = json.loads(pkg_path.read_text())
+    except Exception as exc:
+        raise click.ClickException(f"Could not read {pkg_path}: {exc}") from exc
+    if not isinstance(pkg_data, dict):
+        raise click.ClickException(f"Expected a JSON object in {pkg_path}.")
+
+    changed = _ensure_uns_datahub_addon_metadata(pkg_data)
+    if changed:
+        pkg_path.write_text(json.dumps(pkg_data, indent=2) + "\n")
+        click.echo("Added package.json unsDatahub add-on metadata.")
+    else:
+        click.echo("Preserved existing package.json unsDatahub metadata.")
+
+
+def _ensure_uns_datahub_addon_metadata(pkg_data: Dict[str, Any]) -> bool:
+    if "unsDatahub" in pkg_data:
+        return False
+    pkg_data["unsDatahub"] = dict(DEFAULT_UNS_DATAHUB_ADDON_METADATA)
+    return True
 
 
 def _configure_python_feature(
@@ -1199,6 +1235,7 @@ def render_cli_help(prog_name: str = CLI_PROG_NAME) -> str:
         "  configure-devops [dir]  Configure Azure DevOps tooling in an existing project\n"
         "  configure-vscode [dir]  Add VS Code workspace configuration files\n"
         "  configure-workspace [dir] Create a VS Code workspace file\n"
+        "  upgrade [dir]           Update an existing project to current conventions\n"
         "  publish                 Publish a UNS data packet to a topic\n"
         "  subscribe               Subscribe to one or more topics (resilient)\n"
         "  pull-request [dir]      Create an Azure DevOps pull request for a Python project\n"

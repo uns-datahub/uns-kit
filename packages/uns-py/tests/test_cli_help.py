@@ -11,6 +11,7 @@ def test_render_cli_help_includes_version_and_bundle_create() -> None:
     assert "create --bundle <path>" in help_text
     assert "configure-api [dir]" in help_text
     assert "configure-cron [dir]" in help_text
+    assert "upgrade [dir]" in help_text
     assert "help                    Show this message" in help_text
 
 
@@ -23,6 +24,7 @@ def test_main_prints_top_level_help(capsys) -> None:
     assert "create --bundle <path>" in output
     assert "configure-api [dir]" in output
     assert "configure-cron [dir]" in output
+    assert "upgrade [dir]" in output
 
 
 def test_main_prints_version(capsys) -> None:

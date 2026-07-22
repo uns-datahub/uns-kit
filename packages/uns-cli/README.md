@@ -35,7 +35,7 @@ pnpm install
 pnpm run dev
 ```
 
-The scaffold creates a project directory from the default TypeScript template, pins `@uns-kit/core` to the current version, and initialises a git repository if `git` is available.
+The scaffold creates a project directory from the default TypeScript template, pins `@uns-kit/core` to the current version, initialises a git repository if `git` is available, and marks the package as a controller-installable UNS Datahub add-on in `package.json`.
 
 The default template includes a Datahub REST client example (`UnsClient`) for last-value lookups, using a token-first pattern suitable for long-lived service tokens.
 
@@ -139,7 +139,7 @@ uns-kit upgrade           # upgrade current directory
 uns-kit upgrade ./my-app  # upgrade a specific project
 ```
 
-Removes scripts that have been superseded (`generate-uns-dictionary`, `generate-uns-measurements`, `generate-uns-reference`, `generate-uns-metadata`), ensures the `sync-uns-*` scripts are present, and adds an idempotent managed section to `AGENTS.md` that directs agents to version-bounded `@uns-kit/core` migrations. Existing project-specific agent instructions are preserved.
+Removes scripts that have been superseded (`generate-uns-dictionary`, `generate-uns-measurements`, `generate-uns-reference`, `generate-uns-metadata`), ensures the `sync-uns-*` scripts and `package.json` UNS Datahub add-on metadata are present, and adds an idempotent managed section to `AGENTS.md` that directs agents to version-bounded `@uns-kit/core` migrations. Existing package metadata and project-specific agent instructions are preserved.
 
 The installed migration guide is `node_modules/@uns-kit/core/MIGRATIONS.md`.
 For example, an upgrade crossing `<2.0.71` to `>=2.0.71` must review MQTT

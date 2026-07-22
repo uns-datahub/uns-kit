@@ -42,6 +42,12 @@ def test_create_from_valid_python_bundle(tmp_path: Path, monkeypatch) -> None:
     assert config["devops"]["project"] == "industry40"
     assert config["uns"]["supervisor"]["enabled"] is False
     assert config["uns"]["supervisor"]["maxMemoryMb"] == 512
+    package_json = json.loads((target / "package.json").read_text())
+    assert package_json["unsDatahub"] == {
+        "schemaVersion": 1,
+        "kind": "addon",
+        "controllerCompatibility": ">=7.1 <8",
+    }
 
 
 def test_create_rejects_invalid_bundle(tmp_path: Path, monkeypatch) -> None:
@@ -130,6 +136,35 @@ def test_legacy_create_name_still_works(tmp_path: Path, monkeypatch) -> None:
     assert (tmp_path / "legacy-app" / "pyproject.toml").exists()
     assert (tmp_path / "legacy-app" / "config.schema.json").exists()
     assert not (tmp_path / "legacy-app" / "service.bundle.json").exists()
+    package_json = json.loads((tmp_path / "legacy-app" / "package.json").read_text())
+    assert package_json["unsDatahub"] == {
+        "schemaVersion": 1,
+        "kind": "addon",
+        "controllerCompatibility": ">=7.1 <8",
+    }
+
+
+def test_upgrade_adds_addon_metadata_and_preserves_it(tmp_path: Path) -> None:
+    target = tmp_path / "existing-app"
+    target.mkdir()
+    package_path = target / "package.json"
+    package_path.write_text(json.dumps({"name": "existing-app", "version": "1.2.3"}, indent=2) + "\n")
+
+    runner = CliRunner()
+    first = runner.invoke(cli, ["upgrade", str(target)])
+    assert first.exit_code == 0, first.output
+    first_package = json.loads(package_path.read_text())
+    assert first_package["unsDatahub"] == {
+        "schemaVersion": 1,
+        "kind": "addon",
+        "controllerCompatibility": ">=7.1 <8",
+    }
+
+    first_package["unsDatahub"] = {"schemaVersion": 2, "kind": "custom"}
+    package_path.write_text(json.dumps(first_package, indent=2) + "\n")
+    second = runner.invoke(cli, ["upgrade", str(target)])
+    assert second.exit_code == 0, second.output
+    assert json.loads(package_path.read_text())["unsDatahub"] == {"schemaVersion": 2, "kind": "custom"}
 
 
 def test_generate_config_schema_merges_project_extension(tmp_path: Path, monkeypatch) -> None:

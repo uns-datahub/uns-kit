@@ -59,6 +59,7 @@ describe("uns-kit create --bundle", () => {
     const packageJson = JSON.parse(await readFile(path.join(targetDir, "package.json"), "utf8")) as {
       name: string;
       scripts?: Record<string, string>;
+      unsDatahub?: Record<string, unknown>;
     };
     expect(packageJson.name).toBe("uns-example-service");
     expect(packageJson.scripts?.dev).toBe(
@@ -68,6 +69,11 @@ describe("uns-kit create --bundle", () => {
     expect(packageJson.scripts?.["pull-request"]).toBe(
       "node ./node_modules/@uns-kit/core/dist/tools/pull-request.js",
     );
+    expect(packageJson.unsDatahub).toEqual({
+      schemaVersion: 1,
+      kind: "addon",
+      controllerCompatibility: ">=7.1 <8",
+    });
 
     const configJson = JSON.parse(await readFile(path.join(targetDir, "config.json"), "utf8")) as {
       devops?: Record<string, string>;
@@ -229,6 +235,12 @@ describe("uns-kit create --bundle", () => {
     const indexTs = await readFile(path.join(workdir, "legacy-app", "src", "index.ts"), "utf8");
     expect(indexTs).toContain('process.once("SIGINT"');
     expect(indexTs).not.toContain("await mqttOutput.stop()");
+    const packageJson = JSON.parse(await readFile(path.join(workdir, "legacy-app", "package.json"), "utf8"));
+    expect(packageJson.unsDatahub).toEqual({
+      schemaVersion: 1,
+      kind: "addon",
+      controllerCompatibility: ">=7.1 <8",
+    });
   });
 });
 
