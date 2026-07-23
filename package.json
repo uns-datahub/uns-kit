@@ -71,7 +71,7 @@
     "simple-git": "^3.28.0",
     "typescript": "^5.9.3",
     "tsx": "^4.20.5",
-    "vite": "^6.3.6",
+    "vite": "^6.4.3",
     "vitest": "^3.2.4",
     "zod-to-json-schema": "^3.24.6",
     "zod-to-ts": "^1.2.0"
