@@ -47,7 +47,7 @@
     "ts:core:sync-uns-schema": "pnpm exec tsx packages/uns-core/src/tools/sync-uns-schema.ts"
   },
   "author": "Aljosa Vister",
-  "license": "ISC",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/uns-datahub/uns-kit.git"
