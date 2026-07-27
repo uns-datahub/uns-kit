@@ -107,7 +107,7 @@ parent asset path in `topic`, and put only the leaf asset in `asset`:
 
 ```json
 {
-  "topic": "sij/acroni/jek/pp/",
+  "topic": "enterprise/site/area/line/",
   "asset": "furnace-1",
   "objectType": "material",
   "objectId": "main",
@@ -123,9 +123,9 @@ parent asset path in `topic`, and put only the leaf asset in `asset`:
 ```
 
 This publishes
-`sij/acroni/jek/pp/furnace-1/material/main/daily-production`. Downstream
+`enterprise/site/area/line/furnace-1/material/main/daily-production`. Downstream
 QuestDB tables still store the existing scalar identity columns; `topic` becomes
-`sij/acroni/jek/pp`, while `asset` remains `furnace-1`.
+`enterprise/site/area/line`, while `asset` remains `furnace-1`.
 
 `objectType` and `objectId` describe the semantic object being measured or
 reported. They are part of the UNS path and schema model. Changing `objectType`

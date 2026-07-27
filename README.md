@@ -10,7 +10,7 @@ uns-kit gives teams a consistent, tested foundation for Unified Namespace applic
 - Cron-driven scheduled triggers (`@uns-kit/cron`)
 - Project scaffolding, config schemas, and schema sync (`@uns-kit/cli`)
 
-Apps scaffolded with uns-kit are managed by the **UNS Datahub controller** (not yet open-sourced).
+Apps scaffolded with uns-kit are managed by the **UNS DataHub controller**.
 
 ## Packages
 
