@@ -69,7 +69,7 @@ shows how a producer publishes:
 - `systemRole: "lifecycle-time-source"` with `lifecycle`
 
 These fields are retained in the produced-topics registry and stored by the
-UNS Datahub controller in `attribute_schema.schema_json`.
+UNS OpenHub controller in `attribute_schema.schema_json`.
 
 ## Sub-Asset Publishing
 
@@ -86,7 +86,7 @@ asset path and `asset` is the leaf sub-asset.
 
 ## Datahub client (last value)
 
-`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. Prefer a long-lived service token if available; you can pass it directly and skip username/password auth.
+`UnsClient` provides a minimal REST client for the UNS OpenHub API, including the batch last-value endpoint. Prefer a long-lived service token if available; you can pass it directly and skip username/password auth.
 
 ```ts
 import { ConfigFile, UnsClient } from "@uns-kit/core";

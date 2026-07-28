@@ -2,7 +2,7 @@
 
 `@uns-kit/cron` adds cron-style scheduling to the UNS runtime. It registers a `createCrontabProxy` method on `UnsProxyProcess` that fires a `cronEvent` on every tick. Use this to trigger periodic MQTT publishes, data pulls, or any scheduled logic inside your microservice.
 
-Note: Apps built with uns-kit are intended to be managed by the **UNS Datahub controller**.
+Note: Apps built with uns-kit are intended to be managed by the **UNS OpenHub controller**.
 
 ## uns-kit in context
 

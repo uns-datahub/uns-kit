@@ -63,7 +63,7 @@ These CLI helpers are useful for diagnostics and low-level checks. For applicati
 
 ## Datahub client (last value)
 
-`UnsClient` provides a minimal REST client for the UNS Datahub API, including the batch last-value endpoint. For service-to-service access, prefer passing a long-lived service token directly. Use `AuthClient` only when you need user login/refresh behavior.
+`UnsClient` provides a minimal REST client for the UNS OpenHub API, including the batch last-value endpoint. For service-to-service access, prefer passing a long-lived service token directly. Use `AuthClient` only when you need user login/refresh behavior.
 
 ```python
 from pathlib import Path

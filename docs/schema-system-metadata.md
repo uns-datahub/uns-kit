@@ -2,7 +2,7 @@
 
 `@uns-kit/core` producers can attach schema-system metadata to published
 attributes. The metadata is published in the produced-topics registry and the
-UNS DataHub controller stores it in `attribute_schema.schema_json`.
+UNS OpenHub controller stores it in `attribute_schema.schema_json`.
 
 ## Relationship Evidence
 

@@ -2,7 +2,7 @@
 
 Core utilities and runtime building blocks for Unified Namespace (UNS) applications. The package bundles the process lifecycle manager, MQTT integrations, gRPC gateway helpers, configuration tooling, and shared type definitions that power the UNS ecosystem.
 
-Note: Apps built with uns-kit are intended to be managed by the **UNS Datahub controller**.
+Note: Apps built with uns-kit are intended to be managed by the **UNS OpenHub controller**.
 
 ## uns-kit in context
 
@@ -25,7 +25,7 @@ npm install @uns-kit/core
 
 - **UnsProxyProcess** — the central runtime class. It manages the MQTT connection, plugin lifecycle, and the instance status topic. Plugins (`@uns-kit/api`, `@uns-kit/cron`) augment it with domain-specific proxy factories.
 - **UnsProxy** — base class extended by all plugin proxies. Tracks produced topics, API endpoints, and catch-all mappings; re-publishes them to the controller on a 60-second cadence.
-- **ConfigFile** — loads and validates `config.json` at startup. On a real server this file is provided by the UNS Datahub controller; in development you maintain it yourself.
+- **ConfigFile** — loads and validates `config.json` at startup. On a real server this file is provided by the UNS OpenHub controller; in development you maintain it yourself.
 - **MQTT helpers** — resilient publishers, topic builders, throttled queues, and handover support.
 - **gRPC gateway** — infrastructure to bridge Python workers into the UNS message fabric.
 
@@ -81,7 +81,7 @@ const cron = await proc.createCrontabProxy("*/5 * * * *", { event: "tick" });
 
 ## Datahub client (last value + history)
 
-`UnsClient` provides a minimal REST client for the UNS Datahub API, including batch last-value, single-topic catch-all history, and batch range endpoints. Prefer a long-lived service token if available; you can pass it directly and skip username/password auth.
+`UnsClient` provides a minimal REST client for the UNS OpenHub API, including batch last-value, single-topic catch-all history, and batch range endpoints. Prefer a long-lived service token if available; you can pass it directly and skip username/password auth.
 
 ```ts
 import { UnsClient } from "@uns-kit/core";

@@ -238,7 +238,7 @@ separate physical table family while the UNS path still comes from
 
 ### Datahub client (last value + history)
 
-`UnsClient` provides a minimal REST client for the UNS Datahub API, including batch last-value, single-topic catch-all history, and batch range endpoints. For service-to-service access, prefer passing a long-lived service token directly. Use `AuthClient` only when you need user-style login/refresh from `config.json`.
+`UnsClient` provides a minimal REST client for the UNS OpenHub API, including batch last-value, single-topic catch-all history, and batch range endpoints. For service-to-service access, prefer passing a long-lived service token directly. Use `AuthClient` only when you need user-style login/refresh from `config.json`.
 
 ```python
 import pandas as pd
@@ -384,7 +384,7 @@ poetry install
 poetry run python src/main.py
 ```
 
-The generated `package.json` declares `unsDatahub.kind: "addon"` and controller compatibility so tagged releases can be discovered by UNS Datahub controllers.
+The generated `package.json` declares `unsDatahub.kind: "addon"` and controller compatibility so tagged releases can be discovered by UNS OpenHub controllers.
 
 To add optional feature scaffolding later:
 ```bash
@@ -399,7 +399,7 @@ For an existing Python project, add the current non-destructive package metadata
 poetry run uns-kit-py upgrade .
 ```
 
-The command adds the UNS Datahub add-on marker only when `unsDatahub` is absent and preserves existing metadata.
+The command adds the UNS OpenHub add-on marker only when `unsDatahub` is absent and preserves existing metadata.
 
 `configure-api` adds a service-API scaffold:
 - `src/main.py`
