@@ -8,10 +8,10 @@ Note: Apps built with uns-kit are intended to be managed by the **UNS OpenHub co
 
 | Package | Description |
 | --- | --- |
-| [`@uns-kit/core`](https://github.com/uns-datahub/uns-kit/tree/main/packages/uns-core) | Base runtime (UnsProxyProcess, MQTT helpers, config tooling, gRPC gateway). |
-| [`@uns-kit/api`](https://github.com/uns-datahub/uns-kit/tree/main/packages/uns-api) | Express plugin — HTTP endpoints, JWT/JWKS auth, Swagger, UNS metadata. |
-| [`@uns-kit/cron`](https://github.com/uns-datahub/uns-kit/tree/main/packages/uns-cron) | Cron-driven scheduler that emits UNS events on a fixed cadence. |
-| [`@uns-kit/cli`](https://github.com/uns-datahub/uns-kit/tree/main/packages/uns-cli) | CLI for scaffolding new UNS applications. |
+| [`@uns-kit/core`](https://github.com/uns-openhub/uns-kit/tree/main/packages/uns-core) | Base runtime (UnsProxyProcess, MQTT helpers, config tooling, gRPC gateway). |
+| [`@uns-kit/api`](https://github.com/uns-openhub/uns-kit/tree/main/packages/uns-api) | Express plugin — HTTP endpoints, JWT/JWKS auth, Swagger, UNS metadata. |
+| [`@uns-kit/cron`](https://github.com/uns-openhub/uns-kit/tree/main/packages/uns-cron) | Cron-driven scheduler that emits UNS events on a fixed cadence. |
+| [`@uns-kit/cli`](https://github.com/uns-openhub/uns-kit/tree/main/packages/uns-cli) | CLI for scaffolding new UNS applications. |
 
 ## Installation
 

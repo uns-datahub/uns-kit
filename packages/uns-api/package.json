@@ -7,7 +7,7 @@
   "author": "Aljoša Vister <aljosa.vister@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/uns-datahub/uns-kit.git",
+    "url": "https://github.com/uns-openhub/uns-kit.git",
     "directory": "packages/uns-api"
   },
   "keywords": [
