@@ -9,7 +9,13 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-from uns_kit import RangeResult, UnsClient
+from uns_kit import (
+    RangeResult,
+    UnsClient,
+    delete_uns_client,
+    get_uns_client,
+    register_uns_client,
+)
 
 
 class _LastValueHandler(BaseHTTPRequestHandler):
@@ -398,3 +404,24 @@ def test_uns_client_history_returns_per_topic_results() -> None:
     assert _CatchAllHandler.received_body["limit"] == 500
     assert response.results[0].data[0][1] == 42
     assert response.by_topic["plant/line/asset/type/id/current"]["stats"]["table"] == "uns_line_data"
+
+
+def test_registered_uns_client_is_reused_by_name() -> None:
+    delete_uns_client("test-registry")
+    try:
+        registered = register_uns_client(
+            "https://unsdatahub.sij.digital",
+            name="test-registry",
+            token="access-token",
+        )
+
+        assert get_uns_client("test-registry") is registered
+    finally:
+        delete_uns_client("test-registry")
+
+
+def test_get_uns_client_requires_startup_registration() -> None:
+    delete_uns_client("missing-client")
+
+    with pytest.raises(RuntimeError, match="not registered"):
+        get_uns_client("missing-client")

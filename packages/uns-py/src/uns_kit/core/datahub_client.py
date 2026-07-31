@@ -4,6 +4,7 @@ import json
 import urllib.error
 import urllib.parse
 import urllib.request
+import threading
 from dataclasses import dataclass
 from typing import Any, Literal, Mapping, Optional, Sequence, TYPE_CHECKING, TypedDict, Unpack
 
@@ -202,12 +203,14 @@ class UnsClient:
             self.base_url = stripped_base_url
             self.api_url = f"{stripped_base_url}{self.api_base_path}"
         self.manual_access_token = token
+        self.access_token = token
         self.timeout = timeout
         self.auth_client = auth_client
         self._opener = urllib.request.build_opener()
 
     def set_token(self, token: Optional[str]) -> None:
         self.manual_access_token = token
+        self.access_token = token
 
     def ensure_token(self) -> Optional[str]:
         if self.manual_access_token:
@@ -215,7 +218,8 @@ class UnsClient:
         try:
             if self.auth_client is None:
                 self.auth_client = AuthClient.create()
-            return self.auth_client.get_access_token()
+            self.access_token = self.auth_client.get_access_token()
+            return self.access_token
 
         except Exception as exc:
             raise RuntimeError("No access token available, please login again.") from exc
@@ -414,4 +418,92 @@ class UnsClient:
         if not stripped:
             return ""
         return stripped if stripped.startswith("/") else f"/{stripped}"
+
+
+class UnsClientManager:
+    """Process-local registry for sharing configured :class:`UnsClient` instances."""
+
+    def __init__(self) -> None:
+        self._clients: dict[str, UnsClient] = {}
+        self._lock = threading.RLock()
+
+    def register(
+        self,
+        name: str,
+        base_url: str,
+        *,
+        api_base_path: str = "/api",
+        token: Optional[str] = None,
+        auth_client: Optional[AuthClient] = None,
+        timeout: float = 10.0,
+    ) -> UnsClient:
+        client = UnsClient(
+            base_url,
+            api_base_path=api_base_path,
+            token=token,
+            auth_client=auth_client,
+            timeout=timeout,
+        )
+        with self._lock:
+            self._clients[_normalize_client_name(name)] = client
+        return client
+
+    def get(self, name: str = "default") -> UnsClient:
+        normalized_name = _normalize_client_name(name)
+        with self._lock:
+            client = self._clients.get(normalized_name)
+        if client is None:
+            raise RuntimeError(
+                f"UNS client '{normalized_name}' is not registered. "
+                "Call register_uns_client() during application startup."
+            )
+        return client
+
+    def delete(self, name: str = "default") -> None:
+        with self._lock:
+            self._clients.pop(_normalize_client_name(name), None)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._clients.clear()
+
+
+def _normalize_client_name(name: str) -> str:
+    normalized_name = name.strip()
+    if not normalized_name:
+        raise ValueError("UNS client name must not be empty.")
+    return normalized_name
+
+
+_default_uns_client_manager = UnsClientManager()
+
+
+def register_uns_client(
+    base_url: str,
+    *,
+    name: str = "default",
+    api_base_path: str = "/api",
+    token: Optional[str] = None,
+    auth_client: Optional[AuthClient] = None,
+    timeout: float = 10.0,
+) -> UnsClient:
+    """Create or replace a named process-local UNS REST client."""
+    return _default_uns_client_manager.register(
+        name,
+        base_url,
+        api_base_path=api_base_path,
+        token=token,
+        auth_client=auth_client,
+        timeout=timeout,
+    )
+
+
+def get_uns_client(name: str = "default") -> UnsClient:
+    """Return a named client previously registered during application startup."""
+    return _default_uns_client_manager.get(name)
+
+
+def delete_uns_client(name: str = "default") -> None:
+    """Remove a named client from the process-local registry."""
+    _default_uns_client_manager.delete(name)
 

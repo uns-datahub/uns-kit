@@ -294,6 +294,24 @@ batch_history = client.history(
 print(batch_history.by_topic)
 ```
 
+When several modules in one application use the same REST client, register it
+once during startup and retrieve the same named instance wherever it is needed:
+
+```python
+from uns_kit import get_uns_client, register_uns_client
+
+# application startup
+register_uns_client(cfg["uns"]["rest"], token=cfg["uns"].get("token"))
+
+# handler or another application module
+client = get_uns_client()
+values = client.last_value("raw/data/line-1/motor/main/temperature")
+```
+
+Use distinct names when the application needs clients for more than one UNS
+OpenHub endpoint: `register_uns_client(url, name="secondary")` and
+`get_uns_client("secondary")`.
+
 If your service token comes from an environment variable or secret store, resolve it before constructing the client:
 
 ```python
@@ -307,6 +325,20 @@ client = UnsClient(
 ```
 
 For larger service API and data-offer examples, use `configure-data-offer`. The scaffold uses `await register_api_catalog(...)` in `src/main.py`, while `src/api_routes.py` holds the `service_apis` and `data_offer_sources` definitions together with their handlers.
+
+### Shared application state
+
+`State` is a thread-safe, in-memory key/value store shared by every module in
+one Python process. It is not persisted and starts empty after every restart.
+
+```python
+from uns_kit import State
+
+state = State()
+state.set("mark_machine", {"plateID": "P123"})
+plate = state.get("mark_machine")
+state.pop("mark_machine")
+```
 
 ## Config placeholders (env + Infisical)
 `uns-py` now resolves config placeholders in the same style as `uns-core`.

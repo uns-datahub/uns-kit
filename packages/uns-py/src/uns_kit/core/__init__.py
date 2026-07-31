@@ -33,6 +33,10 @@ __all__ = [
     "UnsParameters",
     "UnsMqttProxySync",
     "UnsClient",
+    "UnsClientManager",
+    "register_uns_client",
+    "get_uns_client",
+    "delete_uns_client",
     "AuthClient",
     "RawResponse",
     "RangeQuery",
@@ -52,6 +56,7 @@ __all__ = [
     "build_uns_route_path",
     "configure_logger",
     "get_logger",
+    "State",
 ]
 
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
@@ -85,6 +90,10 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "UnsParameters": ("uns_kit.core.proxy_process", "UnsParameters"),
     "UnsMqttProxySync": ("uns_kit.core.proxy_process_sync", "UnsMqttProxySync"),
     "UnsClient": ("uns_kit.core.datahub_client", "UnsClient"),
+    "UnsClientManager": ("uns_kit.core.datahub_client", "UnsClientManager"),
+    "register_uns_client": ("uns_kit.core.datahub_client", "register_uns_client"),
+    "get_uns_client": ("uns_kit.core.datahub_client", "get_uns_client"),
+    "delete_uns_client": ("uns_kit.core.datahub_client", "delete_uns_client"),
     "AuthClient": ("uns_kit.core.auth_client", "AuthClient"),
     "RawResponse": ("uns_kit.core.datahub_client", "RawResponse"),
     "RangeQuery": ("uns_kit.core.datahub_client", "RangeQuery"),
@@ -104,6 +113,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "build_uns_route_path": ("uns_kit.core.uns_path", "build_uns_route_path"),
     "configure_logger": ("uns_kit.core.logger", "configure_logger"),
     "get_logger": ("uns_kit.core.logger", "get_logger"),
+    "State": ("uns_kit.core.state", "State"),
 }
 
 
