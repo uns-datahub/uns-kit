@@ -75,7 +75,7 @@
     "vite": "^6.4.3",
     "vitest": "^3.2.7",
     "zod-to-json-schema": "^3.25.2",
-    "zod-to-ts": "^1.2.0"
+    "zod-to-ts": "^2.1.0"
   },
   "pnpm": {
     "overrides": {
