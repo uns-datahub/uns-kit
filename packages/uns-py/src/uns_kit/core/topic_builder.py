@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 from ..version import __package_name__, __version__
 from .runtime_metadata import RUNTIME_METADATA

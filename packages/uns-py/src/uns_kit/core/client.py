@@ -4,16 +4,16 @@ import asyncio
 import contextlib
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-import uuid
 import socket
 from typing import AsyncIterator, List, Optional
+import uuid
 
 import aiomqtt
 
-MqttError = aiomqtt.MqttError
-
 from .packet import UnsPacket
 from .topic_builder import TopicBuilder
+
+MqttError = aiomqtt.MqttError
 
 
 class UnsMqttClient:

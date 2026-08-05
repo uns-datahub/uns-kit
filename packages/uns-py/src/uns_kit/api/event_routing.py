@@ -5,9 +5,6 @@ from typing import Any, Callable, Mapping
 from .interfaces import (
     ApiInteractionDefinition,
     ApiInteractionMethod,
-    DataCatalogOfferRegistration,
-    DataCatalogOfferSourceRegistration,
-    ServiceApiRegistration,
     build_api_interaction_topic_path,
     build_api_interactions_from_data_offer_sources,
     build_data_catalog_offers_from_sources,

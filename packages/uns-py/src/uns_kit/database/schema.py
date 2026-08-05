@@ -2,7 +2,16 @@ from __future__ import annotations
 
 from typing import Any, TypedDict
 
-from ..core.config_schema import any_of, boolean_schema, enum_schema, host_value_schema, integer_schema, record_schema, secret_value_schema, strict_object, string_schema
+from ..core.config_schema import (
+    any_of,
+    boolean_schema,
+    host_value_schema,
+    integer_schema,
+    record_schema,
+    secret_value_schema,
+    strict_object,
+    string_schema,
+)
 
 
 class PostgresDatabaseConfig(TypedDict, total=False):

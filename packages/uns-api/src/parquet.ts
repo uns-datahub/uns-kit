@@ -1,18 +1,21 @@
+import logger from "@uns-kit/core/logger.js";
 import { randomUUID } from "crypto";
 import fs from "fs";
+import { type BasicType, type ColumnSource, fileWriter, parquetWriteRows } from "hyparquet-writer";
 import os from "os";
 import path from "path";
-import { ParquetSchema, ParquetWriter } from "parquets";
-import logger from "@uns-kit/core/logger.js";
+
 import type { DataCatalogSchemaRegistration } from "./api-interfaces.js";
 
-const PARQUET_TYPE_MAP: Record<string, string> = {
-  string: "UTF8",
+export type CatalogParquetColumn = Omit<ColumnSource, "data">;
+
+const PARQUET_TYPE_MAP: Record<string, BasicType> = {
+  string: "STRING",
   number: "DOUBLE",
   integer: "INT64",
   boolean: "BOOLEAN",
-  date: "TIMESTAMP_MILLIS",
-  "date-time": "TIMESTAMP_MILLIS",
+  date: "TIMESTAMP",
+  "date-time": "TIMESTAMP",
 };
 
 export async function writeSchemaRowsToParquet(input: {
@@ -30,11 +33,16 @@ export async function writeSchemaRowsToParquet(input: {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const writer = await ParquetWriter.openFile(buildParquetSchemaFromCatalogSchema(input.schema), filePath);
-    for (const row of input.rows) {
-      await writer.appendRow(normalizeParquetRow(row));
+    const columns = buildParquetSchemaFromCatalogSchema(input.schema);
+    if (!columns.length) {
+      throw new Error(`Parquet schema '${input.schema.id}' has no supported fields.`);
     }
-    await writer.close();
+
+    await parquetWriteRows({
+      writer: fileWriter(filePath),
+      rows: input.rows.map((row) => normalizeParquetRow(row, columns)),
+      columns,
+    });
     return filePath;
   } catch (error) {
     logger.error("Failed to write schema-driven parquet:", error);
@@ -42,32 +50,34 @@ export async function writeSchemaRowsToParquet(input: {
   }
 }
 
-export function buildParquetSchemaFromCatalogSchema(schema: DataCatalogSchemaRegistration): any {
-  const schemaDef: Record<string, { type: string; optional: boolean }> = {};
+export function buildParquetSchemaFromCatalogSchema(schema: DataCatalogSchemaRegistration): CatalogParquetColumn[] {
+  const columns: CatalogParquetColumn[] = [];
   for (const field of schema.fields ?? []) {
     const parquetType = toParquetType(field.type ?? "string", field.format ?? null);
     if (!parquetType) {
       continue;
     }
-    schemaDef[field.name] = {
+    columns.push({
+      name: field.name,
       type: parquetType,
-      optional: field.required !== true,
-    };
+      nullable: field.required !== true,
+    });
   }
-  return new ParquetSchema(schemaDef);
+  return columns;
 }
 
-function toParquetType(type: string, format: string | null): string | null {
+function toParquetType(type: string, format: string | null): BasicType | null {
   if (format && PARQUET_TYPE_MAP[format]) {
     return PARQUET_TYPE_MAP[format];
   }
   return PARQUET_TYPE_MAP[type] ?? null;
 }
 
-function normalizeParquetRow(row: Record<string, unknown>): Record<string, unknown> {
+function normalizeParquetRow(row: Record<string, unknown>, columns: CatalogParquetColumn[]): Record<string, unknown> {
   const normalized: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(row)) {
-    normalized[key] = value instanceof Date ? new Date(value) : value;
+  for (const column of columns) {
+    const value = row[column.name];
+    normalized[column.name] = column.type === "INT64" && typeof value === "number" ? BigInt(value) : value instanceof Date ? new Date(value) : value;
   }
   return normalized;
 }

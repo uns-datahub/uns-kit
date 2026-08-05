@@ -1,6 +1,6 @@
 {
   "name": "@uns-kit/cron",
-  "version": "3.0.5",
+  "version": "3.0.6",
   "description": "Cron-driven plugin for UnsProxyProcess that emits UNS events on a schedule.",
   "type": "module",
   "license": "MIT",
@@ -37,6 +37,6 @@
   },
   "dependencies": {
     "@uns-kit/core": "workspace:*",
-    "node-cron": "^4.2.1"
+    "node-cron": "^4.6.0"
   }
 }

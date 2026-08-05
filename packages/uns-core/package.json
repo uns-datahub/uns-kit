@@ -1,6 +1,6 @@
 {
   "name": "@uns-kit/core",
-  "version": "3.0.5",
+  "version": "3.0.6",
   "description": "Core utilities and runtime building blocks for UNS-based realtime transformers.",
   "type": "module",
   "license": "MIT",
@@ -39,28 +39,28 @@
     "postversion": "node ../../scripts/update-cli-package-version.cjs"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.14.0",
-    "@grpc/proto-loader": "^0.8.0",
-    "@infisical/sdk": "^4.0.5",
-    "azure-devops-node-api": "^15.1.1",
+    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/proto-loader": "^0.8.1",
+    "@infisical/sdk": "^5.0.2",
+    "azure-devops-node-api": "^15.1.2",
     "chalk": "^5.6.2",
-    "fs-extra": "^11.3.2",
-    "get-port": "^7.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "mqtt": "^5.13.0",
+    "fs-extra": "^11.4.0",
+    "get-port": "^7.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "mqtt": "^5.15.2",
     "pkg-dir": "^9.0.0",
-    "prettier": "^3.6.2",
-    "simple-git": "^3.28.0",
-    "tsx": "^4.20.5",
-    "winston": "^3.17.0",
+    "prettier": "^3.9.6",
+    "simple-git": "^3.36.0",
+    "tsx": "^4.23.8",
+    "winston": "^3.19.0",
     "winston-gelf": "^1.7.0",
-    "ws": "^8.18.3",
-    "zod": "^3",
-    "zod-to-json-schema": "^3.24.6",
+    "ws": "^8.21.2",
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.25.2",
     "zod-to-ts": "^1.2.0"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.9",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/ws": "^8.18.1"
   }
 }
