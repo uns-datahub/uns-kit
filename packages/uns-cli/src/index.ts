@@ -20,8 +20,8 @@ import {
   type ServiceBundlePublisherContract,
 } from "./service-bundle.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentFilename = fileURLToPath(import.meta.url);
+const currentDirname = path.dirname(currentFilename);
 const require = createRequire(import.meta.url);
 const cliVersion = resolveCliVersion();
 const coreVersion = resolveCoreVersion();
@@ -306,7 +306,7 @@ async function scaffoldTsProject(
 ): Promise<{ packageName: string; initializedGit: boolean }> {
   await ensureTargetDir(targetDir, { allowExisting: options.allowExisting });
 
-  const templateDir = path.resolve(__dirname, `../templates/${options.templateName ?? DEFAULT_TEMPLATE_NAME}`);
+  const templateDir = path.resolve(currentDirname, `../templates/${options.templateName ?? DEFAULT_TEMPLATE_NAME}`);
   try {
     await access(templateDir);
   } catch (error) {
@@ -665,6 +665,7 @@ const AGENT_MIGRATION_BLOCK = [
   "- After installing the target version, read `node_modules/@uns-kit/core/MIGRATIONS.md` and apply every migration whose version boundary is crossed. Do not apply unrelated migrations.",
   "- When crossing `<2.0.71` to `>=2.0.71`, inspect MQTT proxy ownership and follow the documented shutdown migration. Process-owned and standalone proxies have different shutdown paths.",
   "- When crossing `<3.0.0` to `>=3.0.0`, migrate MQTT `message.table.columns` publishers from named arrays to named objects and consumers to object-entry iteration. Keep schema `tableColumns` and Assistant/UI table formats unchanged.",
+  "- When crossing `<3.0.7` to `>=3.0.7`, update the application's direct `zod` dependency to Zod 4, migrate Zod-3-only project config extension APIs, and regenerate `config.schema.json` plus `src/config/app-config.ts`.",
   AGENT_MIGRATION_END,
 ].join("\n");
 
@@ -875,7 +876,7 @@ async function applyAzureDevopsConfig(
     pkgChanged = true;
   }
 
-  const azurePipelineTemplatePath = path.resolve(__dirname, "../templates/azure-pipelines.yml");
+  const azurePipelineTemplatePath = path.resolve(currentDirname, "../templates/azure-pipelines.yml");
   try {
     await access(azurePipelineTemplatePath);
   } catch (error) {
@@ -938,7 +939,7 @@ function logDevopsResult(
 
 async function configureVscode(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
-  const templateDir = path.resolve(__dirname, "../templates/vscode");
+  const templateDir = path.resolve(currentDirname, "../templates/vscode");
 
   try {
     await access(templateDir);
@@ -974,7 +975,7 @@ async function configureVscode(targetPath?: string, options: ConfigureTemplateOp
 
 async function configureConfigFiles(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
-  const templateDir = path.resolve(__dirname, "../templates/config-files");
+  const templateDir = path.resolve(currentDirname, "../templates/config-files");
 
   try {
     await access(templateDir);
@@ -1032,7 +1033,7 @@ async function applyConfigTemplatePlaceholders(targetDir: string, relativePaths:
 
 async function configureCodegen(targetPath?: string, options: ConfigureTemplateOptions = {}): Promise<void> {
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
-  const templateDir = path.resolve(__dirname, "../templates/codegen");
+  const templateDir = path.resolve(currentDirname, "../templates/codegen");
   const packagePath = path.join(targetDir, "package.json");
 
   try {
@@ -1384,7 +1385,7 @@ function parseConfigureTemplatesArgs(
 }
 
 async function runConfigureTemplatesCommand(args: string[]): Promise<void> {
-  const templateRoot = path.resolve(__dirname, "../templates");
+  const templateRoot = path.resolve(currentDirname, "../templates");
   const availableTemplates = await listTemplateDirectories(templateRoot, { includeDefault: true });
   const allTemplates = await listTemplateDirectories(templateRoot, { includeDefault: false });
   const { targetPath, overwrite, includeAll, templateNames } = parseConfigureTemplatesArgs(args, availableTemplates);
@@ -1686,7 +1687,7 @@ async function configurePlugin(options: {
 }): Promise<void> {
   const { targetPath, templateName, dependencyName, dependencySpecifier, label, overwrite } = options;
   const targetDir = path.resolve(process.cwd(), targetPath ?? ".");
-  const templateDir = path.resolve(__dirname, `../templates/${templateName}`);
+  const templateDir = path.resolve(currentDirname, `../templates/${templateName}`);
   const packagePath = path.join(targetDir, "package.json");
 
   try {
@@ -2226,7 +2227,7 @@ function normalizePackageName(input: string): string {
 }
 
 function resolveUnsPackageSpecifier(packageName: string, relativeLocalPath: string): string {
-  const localPath = path.resolve(__dirname, relativeLocalPath);
+  const localPath = path.resolve(currentDirname, relativeLocalPath);
   if (existsSync(localPath)) {
     const pkg = require(localPath) as { version?: string };
     const version = pkg?.version ?? "0.0.1";
@@ -2255,7 +2256,7 @@ function resolveUnsPackageVersion(packageName: string, relativeLocalPath: string
   }
 
   const workspaceVersion = attempt(() => {
-    const pkgPath = path.resolve(__dirname, relativeLocalPath);
+    const pkgPath = path.resolve(currentDirname, relativeLocalPath);
     const pkg = require(pkgPath) as { version?: string };
     return pkg?.version;
   });
@@ -2336,7 +2337,7 @@ function resolveCoreVersion(): string {
   }
 
   const workspaceVersion = attempt(() => {
-    const localPath = path.resolve(__dirname, "../../uns-core/package.json");
+    const localPath = path.resolve(currentDirname, "../../uns-core/package.json");
     const pkg = require(localPath) as { version?: string };
     return pkg?.version;
   });

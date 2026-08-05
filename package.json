@@ -5,6 +5,8 @@
   "description": "Monorepo for the UNS toolkit (core runtime and plugin packages)",
   "packageManager": "pnpm@9.12.1",
   "scripts": {
+    "test": "vitest run && pnpm --filter @uns-kit/assistant-workflow run test",
+    "test:external": "pnpm --filter @uns-kit/core run build && vitest run --config vitest.external.config.ts",
     "py:install": "cd packages/uns-py && poetry install",
     "py:lint": "cd packages/uns-py && poetry run ruff check .",
     "py:version:patch": "cd packages/uns-py && poetry version patch",
@@ -63,6 +65,7 @@
     "azure-devops-node-api": "^15.1.2",
     "chalk": "^5.6.2",
     "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
     "fs-extra": "^11.4.0",
     "globals": "^16.5.0",
     "graphql": "^16.14.2",
@@ -74,8 +77,8 @@
     "typescript": "^5.9.3",
     "vite": "^6.4.3",
     "vitest": "^3.2.7",
-    "zod-to-json-schema": "^3.25.2",
-    "zod-to-ts": "^1.2.0"
+    "zod": "^4.4.3",
+    "zod-to-ts": "^2.1.0"
   },
   "pnpm": {
     "overrides": {

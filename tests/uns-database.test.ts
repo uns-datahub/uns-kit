@@ -158,6 +158,28 @@ describe("@uns-kit/database", () => {
     expect(parsed.main.usePool).toBe(false);
   });
 
+  it("preserves the Zod 3 integer input boundary", () => {
+    const unsafeInteger = Number.MAX_SAFE_INTEGER + 1;
+    expect(
+      databasesConfigSchema.safeParse({
+        main: {
+          dialect: "sqlite",
+          filename: ":memory:",
+          timeoutMs: unsafeInteger,
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      databasesConfigSchema.safeParse({
+        main: {
+          dialect: "sqlite",
+          filename: ":memory:",
+          timeoutMs: 1.5,
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   it("keeps a reusable default database manager registry", () => {
     const manager = getDatabaseManager();
     registerDatabase("main", {

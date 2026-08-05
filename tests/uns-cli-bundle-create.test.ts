@@ -54,11 +54,13 @@ describe("uns-kit create --bundle", () => {
     expect(agents).toContain("Read `service.bundle.json` first");
     expect(agents).toContain("node_modules/@uns-kit/core/MIGRATIONS.md");
     expect(agents).toContain("When crossing `<2.0.71` to `>=2.0.71`");
+    expect(agents).toContain("When crossing `<3.0.7` to `>=3.0.7`");
     expect(agents).toContain("pnpm build");
 
     const packageJson = JSON.parse(await readFile(path.join(targetDir, "package.json"), "utf8")) as {
       name: string;
       scripts?: Record<string, string>;
+      dependencies?: Record<string, string>;
       unsDatahub?: Record<string, unknown>;
     };
     expect(packageJson.name).toBe("uns-example-service");
@@ -66,6 +68,7 @@ describe("uns-kit create --bundle", () => {
       "node --env-file-if-exists=.env ./node_modules/tsx/dist/cli.mjs watch src/index.ts",
     );
     expect(packageJson.scripts?.start).toBe("node --env-file-if-exists=.env dist/index.js");
+    expect(packageJson.dependencies?.zod).toBe("^4.4.3");
     expect(packageJson.scripts?.["pull-request"]).toBe(
       "node ./node_modules/@uns-kit/core/dist/tools/pull-request.js",
     );

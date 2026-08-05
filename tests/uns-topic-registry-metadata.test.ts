@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { UnsAttributeType } from "../packages/uns-core/src/graphql/schema.ts";
 import UnsProxy from "../packages/uns-core/src/uns/uns-proxy.ts";
-import type { ITopicObject, UnsEvents } from "../packages/uns-core/src/uns/uns-interfaces.ts";
+import type {
+  ITopicObject,
+  IUnsData,
+  UnsEvents,
+} from "../packages/uns-core/src/uns/uns-interfaces.ts";
 
 class TestUnsProxy extends UnsProxy {
   constructor() {
@@ -16,6 +20,18 @@ class TestUnsProxy extends UnsProxy {
 }
 
 describe("UNS produced topic metadata", () => {
+  it("allows generic relationship evidence fields and scalar arrays", () => {
+    const data: IUnsData = {
+      time: "2026-06-02T12:00:00.000Z",
+      value: ["slab-1122", "slab-1123"],
+      currentMaterialObjectId: "slab-1124",
+      operationId: "weld-1122-1123",
+    };
+
+    expect(data.value).toEqual(["slab-1122", "slab-1123"]);
+    expect(data.currentMaterialObjectId).toBe("slab-1124");
+  });
+
   it("publishes counter metadata into the produced topics registry", () => {
     const proxy = new TestUnsProxy();
     let event: UnsEvents["unsProxyProducedTopics"] | null = null;

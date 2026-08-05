@@ -9,6 +9,31 @@ Agents must inspect the application's existing ownership and shutdown flow
 before editing it. The examples below describe the intended behavior, not a
 mechanical search-and-replace operation.
 
+## 3.0.7 - Zod 4 configuration contracts
+
+Apply this migration when upgrading from `@uns-kit/core` `<3.0.7` to
+`>=3.0.7`.
+
+`@uns-kit/core` and `@uns-kit/database` now use Zod 4. Applications that own a
+`src/config/project.config.extension.ts` file must use the same Zod major at the
+schema-composition boundary. Update the application's direct `zod` dependency
+to `^4.4.3` before regenerating configuration artifacts.
+
+The UNS core and database schemas preserve their previous accepted inputs and
+defaults. The migration is nevertheless source-sensitive for applications that
+inspect Zod internals or use Zod-3-only type aliases. Replace those seams with
+the public Zod 4 API:
+
+- replace `z.AnyZodObject` with `z.ZodObject<z.ZodRawShape>`;
+- replace `z.ZodTypeAny` with `z.ZodType` where a broad schema type is needed;
+- read object keys through `.shape`, not `_def.shape()`;
+- pass both key and value schemas to `z.record(keySchema, valueSchema)`;
+- prefer object `.extend()` or shape spreading over deprecated `.merge()`.
+
+After updating the extension schema, run `pnpm run generate-config-schema` and
+check both `config.schema.json` and `src/config/app-config.ts`. Then run the
+application's typecheck and its existing configuration compatibility tests.
+
 ## 3.0.0 - MQTT table columns use named objects
 
 Apply this migration when upgrading from `@uns-kit/core` `<3.0.0` to
@@ -22,9 +47,7 @@ column directly addressable as, for example,
 Before:
 
 ```ts
-columns: [
-  { name: "power", type: "double", value: 42.1, uom: "kW" },
-]
+columns: [{ name: "power", type: "double", value: 42.1, uom: "kW" }];
 ```
 
 After:

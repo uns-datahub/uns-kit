@@ -17,7 +17,9 @@ export type UnsAttribute = KnownUnsAttributeName | (string & {});
 
 export const valueTypes = ["string", "number"] as const;
 export type ValueTypeString = (typeof valueTypes)[number];
-export type ValueType = string | number;
+export type ScalarValueType = string | number;
+/** Scalar telemetry or a scalar array used by metadata such as relationship evidence. */
+export type ValueType = ScalarValueType | ScalarValueType[];
 
 export type CounterResetPolicy = "new-value" | "null" | "rollover" | (string & {});
 
@@ -212,6 +214,8 @@ export interface IUnsExtendedData extends IUnsData {
 }
 
 export interface IUnsData {
+  /** Domain-specific evidence/context fields may accompany the canonical value. */
+  [key: string]: unknown;
   time: ISO8601;
   value: ValueType;
   /** Storage/routing group for consumers such as archivers; not part of the UNS identity path. */
